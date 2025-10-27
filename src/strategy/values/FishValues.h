@@ -37,7 +37,7 @@ public:
         value = val;
         _setTime = getMSTime();
     }
-    uint32 lastUpdated() const {return - _setTime;}
+    uint32 lastUpdated() const {return _setTime;}
     bool IsStale(uint32 maxDuration) const { return getMSTime() - _setTime > maxDuration; }
 
 private:

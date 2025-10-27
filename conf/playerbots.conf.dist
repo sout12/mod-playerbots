@@ -373,7 +373,6 @@ AiPlayerbot.WhisperDistance = 6000.0
 AiPlayerbot.ContactDistance = 0.45
 AiPlayerbot.AoeRadius = 10
 AiPlayerbot.RpgDistance = 200
-AiPlayerbot.AggroDistance = 22
 AiPlayerbot.FishingDistanceFromMaster = 10.0
 AiPlayerbot.FishingDistance = 40.0
 AiPlayerbot.GrindDistance = 75.0

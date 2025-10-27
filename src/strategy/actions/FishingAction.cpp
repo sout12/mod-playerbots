@@ -31,7 +31,7 @@ float const SEARCH_INCREMENT = 2.5f;
 float const HEIGHT_SEARCH_BUFFER = 10.0f; // Height buffer to prevent potentially missing the model the bot is standing on.
 float const SEARCH_LAND_BUFFER = 0.5f;
 float const ENDING_FISHING_DISTANCE = 30.0f;
-
+uint32 const FISHING_LOCATION_TIMEOUT = 180000; //Three minutes
 
 static bool IsFishingPole(Item* const item)
 {
@@ -50,7 +50,7 @@ float HasFishableWaterOrLand(float x, float y, float z,  Map* map, uint32 phaseM
     LiquidData const& liq = map->GetLiquidData(phaseMask, x, y, z+HEIGHT_ABOVE_WATER_TOLERANCE, DEFAULT_COLLISION_HEIGHT, MAP_ALL_LIQUIDS);
     float ground = map->GetHeight(phaseMask, x, y, z + HEIGHT_SEARCH_BUFFER, true);
 
-    if (liq.Entry == 0) // 0 is land.
+    if (liq.Entry == MAP_LIQUID_TYPE_NO_WATER) 
     {
         if (checkForLand)
             return ground;
@@ -109,7 +109,7 @@ WorldPosition FindLandFromPosition(PlayerbotAI* botAI, float startDistance, floa
         }
 
         LiquidData const& liq = map->GetLiquidData(phaseMask, checkX, checkY, targetZ, DEFAULT_COLLISION_HEIGHT, MAP_ALL_LIQUIDS);
-        if (liq.Entry == 0 || groundZ > liq.DepthLevel + HEIGHT_ABOVE_WATER_TOLERANCE)
+        if (liq.Entry == MAP_LIQUID_TYPE_NO_WATER || groundZ > liq.DepthLevel + HEIGHT_ABOVE_WATER_TOLERANCE)
         {
             if (checkLOS)
             {
@@ -134,6 +134,8 @@ WorldPosition FindLandRadialFromPosition (PlayerbotAI* botAI, WorldPosition targ
     const int numDirections = angles;
     std::vector<WorldPosition> boundaryPoints;
     Player* master = botAI->GetMaster();
+    if (!master)
+        return WorldPosition();
 
     Map* map = bot->GetMap();
     uint32 phaseMask = bot->GetPhaseMask();
@@ -268,7 +270,7 @@ bool MoveNearWaterAction::isUseful()
         return false;
     FishingSpotValue* fishingSpotValueObject =  (FishingSpotValue*)context->GetValue<WorldPosition>("fishing spot"); 
     WorldPosition pos = fishingSpotValueObject->Get();
-    return pos.IsValid() || fishingSpotValueObject->IsStale(180000) || pos != bot->GetPosition();
+    return !pos.IsValid() || fishingSpotValueObject->IsStale(FISHING_LOCATION_TIMEOUT) || pos != bot->GetPosition();
 }
 
 bool MoveNearWaterAction::isPossible()
@@ -445,17 +447,12 @@ bool FishingAction::isUseful()
     FishingSpotValue* fishingSpotValueObject =  (FishingSpotValue*)context->GetValue<WorldPosition>("fishing spot");
     WorldPosition pos = fishingSpotValueObject->Get();
 
-    return pos.IsValid() && !fishingSpotValueObject->IsStale(180000);
+    return pos.IsValid() && !fishingSpotValueObject->IsStale(FISHING_LOCATION_TIMEOUT);
 }
-
 
 bool UseBobber::isUseful()
 {
-    if (!AI_VALUE(bool, "can use fishing bobber"))
-    {
-        return false;
-    }
-    return true;
+    return AI_VALUE(bool, "can use fishing bobber");
 }
 
 bool UseBobber::Execute(Event event)
@@ -490,7 +487,7 @@ bool EndMasterFishing::isUseful()
 {
     FishingSpotValue* fishingSpotValueObject =  (FishingSpotValue*)context->GetValue<WorldPosition>("fishing spot");
     WorldPosition pos = fishingSpotValueObject->Get();
-    if (pos.IsValid() && !fishingSpotValueObject->IsStale(180000) && pos == bot->GetPosition())
+    if (pos.IsValid() && !fishingSpotValueObject->IsStale(FISHING_LOCATION_TIMEOUT) && pos == bot->GetPosition())
         return false;
 
     WorldPosition nearWater = FindWaterRadial(bot, bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ(), bot->GetMap(), bot->GetPhaseMask(), MIN_DISTANCE_TO_WATER, ENDING_FISHING_DISTANCE, 10.0f);

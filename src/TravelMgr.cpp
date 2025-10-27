@@ -220,7 +220,7 @@ bool WorldPosition::isUnderWater()
 
 bool WorldPosition::IsValid()
 {
-    return GetPositionX() != 0 && GetPositionY() != 0;
+    return GetMapId() != 0 && GetPositionX() != 0 && GetPositionY() != 0 && GetPositionZ() != 0;
 }
 
 WorldPosition WorldPosition::relPoint(WorldPosition* center)

@@ -195,7 +195,7 @@ public:
         creators["move near water"] = &ActionContext::move_near_water;
         creators["go fishing"] = &ActionContext::go_fishing;
         creators["use fishing bobber"] = &ActionContext::use_fishing_bobber;
-        creators["end master fishing"] = &ActionContext::end_fishing;
+        creators["end master fishing"] = &ActionContext::end_master_fishing;
         creators["remove bobber strategy"] = &ActionContext::remove_bobber_strategy;
         creators["roll"] = &ActionContext::roll_action;
         creators["cancel channel"] = &ActionContext::cancel_channel;
@@ -389,7 +389,7 @@ private:
     static Action* move_near_water(PlayerbotAI* botAI) { return new MoveNearWaterAction(botAI); }
     static Action* go_fishing(PlayerbotAI* botAI) { return new FishingAction(botAI);}
     static Action* use_fishing_bobber(PlayerbotAI* botAI) { return new UseBobber(botAI);}
-    static Action* end_fishing(PlayerbotAI* botAI) { return new EndMasterFishing(botAI); }
+    static Action* end_master_fishing(PlayerbotAI* botAI) { return new EndMasterFishing(botAI); }
     static Action* remove_bobber_strategy(PlayerbotAI* botAI) { return new RemoveBobberStrategyAction(botAI); }
     static Action* roll_action(PlayerbotAI* botAI) { return new RollAction(botAI); }
 
