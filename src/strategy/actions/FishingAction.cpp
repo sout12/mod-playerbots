@@ -248,9 +248,8 @@ WorldPosition FindFishingHole(PlayerbotAI* botAI)
         }
     }
     if (nearestFishingHole)
-    {
         return WorldPosition(nearestFishingHole->GetMapId(), nearestFishingHole->GetPositionX(), nearestFishingHole->GetPositionY(), nearestFishingHole->GetPositionZ());
-    }
+
     return WorldPosition();
 }
 
@@ -258,9 +257,8 @@ bool MoveNearWaterAction::Execute(Event event)
 {
     WorldPosition landSpot = AI_VALUE(WorldPosition, "fishing spot");
     if(landSpot.IsValid())
-    {
         return MoveTo(landSpot.GetMapId(), landSpot.GetPositionX(), landSpot.GetPositionY(), landSpot.GetPositionZ());
-    }
+
     return false;
 }
 
@@ -351,9 +349,8 @@ bool EquipFishingPoleAction::isUseful()
 {
     Item* mainHand = bot->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND);
     if (IsFishingPole(mainHand))
-    {
         return false;
-    }
+
     for (uint8 slot = INVENTORY_SLOT_ITEM_START; slot < INVENTORY_SLOT_ITEM_END; ++slot)
     {
         if (Item* item = bot->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
@@ -409,9 +406,8 @@ bool FishingAction::Execute(Event event)
 
         if (distance < MAX_DISTANCE_TO_WATER &&
             distance > MIN_DISTANCE_TO_WATER && hasLOS)
-        {
             target = fishingHole;
-        }
+
     }
     if (!target.IsValid())
     {
