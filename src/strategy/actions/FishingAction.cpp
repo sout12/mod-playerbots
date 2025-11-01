@@ -256,7 +256,7 @@ WorldPosition FindFishingHole(PlayerbotAI* botAI)
 bool MoveNearWaterAction::Execute(Event event)
 {
     WorldPosition landSpot = AI_VALUE(WorldPosition, "fishing spot");
-    if(landSpot.IsValid())
+    if (landSpot.IsValid())
         return MoveTo(landSpot.GetMapId(), landSpot.GetPositionX(), landSpot.GetPositionY(), landSpot.GetPositionZ());
 
     return false;
