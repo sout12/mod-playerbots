@@ -103,10 +103,7 @@ WorldPosition FindLandFromPosition(PlayerbotAI* botAI, float startDistance, floa
         float groundZ = map->GetHeight(phaseMask, checkX, checkY, targetZ + HEIGHT_SEARCH_BUFFER, true);
 
         if (groundZ == INVALID_HEIGHT)
-        {
-            dist += increment;
             continue;
-        }
 
         LiquidData const& liq = map->GetLiquidData(phaseMask, checkX, checkY, targetZ, DEFAULT_COLLISION_HEIGHT, MAP_ALL_LIQUIDS);
         if (liq.Entry == MAP_LIQUID_TYPE_NO_WATER || groundZ > liq.DepthLevel + HEIGHT_ABOVE_WATER_TOLERANCE)
@@ -387,10 +384,15 @@ bool EquipFishingPoleAction::isUseful()
         return true;
     }
 
+    Player* master = botAI->GetMaster();
+    if (!master)
+        return false;
+
+    std::string masterName = master->GetName();
     std::string text = sPlayerbotTextMgr->GetBotTextOrDefault(
     "no_fishing_pole_error", "I don't have a Fishing Pole",{});
-    std::string master = botAI->GetMaster()->GetName();
-    botAI->Whisper(text, master);
+    botAI->Whisper(text, masterName);
+
     return false;
 }
 
