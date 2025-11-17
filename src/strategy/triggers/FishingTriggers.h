@@ -6,8 +6,7 @@
 #ifndef _PLAYERBOT_FISHING_TRIGGER_H
 #define _PLAYERBOT_FISHING_TRIGGER_H
 
-
-#include "GenericTriggers.h"    
+#include "GenericTriggers.h"
 
 class CanFishTrigger : public Trigger
 {

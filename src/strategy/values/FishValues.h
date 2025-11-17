@@ -29,7 +29,7 @@ public:
 class FishingSpotValue : public ManualSetValue<WorldPosition>
 {
 public:
-    FishingSpotValue(PlayerbotAI* botAI, WorldPosition const pos = WorldPosition(), std::string const name = "fishing spot")
+    FishingSpotValue(PlayerbotAI* botAI, WorldPosition auto& const  pos = WorldPosition(), std::string const name = "fishing spot")
      : ManualSetValue<WorldPosition>(botAI, pos, name) {}
 
     void Set(WorldPosition val) override
@@ -43,6 +43,5 @@ public:
 private:
     uint32 _setTime = 0;
 };
-
 
 #endif

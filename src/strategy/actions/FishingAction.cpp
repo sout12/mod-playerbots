@@ -19,8 +19,6 @@
 #include "Playerbots.h"
 #include "Position.h"
 
-
-
 uint32 const FISHING_SPELL = 7620;
 uint32 const FISHING_POLE = 6256;
 uint32 const FISHING_BOBBER = 35591;
@@ -38,7 +36,7 @@ static bool IsFishingPole(Item* const item)
     if (!item)
         return false;
     const ItemTemplate* proto = item->GetTemplate();
-    return proto && proto->Class == ITEM_CLASS_WEAPON && 
+    return proto && proto->Class == ITEM_CLASS_WEAPON &&
         proto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE;
 }
 
@@ -49,7 +47,7 @@ float HasFishableWaterOrLand(float x, float y, float z,  Map* map, uint32 phaseM
 
     LiquidData const& liq = map->GetLiquidData(phaseMask, x, y, z+HEIGHT_ABOVE_WATER_TOLERANCE, DEFAULT_COLLISION_HEIGHT, MAP_ALL_LIQUIDS);
     float ground = map->GetHeight(phaseMask, x, y, z + HEIGHT_SEARCH_BUFFER, true);
-    if (liq.Entry == MAP_LIQUID_TYPE_NO_WATER) 
+    if (liq.Entry == MAP_LIQUID_TYPE_NO_WATER)
     {
         if (checkForLand)
             return ground;
@@ -93,7 +91,7 @@ WorldPosition FindLandFromPosition(PlayerbotAI* botAI, float startDistance, floa
     float targetY = targetPos.GetPositionY();
     float targetZ = targetPos.GetPositionZ();
 
-    for (float dist = startDistance; dist <= endDistance; dist += increment) 
+    for (float dist = startDistance; dist <= endDistance; dist += increment)
     {
         //step backwards from position to bot to find edge of shore.
         float checkX = targetX - dist * cos(orientation);
@@ -142,7 +140,7 @@ WorldPosition FindLandRadialFromPosition (PlayerbotAI* botAI, WorldPosition targ
 
     for (float dist = startDistance; dist <= endDistance; dist += increment)
     {
-        for (int i = 0; i < numDirections; ++i) 
+        for (int i = 0; i < numDirections; ++i)
         {
             float angle = (2.0f * M_PI * i) / numDirections;
             float checkX = targetX - cos(angle) * dist;
@@ -171,7 +169,7 @@ WorldPosition FindLandRadialFromPosition (PlayerbotAI* botAI, WorldPosition targ
 
     float minDistance = FLT_MAX;
     WorldLocation closestPoint = WorldPosition();
-    for (const auto& pos : boundaryPoints)
+    for (auto& const pos : boundaryPoints)
     {
         float distance = bot->GetExactDist2d(&pos);
         if (distance < minDistance)
@@ -183,7 +181,7 @@ WorldPosition FindLandRadialFromPosition (PlayerbotAI* botAI, WorldPosition targ
     return closestPoint;
 }
 
-WorldPosition FindWaterRadial(Player* bot, float x, float y, float z, Map* map, uint32 phaseMask, float minDistance, float maxDistance, float increment, bool checkLOS, int numDirections) 
+WorldPosition FindWaterRadial(Player* bot, float x, float y, float z, Map* map, uint32 phaseMask, float minDistance, float maxDistance, float increment, bool checkLOS, int numDirections)
 {
     std::vector<WorldPosition> boundaryPoints;
 
@@ -218,7 +216,7 @@ WorldPosition FindWaterRadial(Player* bot, float x, float y, float z, Map* map, 
 
     if (boundaryPoints.size() == 1)
         return boundaryPoints[0];
-    // return the central point in the identified positions in to try to be perpendicular to the shore. 
+    // return the central point in the identified positions in to try to be perpendicular to the shore.
     return boundaryPoints[boundaryPoints.size() / 2];
 }
 
@@ -228,7 +226,7 @@ WorldPosition FindFishingHole(PlayerbotAI* botAI)
     GuidVector gos = PAI_VALUE(GuidVector, "nearest game objects no los");
     GameObject* nearestFishingHole = nullptr;
     float minDist = std::numeric_limits<float>::max();
-    for (const auto& guid : gos)
+    for (auto& const guid : gos)
     {
         GameObject* go = botAI->GetGameObject(guid);
         if (!go)
@@ -262,7 +260,7 @@ bool MoveNearWaterAction::isUseful()
 {
     if (!AI_VALUE(bool, "can fish"))
         return false;
-    FishingSpotValue* fishingSpotValueObject =  (FishingSpotValue*)context->GetValue<WorldPosition>("fishing spot"); 
+    FishingSpotValue* fishingSpotValueObject =  (FishingSpotValue*)context->GetValue<WorldPosition>("fishing spot");
     WorldPosition pos = fishingSpotValueObject->Get();
     return !pos.IsValid() || fishingSpotValueObject->IsStale(FISHING_LOCATION_TIMEOUT) || pos != bot->GetPosition();
 }
@@ -309,7 +307,7 @@ bool MoveNearWaterAction::isPossible()
         MIN_DISTANCE_TO_WATER,
         fishingSearchWindow + MAX_DISTANCE_TO_WATER,
         SEARCH_INCREMENT, false);
-    
+
     if (!water.IsValid())
         return false;
 
@@ -399,18 +397,17 @@ bool FishingAction::Execute(Event event)
     WorldPosition fishingHole = FindFishingHole(botAI);
     if (fishingHole.IsValid())
     {
-        Position pos = fishingHole; 
+        Position pos = fishingHole;
         float distance = bot->GetExactDist2d(&pos);
         bool hasLOS = bot->IsWithinLOS(fishingHole.GetPositionX(), fishingHole.GetPositionY(), fishingHole.GetPositionZ());
         if (distance < MAX_DISTANCE_TO_WATER &&
             distance > MIN_DISTANCE_TO_WATER && hasLOS)
             target = fishingHole;
-
     }
     if (!target.IsValid())
     {
         target = FindWaterRadial(bot, bot->GetPositionX(), bot->GetPositionY(),
-                bot->GetPositionZ(), bot->GetMap(), bot->GetPhaseMask(), 
+                bot->GetPositionZ(), bot->GetMap(), bot->GetPhaseMask(),
                 MIN_DISTANCE_TO_WATER, MAX_DISTANCE_TO_WATER, SEARCH_INCREMENT, true, 32);
         if (!target.IsValid())
             return false;
@@ -441,7 +438,7 @@ bool FishingAction::isUseful()
     FishingSpotValue* fishingSpotValueObject =  (FishingSpotValue*)context->GetValue<WorldPosition>("fishing spot");
     WorldPosition pos = fishingSpotValueObject->Get();
 
-    return pos.IsValid() && !fishingSpotValueObject->IsStale(FISHING_LOCATION_TIMEOUT && pos == bot->GetPosition());
+    return pos.IsValid() && !fishingSpotValueObject->IsStale(FISHING_LOCATION_TIMEOUT) && pos == bot->GetPosition();
 }
 
 bool UseBobber::isUseful()
@@ -452,7 +449,7 @@ bool UseBobber::isUseful()
 bool UseBobber::Execute(Event event)
 {
     GuidVector gos = AI_VALUE(GuidVector, "nearest game objects no los");
-    for (const auto& guid : gos)
+    for (auto& const guid : gos)
     {
         if (GameObject* go = botAI->GetGameObject(guid))
         {
