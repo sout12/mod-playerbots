@@ -169,7 +169,7 @@ WorldPosition FindLandRadialFromPosition (PlayerbotAI* botAI, WorldPosition targ
 
     float minDistance = FLT_MAX;
     WorldLocation closestPoint = WorldPosition();
-    for (auto& const pos : boundaryPoints)
+    for (auto const& pos : boundaryPoints)
     {
         float distance = bot->GetExactDist2d(&pos);
         if (distance < minDistance)
@@ -226,7 +226,7 @@ WorldPosition FindFishingHole(PlayerbotAI* botAI)
     GuidVector gos = PAI_VALUE(GuidVector, "nearest game objects no los");
     GameObject* nearestFishingHole = nullptr;
     float minDist = std::numeric_limits<float>::max();
-    for (auto& const guid : gos)
+    for (auto const& guid : gos)
     {
         GameObject* go = botAI->GetGameObject(guid);
         if (!go)
@@ -449,7 +449,7 @@ bool UseBobber::isUseful()
 bool UseBobber::Execute(Event event)
 {
     GuidVector gos = AI_VALUE(GuidVector, "nearest game objects no los");
-    for (auto& const guid : gos)
+    for (auto const& guid : gos)
     {
         if (GameObject* go = botAI->GetGameObject(guid))
         {

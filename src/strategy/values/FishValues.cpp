@@ -29,7 +29,7 @@ bool CanFishValue::Calculate()
 bool CanUseFishingBobberValue::Calculate()
 {
     GuidVector gos = AI_VALUE(GuidVector, "nearest game objects no los");
-    for (auto& const guid : gos)
+    for (auto const& guid : gos)
     {
         if (GameObject* go = botAI->GetGameObject(guid))
         {
