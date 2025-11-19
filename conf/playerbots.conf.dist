@@ -25,6 +25,7 @@
 #        CHEATS
 #        SPELLS
 #        FLIGHTPATH
+#        PROFESSIONS
 #    RANDOMBOT-SPECIFIC SETTINGS
 #        GENERAL
 #        LEVELS
@@ -354,7 +355,7 @@ AiPlayerbot.LootDelay = 1000
 
 ####################################################################################################
 # DISTANCES
-# FishingDistance sets how far a bot without a master will search for water, while FishingDistanceFromMaster limits it to a closer range, and sets the following distance to the same value.
+#
 #
 
 # Distances are in yards
@@ -373,8 +374,6 @@ AiPlayerbot.WhisperDistance = 6000.0
 AiPlayerbot.ContactDistance = 0.45
 AiPlayerbot.AoeRadius = 10
 AiPlayerbot.RpgDistance = 200
-AiPlayerbot.FishingDistanceFromMaster = 10.0
-AiPlayerbot.FishingDistance = 40.0
 AiPlayerbot.GrindDistance = 75.0
 AiPlayerbot.ReactDistance = 150.0
 
@@ -581,6 +580,23 @@ AiPlayerbot.BotTaxiGapJitterMs = 100
 #
 ####################################################################################################
 
+####################################################################################################
+# PROFESSIONS
+# Random bots currently do not get professions.
+#
+
+# EnableFishingWithMaster automatically adds the 'master fishing' strategy to bots that can fish that can.
+# Default: 1 (Enabled)
+AiPlayerbot.EnableFishingWithMaster = 1
+#FishingDistance sets how far a bot without a master will search for water, while FishingDistanceFromMaster limits it to a closer range, and overrides the following distance to the same value.
+AiPlayerbot.FishingDistanceFromMaster = 10.0
+AiPlayerbot.FishingDistance = 40.0
+
+#
+#
+#
+####################################################################################################
+
 #######################################
 #                                     #
 # RANDOMBOT-SPECIFIC SETTINGS  #
@@ -632,7 +648,7 @@ AiPlayerbot.RandomBotHordeRatio = 50
 AiPlayerbot.DisableDeathKnightLogin = 0
 
 # Enable simulated expansion limitation for talents and glyphs
-# If enabled, limits talent trees to 5 rows plus the middle talent of the 6th row for bots until level 61 
+# If enabled, limits talent trees to 5 rows plus the middle talent of the 6th row for bots until level 61
 # and 7 rows plus the middle talent of the 8th row for bots from level 61 until level 71
 # Default: 0 (disabled)
 AiPlayerbot.LimitTalentsExpansion = 0

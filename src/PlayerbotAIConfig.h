@@ -86,7 +86,7 @@ public:
     bool dynamicReactDelay;
     float sightDistance, spellDistance, reactDistance, grindDistance, lootDistance, shootDistance, fleeDistance,
         tooCloseDistance, meleeDistance, followDistance, whisperDistance, contactDistance, aoeRadius, rpgDistance,
-        targetPosRecalcDistance, farDistance, healDistance, aggroDistance, fishingDistanceFromMaster, fishingDistance;
+        targetPosRecalcDistance, farDistance, healDistance, aggroDistance;
     uint32 criticalHealth, lowHealth, mediumHealth, almostFullHealth;
     uint32 lowMana, mediumMana, highMana;
     bool autoSaveMana;
@@ -144,6 +144,10 @@ public:
     int32 minBotsForGreaterBuff;
     // Cooldown (seconds) between reagent-missing RP warnings, per bot & per buff. Default: 30
     int32 rpWarningCooldown;
+
+    // Professions
+    bool enableFishingWithMaster;
+    float fishingDistanceFromMaster, fishingDistance;
 
     // chat
     bool randomBotTalk;

@@ -49,7 +49,7 @@ bool SeeSpellAction::Execute(Event event)
 
     if (FISHING_SPELLS.find(spellId) != FISHING_SPELLS.end())
     {
-        if (AI_VALUE(bool, "can fish"))
+        if (AI_VALUE(bool, "can fish") && sPlayerbotAIConfig->enableFishingWithMaster)
         {
             botAI->ChangeStrategy("+master fishing", BOT_STATE_NON_COMBAT);
             return true;
