@@ -28,7 +28,6 @@ float const HEIGHT_ABOVE_WATER_TOLERANCE = 1.0f; // Can stand in up to 1 unit of
 float const SEARCH_INCREMENT = 2.5f;
 float const HEIGHT_SEARCH_BUFFER = 10.0f; // Height buffer to prevent potentially missing the model the bot is standing on.
 float const SEARCH_LAND_BUFFER = 0.5f;
-float const ENDING_FISHING_DISTANCE = 30.0f;
 uint32 const FISHING_LOCATION_TIMEOUT = 180000; //Three minutes
 
 static bool IsFishingPole(Item* const item)
@@ -481,7 +480,8 @@ bool EndMasterFishing::isUseful()
     if (pos.IsValid() && !fishingSpotValueObject->IsStale(FISHING_LOCATION_TIMEOUT) && pos == bot->GetPosition())
         return false;
 
-    WorldPosition nearWater = FindWaterRadial(bot, bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ(), bot->GetMap(), bot->GetPhaseMask(), MIN_DISTANCE_TO_WATER, ENDING_FISHING_DISTANCE, 10.0f);
+    WorldPosition nearWater = FindWaterRadial(bot, bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ(),
+        bot->GetMap(), bot->GetPhaseMask(), MIN_DISTANCE_TO_WATER, sPlayerbotAIConfig->endFishingWithMaster, 10.0f);
     return !nearWater.IsValid();
 }
 

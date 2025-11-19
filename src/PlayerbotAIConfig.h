@@ -147,7 +147,7 @@ public:
 
     // Professions
     bool enableFishingWithMaster;
-    float fishingDistanceFromMaster, fishingDistance;
+    float fishingDistanceFromMaster, fishingDistance, endFishingWithMaster;
 
     // chat
     bool randomBotTalk;
