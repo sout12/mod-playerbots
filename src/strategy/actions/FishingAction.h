@@ -49,7 +49,7 @@ public:
 class UseBobberAction : public Action
 {
 public:
-    UseBobberACtion(PlayerbotAI* botAI) : Action(botAI, "use fishing bobber") {}
+    UseBobberAction(PlayerbotAI* botAI) : Action(botAI, "use fishing bobber") {}
     bool Execute(Event event) override;
     bool isUseful() override;
 };
