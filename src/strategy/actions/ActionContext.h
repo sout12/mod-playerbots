@@ -388,8 +388,8 @@ private:
     static Action* clean_quest_log(PlayerbotAI* botAI) { return new CleanQuestLogAction(botAI); }
     static Action* move_near_water(PlayerbotAI* botAI) { return new MoveNearWaterAction(botAI); }
     static Action* go_fishing(PlayerbotAI* botAI) { return new FishingAction(botAI);}
-    static Action* use_fishing_bobber(PlayerbotAI* botAI) { return new UseBobber(botAI);}
-    static Action* end_master_fishing(PlayerbotAI* botAI) { return new EndMasterFishing(botAI); }
+    static Action* use_fishing_bobber(PlayerbotAI* botAI) { return new UseBobberAction(botAI);}
+    static Action* end_master_fishing(PlayerbotAI* botAI) { return new EndMasterFishingAction(botAI); }
     static Action* remove_bobber_strategy(PlayerbotAI* botAI) { return new RemoveBobberStrategyAction(botAI); }
     static Action* roll_action(PlayerbotAI* botAI) { return new RollAction(botAI); }
 

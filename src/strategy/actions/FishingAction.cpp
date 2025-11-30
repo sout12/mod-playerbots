@@ -259,7 +259,7 @@ bool MoveNearWaterAction::isUseful()
 {
     if (!AI_VALUE(bool, "can fish"))
         return false;
-    FishingSpotValue* fishingSpotValueObject =  (FishingSpotValue*)context->GetValue<WorldPosition>("fishing spot");
+    FishingSpotValue* fishingSpotValueObject = (FishingSpotValue*)context->GetValue<WorldPosition>("fishing spot");
     WorldPosition pos = fishingSpotValueObject->Get();
     return !pos.IsValid() || fishingSpotValueObject->IsStale(FISHING_LOCATION_TIMEOUT) || pos != bot->GetPosition();
 }
@@ -281,8 +281,8 @@ bool MoveNearWaterAction::isPossible()
         float distance = bot->GetExactDist2d(&fishingHole);
         bool hasLOS = bot->IsWithinLOS(fishingHole.GetPositionX(), fishingHole.GetPositionY(), fishingHole.GetPositionZ());
         // Water spot is in range, and we have LOS to it. Set bot position to fishing spot and do not move
-        if (distance  >= MIN_DISTANCE_TO_WATER &&
-            distance <=  MAX_DISTANCE_TO_WATER && hasLOS)
+        if (distance >= MIN_DISTANCE_TO_WATER &&
+            distance <= MAX_DISTANCE_TO_WATER && hasLOS)
         {
             SET_AI_VALUE(WorldPosition, "fishing spot", WorldPosition(WorldPosition(bot->GetMapId(), bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ())));
             return false;
@@ -434,18 +434,18 @@ bool FishingAction::isUseful()
 {
     if (!AI_VALUE(bool, "can fish"))
         return false;
-    FishingSpotValue* fishingSpotValueObject =  (FishingSpotValue*)context->GetValue<WorldPosition>("fishing spot");
+    FishingSpotValue* fishingSpotValueObject = (FishingSpotValue*)context->GetValue<WorldPosition>("fishing spot");
     WorldPosition pos = fishingSpotValueObject->Get();
 
     return pos.IsValid() && !fishingSpotValueObject->IsStale(FISHING_LOCATION_TIMEOUT) && pos == bot->GetPosition();
 }
 
-bool UseBobber::isUseful()
+bool UseBobberAction::isUseful()
 {
     return AI_VALUE(bool, "can use fishing bobber");
 }
 
-bool UseBobber::Execute(Event event)
+bool UseBobberAction::Execute(Event event)
 {
     GuidVector gos = AI_VALUE(GuidVector, "nearest game objects no los");
     for (auto const& guid : gos)
@@ -467,15 +467,15 @@ bool UseBobber::Execute(Event event)
     return false;
 }
 
-bool EndMasterFishing::Execute(Event event)
+bool EndMasterFishingAction::Execute(Event event)
 {
     botAI->ChangeStrategy("-master fishing", BOT_STATE_NON_COMBAT);
     return true;
 }
 
-bool EndMasterFishing::isUseful()
+bool EndMasterFishingAction::isUseful()
 {
-    FishingSpotValue* fishingSpotValueObject =  (FishingSpotValue*)context->GetValue<WorldPosition>("fishing spot");
+    FishingSpotValue* fishingSpotValueObject = (FishingSpotValue*)context->GetValue<WorldPosition>("fishing spot");
     WorldPosition pos = fishingSpotValueObject->Get();
     if (pos.IsValid() && !fishingSpotValueObject->IsStale(FISHING_LOCATION_TIMEOUT) && pos == bot->GetPosition())
         return false;

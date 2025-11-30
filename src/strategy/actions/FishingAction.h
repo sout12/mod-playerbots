@@ -16,7 +16,6 @@ extern const uint32 FISHING_POLE;
 extern const uint32 FISHING_BOBBER;
 
 WorldPosition FindWaterRadial(Player* bot, float x, float y, float z, Map* map, uint32 phaseMask, float minDistance, float maxDistance, float increment, bool checkLOS=false, int numDirections = 16);
-WorldPosition FindFishingNode(PlayerbotAI* botAI);
 
 class PlayerbotAI;
 
@@ -47,18 +46,18 @@ public:
     bool isPossible() override;
 };
 
-class UseBobber : public Action
+class UseBobberAction : public Action
 {
 public:
-    UseBobber(PlayerbotAI* botAI) : Action(botAI, "use fishing bobber") {}
+    UseBobberACtion(PlayerbotAI* botAI) : Action(botAI, "use fishing bobber") {}
     bool Execute(Event event) override;
     bool isUseful() override;
 };
 
-class EndMasterFishing : public Action
+class EndMasterFishingAction : public Action
 {
 public:
-    EndMasterFishing(PlayerbotAI* botAI) : Action(botAI, "end master fishing") {}
+    EndMasterFishingAction(PlayerbotAI* botAI) : Action(botAI, "end master fishing") {}
     bool Execute(Event event) override;
     bool isUseful() override;
 };
