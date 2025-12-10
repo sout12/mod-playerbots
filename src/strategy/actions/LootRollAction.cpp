@@ -1586,7 +1586,7 @@ static inline bool IsLikelyDisenchantable(ItemTemplate const* proto)
     {
         return false;
     }
-	
+
 
     // Prefer the core-provided disenchant mapping when available
     if (proto->DisenchantID > 0)
