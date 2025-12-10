@@ -45,15 +45,11 @@ template <typename Func>
 static bool ForEachBotGroupMember(Player* self, Func&& func)
 {
     if (!self)
-    {
         return false;
-    }
 
     Group* group = self->GetGroup();
     if (!group)
-    {
         return false;
-    }
 
     for (GroupReference* it = group->GetFirstMember(); it; it = it->next())
     {
@@ -66,11 +62,8 @@ static bool ForEachBotGroupMember(Player* self, Func&& func)
             continue;
 
         if (func(member, memberAI))
-        {
             return true;
-        }
     }
-
     return false;
 }
 
@@ -180,9 +173,7 @@ static bool IsBodyArmorInvType(uint8 invType)
 static bool IsJewelryOrCloak(ItemTemplate const* proto)
 {
     if (!proto)
-    {
         return false;
-    }
 
     switch (proto->InventoryType)
     {
@@ -301,15 +292,11 @@ static bool GroupHasPrimaryArmorUserLikelyToNeed(Player* self, ItemTemplate cons
 static bool GroupHasDesperateUpgradeUser(Player* self, ItemTemplate const* proto, int32 randomProperty)
 {
     if (!self || !proto)
-    {
         return false;
-    }
 
     // Only makes sense for real body armor pieces (no jewelry/capes/weapons).
     if (proto->Class != ITEM_CLASS_ARMOR || !IsBodyArmorInvType(proto->InventoryType))
-    {
         return false;
-    }
 
     std::string const param = BuildItemUsageParam(proto->ItemId, randomProperty);
 
@@ -347,18 +334,8 @@ static bool GroupHasDesperateUpgradeUser(Player* self, ItemTemplate const* proto
                     bestProto = oldProto;
             }
 
-            bool hasVeryBadItem = false;
-
-            if (!bestProto)
-            {
-                // Empty slot -> extremely undergeared for this piece
-                hasVeryBadItem = true;
-            }
-            else if (bestProto->Quality <= ITEM_QUALITY_NORMAL)
-            {
-                // Poor (grey) or Common (white) gear -> considered "bad"
-                hasVeryBadItem = true;
-            }
+            // Empty slot or poor/common gear -> considered "very bad" for this slot.
+            bool hasVeryBadItem = !bestProto || bestProto->Quality <= ITEM_QUALITY_NORMAL;
 
             if (hasVeryBadItem)
             {
@@ -376,9 +353,7 @@ static bool GroupHasDesperateUpgradeUser(Player* self, ItemTemplate const* proto
 static bool GroupHasDesperateJewelryUpgradeUser(Player* self, ItemTemplate const* proto, int32 randomProperty)
 {
     if (!self || !proto)
-    {
         return false;
-    }
 
     uint8 jewelrySlots[2];
     uint8 slotsCount = 0;
@@ -442,15 +417,12 @@ static bool GroupHasDesperateJewelryUpgradeUser(Player* self, ItemTemplate const
             bool hasVeryBadItem = false;
 
             if (!bestProto)
-            {
                 // Empty slot -> extremely undergeared for this jewelry/cloak
                 hasVeryBadItem = true;
-            }
+
             else if (bestProto->Quality <= ITEM_QUALITY_NORMAL)
-            {
                 // Poor (grey) or Common (white) jewelry -> considered "bad"
                 hasVeryBadItem = true;
-            }
 
             if (hasVeryBadItem)
             {
@@ -493,11 +465,9 @@ static bool GroupHasPrimarySpecUpgradeCandidate(Player* self, ItemTemplate const
         });
 
     if (!found)
-    {
         LOG_DEBUG("playerbots",
                   "[LootRollDBG] group primary spec upgrade: no primary candidate for item={} \"{}\"",
                   proto->ItemId, proto->Name1);
-    }
 
     return found;
 }
@@ -576,38 +546,28 @@ static bool IsFallbackNeedReasonableForSpec(Player* bot, ItemTemplate const* pro
     // Physical specs: never fallback-NEED pure caster body armor or SP weapons/shields.
     // Also, if the bot cannot even wear the armor (no proficiency skill), NEED is never reasonable.
     if (IsArmorProficiencyMissingForBody(bot, proto))
-    {
         return false;
-    }
 
     if (traits.isPhysical)
     {
         // Do not fallback-NEED caster body armor (cloth/leather/mail/plate with SP/INT caster profile)
         if (isBodyArmor && looksCaster)
-        {
             return false;
-        }
 
         // Do not fallback-NEED caster jewelry/cloaks (pure SP/INT/SPI/MP5 profiles)
         if (isJewelry && looksCaster)
-        {
             return false;
-        }
 
         // Do not fallback-NEED spell power weapons or shields
         if ((proto->Class == ITEM_CLASS_WEAPON ||
              (proto->Class == ITEM_CLASS_ARMOR && proto->SubClass == ITEM_SUBCLASS_ARMOR_SHIELD)) &&
             stats.hasSP)
-        {
             return false;
-        }
     }
 
     // DPS casters: do not fallback-NEED pure Spirit regen jewelry; leave that for healers.
     if (pureSpiritJewelry && traits.isCaster && !traits.isHealer)
-    {
         return false;
-    }
 
     // Caster/healer specs: never fallback-NEED body armor without caster stats or pure melee jewelry.
     if (traits.isCaster || traits.isHealer)
@@ -639,9 +599,8 @@ static std::string ToLowerAscii(std::string s)
 static bool IsLockbox(ItemTemplate const* proto)
 {
     if (!proto)
-    {
         return false;
-    }
+
     // Primary, data-driven detection
     if (proto->LockID)
     {
@@ -659,9 +618,7 @@ static bool HasAnyStat(ItemTemplate const* proto,
                        std::initializer_list<ItemModType> mods)
 {
     if (!proto)
-    {
         return false;
-    }
 
     for (uint32 i = 0; i < MAX_ITEM_PROTO_STATS; ++i)
     {
@@ -672,9 +629,7 @@ static bool HasAnyStat(ItemTemplate const* proto,
         for (ItemModType const m : mods)
         {
             if (t == m)
-            {
                 return true;
-            }
         }
     }
     return false;
@@ -684,9 +639,7 @@ static bool HasAnyStat(ItemTemplate const* proto,
 static bool GroupHasPreferredIntApUser(Player* self)
 {
     if (!self)
-    {
         return false;
-    }
 
     bool found = ForEachBotGroupMember(self,
         [&](Player* member, PlayerbotAI* /*memberAI*/) -> bool
@@ -705,9 +658,7 @@ static bool GroupHasPreferredIntApUser(Player* self)
         });
 
     if (!found)
-    {
         LOG_DEBUG("playerbots", "[LootPaternDBG] INT+AP group check: no loot-priority bot present");
-    }
 
     return found;
 }
@@ -716,9 +667,7 @@ static bool GroupHasPreferredIntApUser(Player* self)
 static bool GroupHasPreferredIntApUserLikelyToNeed(Player* self, ItemTemplate const* proto)
 {
     if (!self || !proto)
-    {
         return false;
-    }
 
     std::string const param = BuildItemUsageParam(proto->ItemId, 0);
 
@@ -729,9 +678,7 @@ static bool GroupHasPreferredIntApUserLikelyToNeed(Player* self, ItemTemplate co
             bool const isProtPal = t.isProtPal || (t.cls == CLASS_PALADIN && t.isTank);
             bool const isPreferred = t.isRetPal || isProtPal || t.cls == CLASS_HUNTER || t.isEnhSham;
             if (!isPreferred)
-            {
                 return false;
-            }
 
             // Estimate if the priority bot will NEED (plausible upgrade).
             AiObjectContext* ctx = memberAI->GetAiObjectContext();
@@ -754,10 +701,8 @@ static bool GroupHasPreferredIntApUserLikelyToNeed(Player* self, ItemTemplate co
         });
 
     if (!found)
-    {
         LOG_DEBUG("playerbots",
                   "[LootPaternDBG] INT+AP likely-to-need: no loot-priority bot in a position to NEED");
-    }
 
     return found;
 }
@@ -855,13 +800,10 @@ static bool ApplyStatPatternsForPrimary(Player* bot, ItemTemplate const* proto, 
 static inline int32 EncodeRandomEnchantParam(uint32 randomPropertyId, uint32 randomSuffix)
 {
     if (randomPropertyId)
-    {
         return static_cast<int32>(randomPropertyId);
-    }
+	
     if (randomSuffix)
-    {
         return -static_cast<int32>(randomSuffix);
-    }
 
     return 0;
 }
@@ -869,9 +811,7 @@ static inline int32 EncodeRandomEnchantParam(uint32 randomPropertyId, uint32 ran
 static std::string BuildItemUsageParam(uint32 itemId, int32 randomProperty)
 {
     if (randomProperty != 0)
-    {
         return std::to_string(itemId) + "," + std::to_string(randomProperty);
-    }
 
     return std::to_string(itemId);
 }
@@ -911,14 +851,10 @@ static bool BotAlreadyKnowsRecipeSpell(Player* bot, ItemTemplate const* proto)
 static bool IsCosmeticCollectible(ItemTemplate const* proto)
 {
     if (!proto)
-    {
         return false;
-    }
 
     if (proto->Class != ITEM_CLASS_MISC)
-    {
         return false;
-    }
 
 // Mounts and companion pets are Misc; prefer core enums, otherwise fall back to known 3.3.5 subclasses.
 #if defined(ITEM_SUBCLASS_MISC_MOUNT) || defined(ITEM_SUBCLASS_MISC_PET)
@@ -933,14 +869,10 @@ static bool IsCosmeticCollectible(ItemTemplate const* proto)
         proto->SubClass == ITEM_SUBCLASS_MISC_PET
 #  endif
     )
-    {
         return true;
-    }
 #else
     if (proto->SubClass == 2 || proto->SubClass == 5)
-    {
         return true;
-    }
 #endif
 
     return false;
@@ -950,31 +882,23 @@ static bool IsCosmeticCollectible(ItemTemplate const* proto)
 static bool BotAlreadyHasCollectible(Player* bot, ItemTemplate const* proto)
 {
     if (!bot || !proto)
-    {
         return false;
-    }
 
     // First, check if the item teaches a spell the bot already knows (typical for mounts/pets).
     for (int i = 0; i < MAX_ITEM_PROTO_SPELLS; ++i)
     {
         uint32 const spellId = proto->Spells[i].SpellId;
         if (!spellId)
-        {
             continue;
-        }
 
         if (bot->HasSpell(spellId))
-        {
             return true;
-        }
     }
 
     // Fallback: if the bot already has at least one copy of the item (bags or bank),
     // consider the collectible as "already owned" and do not roll NEED again.
     if (bot->GetItemCount(proto->ItemId, true) > 0)
-    {
         return true;
-    }
 
     return false;
 }
@@ -983,15 +907,11 @@ static bool BotAlreadyHasCollectible(Player* bot, ItemTemplate const* proto)
 static bool IsGlyphMasteryBook(ItemTemplate const* proto)
 {
     if (!proto)
-    {
         return false;
-    }
 
     // 1) Must be a recipe book.
     if (proto->Class != ITEM_CLASS_RECIPE || proto->SubClass != ITEM_SUBCLASS_BOOK)
-    {
         return false;
-    }
 
     // 2) Primary signal: the on-use spell of the book on DBs
     // (Spell 64323: "Book of Glyph Mastery").
@@ -1091,41 +1011,29 @@ static uint32 GuessRecipeSkill(ItemTemplate const* proto)
 static bool IsProfessionRecipeUsefulForBot(Player* bot, ItemTemplate const* proto)
 {
     if (!bot || !IsRecipeItem(proto))
-    {
         return false;
-    }
 
     // Primary path: DB usually sets RequiredSkill/RequiredSkillRank on recipe items.
     uint32 reqSkill = proto->RequiredSkill;
     uint32 reqRank = proto->RequiredSkillRank;
 
     if (!reqSkill)
-    {
         reqSkill = GuessRecipeSkill(proto);
-    }
 
     if (!reqSkill)
-    {
         return false;  // unknown profession, be conservative
-    }
 
     // Bot must have the profession (or secondary skill like Cooking/First Aid)
     if (!bot->HasSkill(reqSkill))
-    {
         return false;
-    }
 
     // Required rank check (can be disabled by config) — flatten nested if
     if (!sPlayerbotAIConfig->recipesIgnoreSkillRank && reqRank && bot->GetSkillValue(reqSkill) < reqRank)
-    {
         return false;
-    }
 
     // Avoid NEED if the taught spell is already known
     if (BotAlreadyKnowsRecipeSpell(bot, proto))
-    {
         return false;
-    }
 
     return true;
 }
@@ -1134,23 +1042,17 @@ static bool IsProfessionRecipeUsefulForBot(Player* bot, ItemTemplate const* prot
 static bool IsClassAllowedByItemTemplate(uint8 cls, ItemTemplate const* proto)
 {
     if (!proto)
-    {
         // Non-item or invalid template: do not block by class here
         return true;
-    }
 
     int32 const allowable = proto->AllowableClass;
     // item_template.AllowableClass is a bitmask of classes that can use the item.
     // -1 (and often 0 on custom DBs) means "no class restriction".
     if (allowable <= 0)
-    {
         return true;
-    }
 
     if (!cls)
-    {
         return false;
-    }
 
     uint32 const classMask = static_cast<uint32>(allowable);
     uint32 const thisClassBit = 1u << (cls - 1u);
@@ -1162,9 +1064,7 @@ static bool IsClassAllowedByItemTemplate(uint8 cls, ItemTemplate const* proto)
 static bool IsWeaponOrShieldOrRelicAllowedForClass(SpecTraits const& traits, ItemTemplate const* proto)
 {
     if (!proto)
-    {
         return true; // non-weapon items handled elsewhere
-    }
 
     // Only filter weapons, shields and relics here. Other items are handled by spec/stat logic.
     bool const isShield = (proto->Class == ITEM_CLASS_ARMOR &&
@@ -1174,9 +1074,8 @@ static bool IsWeaponOrShieldOrRelicAllowedForClass(SpecTraits const& traits, Ite
     bool const isWeapon = (proto->Class == ITEM_CLASS_WEAPON);
 
     if (!isShield && !isRelic && !isWeapon)
-    {
         return true;
-    }
+	
     return IsClassAllowedByItemTemplate(traits.cls, proto);
 }
 
@@ -1190,44 +1089,34 @@ static bool IsPrimaryForSpec(Player* bot, ItemTemplate const* proto)
     // Fishing poles: never treat them as primary weapons for any spec.
     if (proto->Class == ITEM_CLASS_WEAPON &&
         proto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE)
-    {
         return false;
-    }
 
     const SpecTraits traits = GetSpecTraits(bot);
 
     // Never treat armor that the bot cannot wear (missing proficiency) as main-spec.
     if (IsArmorProficiencyMissingForBody(bot, proto))
-    {
         return false;
-    }
 
     // Tank fast-path for jewelry/cloaks
     // Typical case: Str+Dodge+Stam collar without Defense
     if (isJewelry && traits.isTank)
     {
         if (HasAnyTankAvoidance(proto))
-        {
            // Jewelry/cloak with avoidance => "primary" for tanks
             return true;
-        }
     }
 
     // HARD GUARD: never consider lower-tier armor as "primary" for the spec (body armor only)
     if (!isJewelry && proto->Class == ITEM_CLASS_ARMOR && IsBodyArmorInvType(proto->InventoryType))
     {
         if (IsLowerTierArmorForBot(bot, proto))
-        {
             return false; // forces NEED->GREED earlier when SmartNeedBySpec is enabled
-        }
     }
 
     // Hard filter first: do not NEED weapons/shields/relics the class shouldn't use.
     // If this returns false, the caller will downgrade to GREED (off-spec/unsupported).
     if (!IsWeaponOrShieldOrRelicAllowedForClass(traits, proto))
-    {
         return false;
-    }
 
     // Flags class/spec
     const bool isCasterSpec = traits.isCaster;
@@ -1251,36 +1140,28 @@ static bool IsPrimaryForSpec(Player* bot, ItemTemplate const* proto)
     // Do not let patterns override jewelry/cloak logic; these are handled separately below.
     bool primaryByPattern = false;
     if (!isJewelry && ApplyStatPatternsForPrimary(bot, proto, traits, primaryByPattern))
-    {
         return primaryByPattern;
-    }
 
     // Non-tanks (DPS, casters/heals) never NEED purely tank items
     if (!isTankLikeSpec && looksTank)
-    {
         return false;
-    }
 
     // Generic rules by role/family
     if (isPhysicalSpec)
     {
         // (1) All physicals/tanks: never Spell Power/Spirit/MP5 (even if plate/mail)
         if (looksCaster)
-        {
             return false;
-        }
+
         // (2) Weapon/shield with Spell Power: always off-spec for DK/War/Rogue/Hunter/Ret/Enh/Feral/Prot
         if ((proto->Class == ITEM_CLASS_WEAPON ||
              (proto->Class == ITEM_CLASS_ARMOR && proto->SubClass == ITEM_SUBCLASS_ARMOR_SHIELD)) &&
             stats.hasSP)
-        {
             return false;
-        }
+
         // (3) Jewelry/cloaks with caster stats (SP/SPI/MP5/pure INT) -> off-spec
         if (isJewelry && looksCaster)
-        {
             return false;
-        }
     }
     else  // Caster/Healer
     {
@@ -1291,28 +1172,20 @@ static bool IsPrimaryForSpec(Player* bot, ItemTemplate const* proto)
         if (proto->Class == ITEM_CLASS_ARMOR &&
             IsBodyArmorInvType(proto->InventoryType) &&
             !looksCaster)
-        {
             return false;
-        }
 
         // Pure Spirit regen jewelry (SPI only, no INT/SP/throughput stats) is healer mainspec only.
         // DPS casters should treat it as off-spec so they do not NEED it over proper DPS jewelry.
         if (pureSpiritJewelry && !traits.isHealer)
-        {
             return false;
-        }
 
         // (1) Casters/healers should not NEED pure melee items (STR/AP/ARP/EXP) without INT/SP
         if (looksPhysical && !stats.hasSP && !stats.hasINT)
-        {
             return false;
-        }
 
         // (2) Melee jewelry (AP/ARP/EXP/STR/AGI) without INT/SP -> off-spec
         if (isJewelry && looksPhysical && !stats.hasSP && !stats.hasINT)
-        {
             return false;
-        }
 
         // (3) Healers: treat pure "DPS caster Hit" pieces as off-spec.
         // Profile: SP/INT + Hit and *no* regen stats (no SPI, no MP5).
@@ -1322,9 +1195,7 @@ static bool IsPrimaryForSpec(Player* bot, ItemTemplate const* proto)
         //  - if a DPS caster bot has this item as a mainspec upgrade, healers are downgraded to GREED;
         //  - if nobody in the group has it as mainspec upgrade, healers are allowed to keep NEED.
         if (traits.isHealer && stats.hasHIT && !stats.hasMP5 && !stats.hasSPI)
-        {
             return false;
-        }
 
         // Paladin Holy (plate INT+SP/MP5), Shaman Elemental/Restoration (mail INT+SP/MP5),
         // Druid Balance/Restoration (leather/cloth caster) -> OK
@@ -1340,115 +1211,86 @@ static bool IsPrimaryForSpec(Player* bot, ItemTemplate const* proto)
             proto->InventoryType == INVTYPE_WEAPONOFFHAND || proto->InventoryType == INVTYPE_2HWEAPON;
 
         if (meleeWeapon && traits.isHunter && !stats.hasAGI)
-        {
             return false;
-        }
 
         if (meleeWeapon && (traits.isFeralTk || traits.isFeralDps) && !stats.hasAGI && !stats.hasSTR)
-        {
             return false;
-        }
 
         // Enhancement shamans prefer slow weapons for Windfury; avoid very fast melee weapons as main-spec.
         if (meleeWeapon && traits.isEnhSham)
         {
             // Delay is in milliseconds; 2000 ms = 2.0s. Anything faster than this is treated as off-spec.
             if (proto->Delay > 0 && proto->Delay < 2000)
-            {
                 return false;
-            }
         }
     }
 
     // Class/spec specific adjustments (readable)
     // DK Unholy (DPS): allows STR/HIT/HASTE/CRIT/ARP; rejects all caster items
     if (traits.cls == CLASS_DEATH_KNIGHT && (traits.spec == "unholy" || traits.spec == "uh") && looksCaster)
-    {
         return false;
-    }
 
     // DK Blood/Frost tanks: DEF/AVOID/STA/STR are useful; reject caster items
     if (traits.isDKTank && looksCaster)
-    {
         return false;
-    }
     // Pure caster DPS rings/trinkets already filtered above.
 
     // Hunter (BM/MM/SV): agi/hit/haste/AP/crit/arp → OK; avoid STR-only or caster items
     if (traits.isHunter)
     {
         if (looksCaster)
-        {
             return false;
-        }
+
         // Avoid rings with "pure STR" without AGI/AP/DPS ratings
         if (isJewelry && stats.hasSTR && !stats.hasAGI && !stats.hasAP && !hasDpsRatings)
-        {
             return false;
-        }
     }
 
     // Rogue (all specs): same strict physical filter (no caster items)
     if (traits.isRogue && looksCaster)
-    {
         return false;
-    }
 
     // Rogue: do not treat INT leather body armor as primary (off-spec leveling pieces only).
     if (traits.isRogue && proto->Class == ITEM_CLASS_ARMOR && IsBodyArmorInvType(proto->InventoryType) &&
         proto->SubClass == ITEM_SUBCLASS_ARMOR_LEATHER && stats.hasINT)
-    {
         return false;
-    }
 
     // Warrior Arms/Fury : no caster items
     if (traits.isWarrior && !traits.isWarProt && looksCaster)
-    {
         return false;
-    }
 
     // Warrior Protection: DEF/AVOID/STA/STR are useful; no caster items
     if (traits.isWarProt && looksCaster)
-    {
         return false;
-    }
 
     // Shaman Enhancement: no Spell Power weapons/shields, no pure INT/SP items
     if (traits.isEnhSham)
     {
         if (looksCaster)
-        {
             return false;
-        }
+
         if ((proto->Class == ITEM_CLASS_WEAPON ||
              (proto->Class == ITEM_CLASS_ARMOR && proto->SubClass == ITEM_SUBCLASS_ARMOR_SHIELD)) &&
             stats.hasSP)
-        {
             return false;
-        }
     }
 
     // Druid Feral (tank/DPS): AGI/STA/AVOID/ARP/EXP → OK; no caster items
     if ((traits.isFeralTk || traits.isFeralDps) && looksCaster)
-    {
         return false;
-    }
 
     // Paladin Retribution: physical DPS (no caster items; forbid SP weapons/shields; enforce 2H only)
     if (traits.isRetPal)
     {
         if (looksCaster)
-        {
             return false;
-        }
 
         // No Spell Power weapons or shields for Ret
         if ((proto->Class == ITEM_CLASS_WEAPON ||
              (proto->Class == ITEM_CLASS_ARMOR && proto->SubClass == ITEM_SUBCLASS_ARMOR_SHIELD)) &&
             stats.hasSP)
-        {
             return false;
-        }
+
         // Enforce 2H only (no 1H/off-hand/shields/holdables)
         switch (proto->InventoryType)
         {
@@ -1465,9 +1307,7 @@ static bool IsPrimaryForSpec(Player* bot, ItemTemplate const* proto)
 
     // Global VETO: a "physical" spec never considers a caster profile as primary
     if (sPlayerbotAIConfig->smartNeedBySpec && traits.isPhysical && looksCaster)
-    {
         return false;
-    }
 
     // Let the cross-armor rules (CrossArmorExtraMargin) decide for major off-armor upgrades.
     return true;
@@ -1583,27 +1423,20 @@ static bool RollUniqueCheck(ItemTemplate const* proto, Player* bot);
 static inline bool IsLikelyDisenchantable(ItemTemplate const* proto)
 {
     if (!proto)
-    {
         return false;
-    }
 
     // Prefer the core-provided disenchant mapping when available
     if (proto->DisenchantID > 0)
-    {
         return true;
-    }
 
     // Respect items explicitly flagged as non-disenchantable by the core
     if (proto->DisenchantID < 0)
-    {
         return false;
-    }
 
     // Fallback heuristic for custom or missing data
     if (proto->Class != ITEM_CLASS_ARMOR && proto->Class != ITEM_CLASS_WEAPON)
-    {
         return false;
-    }
+
     return proto->Quality >= ITEM_QUALITY_UNCOMMON && proto->Quality <= ITEM_QUALITY_EPIC;
 }
 
@@ -1617,30 +1450,25 @@ static int8 TokenSlotFromName(ItemTemplate const* proto)
     std::string n = std::string(proto->Name1);
     std::transform(n.begin(), n.end(), n.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
     if (n.find("helm") != std::string::npos || n.find("head") != std::string::npos)
-    {
         return INVTYPE_HEAD;
-    }
+
     if (n.find("shoulder") != std::string::npos || n.find("mantle") != std::string::npos ||
         n.find("spauld") != std::string::npos)
-    {
         return INVTYPE_SHOULDERS;
-    }
+
     if (n.find("chest") != std::string::npos || n.find("tunic") != std::string::npos ||
         n.find("robe") != std::string::npos || n.find("breastplate") != std::string::npos ||
         n.find("chestguard") != std::string::npos)
-    {
         return INVTYPE_CHEST;
-    }
+
     if (n.find("glove") != std::string::npos || n.find("handguard") != std::string::npos ||
         n.find("gauntlet") != std::string::npos)
-    {
         return INVTYPE_HANDS;
-    }
+
     if (n.find("leg") != std::string::npos || n.find("pant") != std::string::npos ||
         n.find("trouser") != std::string::npos)
-    {
         return INVTYPE_LEGS;
-    }
+
     return -1;
 }
 
@@ -1652,15 +1480,16 @@ static bool IsTokenLikelyUpgrade(ItemTemplate const* token, uint8 invTypeSlot, P
         return false;
     uint8 eq = EquipmentSlotByInvTypeSafe(invTypeSlot);
     if (eq >= EQUIPMENT_SLOT_END)
-    {
         return true;  // unknown slot -> do not block Need
-    }
+
     Item* oldItem = bot->GetItemByPos(INVENTORY_SLOT_BAG_0, eq);
     if (!oldItem)
         return true;  // empty slot -> guaranteed upgrade
+
     ItemTemplate const* oldProto = oldItem->GetTemplate();
     if (!oldProto)
         return true;
+
     float margin = sPlayerbotAIConfig->tokenILevelMargin;  // configurable
     return (float)token->ItemLevel >= (float)oldProto->ItemLevel + margin;
 }
@@ -1668,15 +1497,11 @@ static bool IsTokenLikelyUpgrade(ItemTemplate const* token, uint8 invTypeSlot, P
 static bool TryTokenRollVote(ItemTemplate const* proto, Player* bot, RollVote& outVote)
 {
     if (!proto || !bot)
-    {
         return false;
-    }
 
     if (proto->Class != ITEM_CLASS_MISC || proto->SubClass != ITEM_SUBCLASS_JUNK ||
         proto->Quality != ITEM_QUALITY_EPIC)
-    {
         return false;
-    }
 
     if (CanBotUseToken(proto, bot))
     {
@@ -1739,13 +1564,10 @@ static RollVote FinalizeRollVote(RollVote vote, ItemTemplate const* proto, ItemU
     if (sPlayerbotAIConfig->lootRollLevel == 1)
     {
         if (vote == NEED)
-        {
             vote = RollUniqueCheck(proto, bot) ? PASS : GREED;
-        }
+
         else if (vote == GREED)
-        {
             vote = PASS;
-        }
 
         LOG_DEBUG("playerbots", "{} LootRollLevel=1 adjusted vote={}", tag, VoteTxt(vote));
     }
@@ -1768,9 +1590,7 @@ bool LootRollAction::Execute(Event event)
         // Avoid server crash, key may not exit for the bot on login
         auto it = roll->playerVote.find(bot->GetGUID());
         if (it != roll->playerVote.end() && it->second != NOT_EMITED_YET)
-        {
             continue;
-        }
 
         ObjectGuid guid = roll->itemGUID;
         uint32 itemId = roll->itemid;
@@ -1828,11 +1648,7 @@ RollVote LootRollAction::CalculateRollVote(ItemTemplate const* proto, int32 rand
     bool const alreadyHasCollectible = isCollectibleCosmetic && BotAlreadyHasCollectible(bot, proto);
 
     if (isCollectibleCosmetic)
-    {
-        // Simple rule for mounts/pets:
-        // NEED if the bot does not have it yet, GREED if already known/owned.
         vote = alreadyHasCollectible ? GREED : NEED;
-    }
 
     bool recipeChecked = false;
     bool recipeNeed = false;
@@ -1857,9 +1673,7 @@ RollVote LootRollAction::CalculateRollVote(ItemTemplate const* proto, int32 rand
             recipeNeed = true;
         }
         else
-        {
             vote = GREED;  // recipe not for the bot -> GREED
-        }
     }
 
     // Do not overwrite the choice if already decided by recipe or cosmetic logic.
@@ -1875,14 +1689,12 @@ RollVote LootRollAction::CalculateRollVote(ItemTemplate const* proto, int32 rand
                 if (sPlayerbotAIConfig->smartNeedBySpec && !IsPrimaryForSpec(bot, proto))
                 {
                     if (GroupHasPrimarySpecUpgradeCandidate(bot, proto, randomProperty))
-                    {
                         vote = GREED;
-                    }
+
                     else if (!IsFallbackNeedReasonableForSpec(bot, proto))
-                    {
                         // No mainspec candidate, but the item is too far off for this spec -> GREED.
                         vote = GREED;
-                    }
+
                     else
                     {
                         // Off-spec fallback: allow NEED only if there is no "desperate" jewelry user
@@ -1897,11 +1709,9 @@ RollVote LootRollAction::CalculateRollVote(ItemTemplate const* proto, int32 rand
                             vote = GREED;
                         }
                         else
-                        {
                             LOG_DEBUG("playerbots",
                                       "[LootRollDBG] secondary-fallback: no primary spec upgrade in group, {} may NEED item={} \"{}\"",
                                       bot->GetName(), proto->ItemId, proto->Name1);
-                        }
                     }
                 }
                 break;
@@ -1925,10 +1735,8 @@ RollVote LootRollAction::CalculateRollVote(ItemTemplate const* proto, int32 rand
 
     // Policy: turn GREED into PASS on off-armor (lower tier) if configured.
     if (vote == GREED && proto->Class == ITEM_CLASS_ARMOR && sPlayerbotAIConfig->crossArmorGreedIsPass)
-    {
         if (IsLowerTierArmorForBot(bot, proto))
             vote = PASS;
-    }
 
     // Lockboxes: if the item is a lockbox and the bot is a Rogue with Lockpicking, prefer NEED (ignored by BoE/BoU).
     const SpecTraits traits = GetSpecTraits(bot);
@@ -1968,15 +1776,14 @@ RollVote LootRollAction::CalculateRollVote(ItemTemplate const* proto, int32 rand
     if (vote == NEED && !recipeNeed && !isLockbox && !isCollectibleCosmetic &&
         proto->Bonding == BIND_WHEN_EQUIPPED &&
         !sPlayerbotAIConfig->allowBoENeedIfUpgrade)
-    {
+
         vote = GREED;
-    }
+
     if (vote == NEED && !recipeNeed && !isLockbox && !isCollectibleCosmetic &&
         proto->Bonding == BIND_WHEN_USE &&
         !sPlayerbotAIConfig->allowBoUNeedIfUpgrade)
-    {
+
         vote = GREED;
-    }
 
     // Non-unique soft rule: NEED -> GREED on duplicates, except Book of Glyph Mastery.
     if (vote == NEED)
@@ -1991,9 +1798,7 @@ RollVote LootRollAction::CalculateRollVote(ItemTemplate const* proto, int32 rand
 
     // Unique-equip: never NEED a duplicate (already equipped/owned)
     if (vote == NEED && RollUniqueCheck(proto, bot))
-    {
         vote = PASS;
-    }
 
     // Cross-armor: allow NEED on BAD_EQUIP only if no primary armor user needs it and it is a massive upgrade.
     if (vote == GREED && usage == ITEM_USAGE_BAD_EQUIP && proto->Class == ITEM_CLASS_ARMOR &&
@@ -2048,9 +1853,7 @@ RollVote LootRollAction::CalculateRollVote(ItemTemplate const* proto, int32 rand
                     }
 
                     if (bestOld > 0.0f && newScore >= bestOld * sPlayerbotAIConfig->crossArmorExtraMargin)
-                    {
                         vote = NEED;
-                    }
                 }
             }
         }
@@ -2138,9 +1941,7 @@ bool MasterLootRollAction::Execute(Event event)
     RollVote vote = PASS;
 
     if (!TryTokenRollVote(proto, bot, vote))
-    {
         vote = CalculateRollVote(proto, randomProperty);
-    }
 
     vote = FinalizeRollVote(vote, proto, usage, group, bot, "[LootEnchantDBG][ML]");
 
@@ -2160,9 +1961,7 @@ bool MasterLootRollAction::Execute(Event event)
 static bool CanBotUseToken(ItemTemplate const* proto, Player* bot)
 {
     if (!proto || !bot)
-    {
         return false;
-    }
 
     return IsClassAllowedByItemTemplate(bot->getClass(), proto);
 }
@@ -2178,13 +1977,11 @@ static bool RollUniqueCheck(ItemTemplate const* proto, Player* bot)
     // Determine if the unique item is already equipped
     bool isEquipped = (totalItemCount > bagItemCount);
     if (isEquipped && proto->HasFlag(ITEM_FLAG_UNIQUE_EQUIPPABLE))
-    {
         return true;  // Unique Item is already equipped
-    }
+
     else if (proto->HasFlag(ITEM_FLAG_UNIQUE_EQUIPPABLE) && (bagItemCount > 1))
-    {
         return true;  // Unique item already in bag, don't roll for it
-    }
+
     return false;  // Item is not equipped or in bags, roll for it
 }
 
@@ -2203,9 +2000,8 @@ bool RollAction::Execute(Event event)
     uint32 itemId = *itemIds.begin();
     ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemId);
     if (!proto)
-    {
         return false;
-    }
+
     std::string itemUsageParam;
     itemUsageParam = std::to_string(itemId);
 
@@ -2215,9 +2011,7 @@ bool RollAction::Execute(Event event)
         case ITEM_CLASS_WEAPON:
         case ITEM_CLASS_ARMOR:
             if (usage == ITEM_USAGE_EQUIP || usage == ITEM_USAGE_REPLACE)
-            {
                 bot->DoRandomRoll(0, 100);
-            }
     }
     return true;
 }
