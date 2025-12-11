@@ -347,7 +347,7 @@ public:
     bool allowBoUNeedIfUpgrade;  // Allow NEED on BoU if upgrade
     float crossArmorExtraMargin;
     bool crossArmorGreedIsPass;  // If true, off-armor (lower tier) GREED becomes PASS
-    bool useDEButton;              // Allow "Disenchant" on NBG if available
+    uint8 deButtonMode;            // 0 = no DE, 1 = enchanters only, 2 = all bots can DE
     float tokenILevelMargin;       // ilvl threshold to consider the token an upgrade
     bool smartNeedBySpec;          // Intelligent NEED (based on stats/spec)
     bool needOnProfessionRecipes;  // If true, bots will roll NEED on profession recipes/patterns/books they can use &learn.

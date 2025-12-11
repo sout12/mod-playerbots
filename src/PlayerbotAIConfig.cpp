@@ -614,7 +614,10 @@ bool PlayerbotAIConfig::Initialize()
     allowBoUNeedIfUpgrade = sConfigMgr->GetOption<bool>("AiPlayerbot.Roll.AllowBoUNeedIfUpgrade", true);
     crossArmorExtraMargin = sConfigMgr->GetOption<float>("AiPlayerbot.Roll.CrossArmorExtraMargin", 1.20f);
     crossArmorGreedIsPass = sConfigMgr->GetOption<bool>("AiPlayerbot.Roll.CrossArmorGreedIsPass", false);
-    useDEButton = sConfigMgr->GetOption<bool>("AiPlayerbot.Roll.UseDEButton", true);
+    uint32 deMode = sConfigMgr->GetOption<uint32>("AiPlayerbot.Roll.UseDEButton", 1u);
+    if (deMode > 2u)
+        deMode = 2u;
+    deButtonMode = static_cast<uint8>(deMode);
     tokenILevelMargin = sConfigMgr->GetOption<float>("AiPlayerbot.Roll.TokenILevelMargin", 0.10f);
     needOnProfessionRecipes = sConfigMgr->GetOption<bool>("AiPlayerbot.Roll.NeedOnProfessionRecipes", true);
     recipesIgnoreSkillRank   = sConfigMgr->GetOption<bool>("AiPlayerbot.Roll.Recipes.IgnoreSkillRank", false);

@@ -313,9 +313,11 @@ AiPlayerbot.Roll.AllowBoENeedIfUpgrade = 1
 # Default: 1 (enabled)
 AiPlayerbot.Roll.AllowBoUNeedIfUpgrade = 1
 
-# If Need-Before-Greed is active and the item is only useful for disenchanting,
-# bots will press the "Disenchant" button instead of GREED.
-# Default: 1 (enabled)
+# Disenchant behavior (Need-Before-Greed / Group Loot only):
+#   0 = never use the "Disenchant" button (bots roll GREED/PASS instead)
+#   1 = only bots with Enchanting can use "Disenchant"
+#   2 = all bots can use "Disenchant" when the item is only useful to disenchant
+# Default: 1
 AiPlayerbot.Roll.UseDEButton = 1
 
 # NEED on learnable profession recipes/patterns/books if the bot has the profession.

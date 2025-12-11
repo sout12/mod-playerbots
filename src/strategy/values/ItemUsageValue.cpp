@@ -16,6 +16,73 @@
 #include "RandomItemMgr.h"
 #include "ServerFacade.h"
 #include "StatsWeightCalculator.h"
+#include "Util.h"
+
+// Lowercase helper for item names using core UTF-8 utilities.
+std::string ToLowerUtf8(std::string const& s)
+{
+    if (s.empty())
+        return s;
+
+    std::wstring w;
+    if (!Utf8toWStr(s, w))
+        return s;
+
+    wstrToLower(w);
+
+    std::string lowered;
+    if (!WStrToUtf8(w, lowered))
+        return s;
+
+    return lowered;
+}
+
+uint32 GetRecipeSkill(ItemTemplate const* proto)
+{
+    if (!proto)
+        return 0;
+
+    // Primary path: DB usually sets RequiredSkill on recipe items.
+    if (proto->RequiredSkill)
+        return proto->RequiredSkill;
+
+    // Fallback heuristic on SubClass (books used by professions).
+    switch (proto->SubClass)
+    {
+        case ITEM_SUBCLASS_BOOK: // e.g. Book of Glyph Mastery
+        {
+            // If the name hints glyphs, assume Inscription.
+            std::string const lowered = ToLowerUtf8(proto->Name1);
+            if (lowered.find("glyph") != std::string::npos)
+                return SKILL_INSCRIPTION;
+            break;
+        }
+        case ITEM_SUBCLASS_LEATHERWORKING_PATTERN:
+            return SKILL_LEATHERWORKING;
+        case ITEM_SUBCLASS_TAILORING_PATTERN:
+            return SKILL_TAILORING;
+        case ITEM_SUBCLASS_ENGINEERING_SCHEMATIC:
+            return SKILL_ENGINEERING;
+        case ITEM_SUBCLASS_BLACKSMITHING:
+            return SKILL_BLACKSMITHING;
+        case ITEM_SUBCLASS_COOKING_RECIPE:
+            return SKILL_COOKING;
+        case ITEM_SUBCLASS_ALCHEMY_RECIPE:
+            return SKILL_ALCHEMY;
+        case ITEM_SUBCLASS_FIRST_AID_MANUAL:
+            return SKILL_FIRST_AID;
+        case ITEM_SUBCLASS_ENCHANTING_FORMULA:
+            return SKILL_ENCHANTING;
+        case ITEM_SUBCLASS_FISHING_MANUAL:
+            return SKILL_FISHING;
+        case ITEM_SUBCLASS_JEWELCRAFTING_RECIPE:
+            return SKILL_JEWELCRAFTING;
+        default:
+            break;
+    }
+
+    return 0;
+}
 
 ItemUsage ItemUsageValue::Calculate()
 {
@@ -102,28 +169,33 @@ ItemUsage ItemUsageValue::Calculate()
     if (bot->GetGuildId() && sGuildTaskMgr->IsGuildTaskItem(itemId, bot->GetGuildId()))
         return ITEM_USAGE_GUILD_TASK;
 
+    // First, check if the item is interesting as equipment (upgrade, bad-equip, etc.)
     ItemUsage equip = QueryItemUsageForEquip(proto, randomPropertyId);
     if (equip != ITEM_USAGE_NONE)
         return equip;
 
-    // Get item instance to check if it's soulbound
+    // Get item instance to check if it's soulbound (used for disenchant heuristics)
     Item* item = bot->GetItemByEntry(proto->ItemId);
     bool isSoulbound = item && item->IsSoulBound();
 
+    // Enchanting fallback: only consider disenchant when the item has no direct equipment usage.
     if ((proto->Class == ITEM_CLASS_ARMOR || proto->Class == ITEM_CLASS_WEAPON) &&
         botAI->HasSkill(SKILL_ENCHANTING) &&
         proto->Quality >= ITEM_QUALITY_UNCOMMON)
     {
-        // Retrieve the bot's Enchanting skill level
         uint32 enchantingSkill = bot->GetSkillValue(SKILL_ENCHANTING);
 
-        // Check if the bot has a high enough skill to disenchant this item
-        if (proto->RequiredDisenchantSkill > 0 && enchantingSkill < proto->RequiredDisenchantSkill)
-            return ITEM_USAGE_NONE; // Not skilled enough to disenchant
+        // Only allow disenchant if the bot has the required skill.
+        bool canDisenchant = (proto->RequiredDisenchantSkill == 0 ||
+                              enchantingSkill >= proto->RequiredDisenchantSkill);
 
-        // BoE (Bind on Equip) items should NOT be disenchanted unless they are already bound
-        if (proto->Bonding == BIND_WHEN_PICKED_UP || (proto->Bonding == BIND_WHEN_EQUIPPED && isSoulbound))
+        // BoP, or BoE that is already soulbound: safe to treat as DE-only usage.
+        if (canDisenchant &&
+            (proto->Bonding == BIND_WHEN_PICKED_UP ||
+             (proto->Bonding == BIND_WHEN_EQUIPPED && isSoulbound)))
+        {
             return ITEM_USAGE_DISENCHANT;
+        }
     }
 
     Player* master = botAI->GetMaster();
@@ -912,4 +984,21 @@ std::string const ItemUsageValue::GetConsumableType(ItemTemplate const* proto, b
     }
 
     return "";
+}
+
+bool ItemUsageValue::IsLockboxItem(ItemTemplate const* proto)
+{
+    if (!proto)
+        return false;
+
+    // Primary, data-driven detection: lockboxes with a lock ID and Misc class.
+    if (proto->LockID && proto->Class == ITEM_CLASS_MISC)
+        return true;
+
+    // English-only fallback on name (aligns with loot-roll heuristics).
+    std::string const nameLower = ToLowerUtf8(proto->Name1);
+    if (nameLower.empty())
+        return false;
+
+    return nameLower.find("lockbox") != std::string::npos;
 }

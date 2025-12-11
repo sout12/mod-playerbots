@@ -28,9 +28,7 @@
 #include "SkillDiscovery.h"
 #include "SpellMgr.h"
 #include "StatsWeightCalculator.h"
-
-// Loot roll logic is DB/core-first: DB/core fields drive decisions; heuristics only fill gaps.
-// Policy is controlled via AiPlayerbot.Roll.* config flags instead of hard-coded class/weapon/armor tables.
+#include "Util.h"
 
 // Forward declarations used by helpers defined later in this file
 static bool IsPrimaryForSpec(Player* bot, ItemTemplate const* proto);
@@ -40,55 +38,8 @@ static bool HasAnyStat(ItemTemplate const* proto,
 // Forward declaration for the common "item usage" key builder
 static std::string BuildItemUsageParam(uint32 itemId, int32 randomProperty);
 
-// Generic helper: iterate over all bot members in the same group.
-template <typename Func>
-static bool ForEachBotGroupMember(Player* self, Func&& func)
-{
-    if (!self)
-        return false;
-
-    Group* group = self->GetGroup();
-    if (!group)
-        return false;
-
-    for (GroupReference* it = group->GetFirstMember(); it; it = it->next())
-    {
-        Player* member = it->GetSource();
-        if (!member || member == self || !member->IsInWorld())
-            continue;
-
-        PlayerbotAI* memberAI = GET_PLAYERBOT_AI(member);
-        if (!memberAI) // ignore real players
-            continue;
-
-        if (func(member, memberAI))
-            return true;
-    }
-    return false;
-}
-
-// Collects class/archetype info used by loot rules
-struct SpecTraits
-{
-    uint8 cls = 0;
-    std::string spec;
-    bool isCaster = false;   // caster-stat profile
-    bool isHealer = false;
-    bool isTank = false;
-    bool isPhysical = false; // physical-stat profile
-    bool isDKTank = false;
-    bool isWarProt = false;
-    bool isEnhSham = false;
-    bool isFeralTk = false;
-    bool isFeralDps = false;
-    bool isHunter = false;
-    bool isRogue = false;
-    bool isWarrior = false;
-    bool isRetPal = false;
-    bool isProtPal = false;
-};
-
-static SpecTraits GetSpecTraits(Player* bot)
+// Collects class/archetype info used by loot rules.
+SpecTraits GetSpecTraits(Player* bot)
 {
     SpecTraits t;
     if (!bot)
@@ -349,10 +300,11 @@ static bool GroupHasDesperateUpgradeUser(Player* self, ItemTemplate const* proto
         });
 }
 
-// True if some bot has this jewelry/cloak as an upgrade and an empty/very bad item in the corresponding slots.
-static bool GroupHasDesperateJewelryUpgradeUser(Player* self, ItemTemplate const* proto, int32 randomProperty)
+// True if this bot has this jewelry/cloak as an upgrade and an empty/very bad item in the corresponding slots.
+// This keeps the decision local to the bot (no group-wide scan), which is closer to typical player behavior.
+static bool IsDesperateJewelryUpgradeForBot(Player* bot, ItemTemplate const* proto, int32 randomProperty)
 {
-    if (!self || !proto)
+    if (!bot || !proto)
         return false;
 
     uint8 jewelrySlots[2];
@@ -383,57 +335,47 @@ static bool GroupHasDesperateJewelryUpgradeUser(Player* self, ItemTemplate const
             return false;
     }
 
+    PlayerbotAI* ai = GET_PLAYERBOT_AI(bot);
+    if (!ai)
+        return false;
+
+    AiObjectContext* ctx = ai->GetAiObjectContext();
+    if (!ctx)
+        return false;
+
     std::string const param = BuildItemUsageParam(proto->ItemId, randomProperty);
 
-    return ForEachBotGroupMember(self,
-        [&](Player* member, PlayerbotAI* memberAI) -> bool
-        {
-            AiObjectContext* ctx = memberAI->GetAiObjectContext();
-            if (!ctx)
-                return false;
+    ItemUsage const usage = ctx->GetValue<ItemUsage>("item usage", param)->Get();
+    if (usage != ITEM_USAGE_EQUIP && usage != ITEM_USAGE_REPLACE)
+        return false; // not a true upgrade for this bot
 
-            ItemUsage usage = ctx->GetValue<ItemUsage>("item usage", param)->Get();
-            if (usage != ITEM_USAGE_EQUIP && usage != ITEM_USAGE_REPLACE)
-                return false; // not a true upgrade for this bot
+    ItemTemplate const* bestProto = nullptr;
 
-            ItemTemplate const* bestProto = nullptr;
+    // Look at the best currently equipped jewelry in the corresponding slots.
+    for (uint8 i = 0; i < slotsCount; ++i)
+    {
+        uint8 const slot = jewelrySlots[i];
+        Item* oldItem = bot->GetItemByPos(INVENTORY_SLOT_BAG_0, slot);
+        if (!oldItem)
+            continue;
 
-            // Look at the best currently equipped jewelry in the corresponding slots
-            for (uint8 i = 0; i < slotsCount; ++i)
-            {
-                uint8 const slot = jewelrySlots[i];
-                Item* oldItem = member->GetItemByPos(INVENTORY_SLOT_BAG_0, slot);
-                if (!oldItem)
-                    continue;
+        ItemTemplate const* oldProto = oldItem->GetTemplate();
+        if (!oldProto)
+            continue;
 
-                ItemTemplate const* oldProto = oldItem->GetTemplate();
-                if (!oldProto)
-                    continue;
+        if (!bestProto || oldProto->ItemLevel > bestProto->ItemLevel)
+            bestProto = oldProto;
+    }
 
-                if (!bestProto || oldProto->ItemLevel > bestProto->ItemLevel)
-                    bestProto = oldProto;
-            }
+    // Empty slot -> extremely undergeared for this jewelry/cloak.
+    if (!bestProto)
+        return true;
 
-            bool hasVeryBadItem = false;
+    // Poor (grey) or Common (white) jewelry -> considered "bad".
+    if (bestProto->Quality <= ITEM_QUALITY_NORMAL)
+        return true;
 
-            if (!bestProto)
-                // Empty slot -> extremely undergeared for this jewelry/cloak
-                hasVeryBadItem = true;
-
-            else if (bestProto->Quality <= ITEM_QUALITY_NORMAL)
-                // Poor (grey) or Common (white) jewelry -> considered "bad"
-                hasVeryBadItem = true;
-
-            if (hasVeryBadItem)
-            {
-                LOG_DEBUG("playerbots",
-                          "[LootRollDBG] jewelry-fallback: desperate upgrade candidate {} for item={} \"{}\"",
-                          member->GetName(), proto->ItemId, proto->Name1);
-                return true;
-            }
-
-            return false;
-        });
+    return false;
 }
 
 // True if some bot has this item as a primary-spec upgrade.
@@ -472,29 +414,8 @@ static bool GroupHasPrimarySpecUpgradeCandidate(Player* self, ItemTemplate const
     return found;
 }
 
-// Small aggregate of commonly used stat flags for loot rules.
-struct ItemStatProfile
-{
-    bool hasINT = false;
-    bool hasSPI = false;
-    bool hasMP5 = false;
-    bool hasSP = false;
-    bool hasSTR = false;
-    bool hasAGI = false;
-    bool hasSTA = false;
-    bool hasAP = false;
-    bool hasARP = false;
-    bool hasEXP = false;
-    bool hasHIT = false;
-    bool hasHASTE = false;
-    bool hasCRIT = false;
-    bool hasDef = false;
-    bool hasAvoid = false;
-    bool hasBlockValue = false;
-};
-
 // Build stat flags once for a given item and reuse them in higher-level helpers.
-static ItemStatProfile BuildItemStatProfile(ItemTemplate const* proto)
+ItemStatProfile BuildItemStatProfile(ItemTemplate const* proto)
 {
     ItemStatProfile s;
     if (!proto)
@@ -585,32 +506,6 @@ static bool IsFallbackNeedReasonableForSpec(Player* bot, ItemTemplate const* pro
 
     // Default: allow fallback NEED for this spec/item combination.
     return true;
-}
-
-// Lowercase helper for item names (ASCII/locale-agnostic enough for pattern matching).
-static std::string ToLowerAscii(std::string s)
-{
-    std::transform(s.begin(), s.end(), s.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    return s;
-}
-
-// Detect classic lockboxes a rogue can pick (with an English name fallback).
-static bool IsLockbox(ItemTemplate const* proto)
-{
-    if (!proto)
-        return false;
-
-    // Primary, data-driven detection
-    if (proto->LockID)
-    {
-        // Most lockboxes are misc/junk and openable in WotLK
-        if (proto->Class == ITEM_CLASS_MISC)
-            return true;
-    }
-    // English-only fallback on name (align with TokenSlotFromName behavior)
-    std::string n = ToLowerAscii(proto->Name1);
-    return n.find("lockbox") != std::string::npos;
 }
 
 // Local helper: not a class member
@@ -819,90 +714,6 @@ static std::string BuildItemUsageParam(uint32 itemId, int32 randomProperty)
 // Profession helpers: true if the item is a recipe/pattern/book (ITEM_CLASS_RECIPE).
 static inline bool IsRecipeItem(ItemTemplate const* proto) { return proto && proto->Class == ITEM_CLASS_RECIPE; }
 
-// Detect the spell taught by a recipe and whether the bot already knows it; otherwise fall back to skill checks.
-static bool BotAlreadyKnowsRecipeSpell(Player* bot, ItemTemplate const* proto)
-{
-    if (!bot || !proto)
-        return false;
-
-    // Many recipes have a single spell that "teaches" another spell (learned spell in EffectTriggerSpell).
-    for (int i = 0; i < MAX_ITEM_PROTO_SPELLS; ++i)
-    {
-        uint32 teach = proto->Spells[i].SpellId;
-        if (!teach)
-            continue;
-        SpellInfo const* si = sSpellMgr->GetSpellInfo(teach);
-        if (!si)
-            continue;
-        for (int eff = 0; eff < MAX_SPELL_EFFECTS; ++eff)
-        {
-            if (si->Effects[eff].Effect == SPELL_EFFECT_LEARN_SPELL)
-            {
-                uint32 learned = si->Effects[eff].TriggerSpell;
-                if (learned && bot->HasSpell(learned))
-                    return true;  // already knows the taught spell
-            }
-        }
-    }
-    return false;
-}
-
-// Mounts / pets / vanity items: treat them as cosmetic collectibles for roll purposes.
-static bool IsCosmeticCollectible(ItemTemplate const* proto)
-{
-    if (!proto)
-        return false;
-
-    if (proto->Class != ITEM_CLASS_MISC)
-        return false;
-
-// Mounts and companion pets are Misc; prefer core enums, otherwise fall back to known 3.3.5 subclasses.
-#if defined(ITEM_SUBCLASS_MISC_MOUNT) || defined(ITEM_SUBCLASS_MISC_PET)
-    if (
-#  if defined(ITEM_SUBCLASS_MISC_MOUNT)
-        proto->SubClass == ITEM_SUBCLASS_MISC_MOUNT
-#  endif
-#  if defined(ITEM_SUBCLASS_MISC_MOUNT) && defined(ITEM_SUBCLASS_MISC_PET)
-        ||
-#  endif
-#  if defined(ITEM_SUBCLASS_MISC_PET)
-        proto->SubClass == ITEM_SUBCLASS_MISC_PET
-#  endif
-    )
-        return true;
-#else
-    if (proto->SubClass == 2 || proto->SubClass == 5)
-        return true;
-#endif
-
-    return false;
-}
-
-// Returns true if the bot already owns or knows the collectible (mount/pet) in a meaningful way.
-static bool BotAlreadyHasCollectible(Player* bot, ItemTemplate const* proto)
-{
-    if (!bot || !proto)
-        return false;
-
-    // First, check if the item teaches a spell the bot already knows (typical for mounts/pets).
-    for (int i = 0; i < MAX_ITEM_PROTO_SPELLS; ++i)
-    {
-        uint32 const spellId = proto->Spells[i].SpellId;
-        if (!spellId)
-            continue;
-
-        if (bot->HasSpell(spellId))
-            return true;
-    }
-
-    // Fallback: if the bot already has at least one copy of the item (bags or bank),
-    // consider the collectible as "already owned" and do not roll NEED again.
-    if (bot->GetItemCount(proto->ItemId, true) > 0)
-        return true;
-
-    return false;
-}
-
 // Special-case: Book of Glyph Mastery (can own several; do not downgrade NEED on duplicates).
 static bool IsGlyphMasteryBook(ItemTemplate const* proto)
 {
@@ -925,12 +736,77 @@ static bool IsGlyphMasteryBook(ItemTemplate const* proto)
     // 3) Fallback: Inscription recipe book whose name hints glyph mastery (covers DB forks/locales).
     if (proto->RequiredSkill == SKILL_INSCRIPTION)
     {
-        std::string n = ToLowerAscii(proto->Name1);
+        std::string n = ToLowerUtf8(proto->Name1);
         if (n.find("glyph mastery") != std::string::npos || n.find("book of glyph mastery") != std::string::npos)
             return true;
     }
 
     return false;
+}
+
+// Value object for collectible cosmetics (mounts/pets) used in loot rules.
+struct CollectibleInfo
+{
+    bool isCosmetic = false;   // true if this is a cosmetic collectible (mount/pet)
+    bool alreadyOwned = false; // true if the bot already knows/owns it in a meaningful way
+};
+
+// Build collectible info (classification + ownership) for a given item/bot.
+static CollectibleInfo BuildCollectibleInfo(Player* bot, ItemTemplate const* proto)
+{
+    CollectibleInfo info;
+
+    if (!bot || !proto)
+        return info;
+
+    if (proto->Class != ITEM_CLASS_MISC)
+        return info;
+
+    // Mounts and companion pets are Misc; prefer core enums, otherwise fall back to known 3.3.5 subclasses.
+#if defined(ITEM_SUBCLASS_MISC_MOUNT) || defined(ITEM_SUBCLASS_MISC_PET)
+    bool const isMount =
+#  if defined(ITEM_SUBCLASS_MISC_MOUNT)
+        proto->SubClass == ITEM_SUBCLASS_MISC_MOUNT
+#  else
+        false
+#  endif
+        ;
+    bool const isPet =
+#  if defined(ITEM_SUBCLASS_MISC_PET)
+        proto->SubClass == ITEM_SUBCLASS_MISC_PET
+#  else
+        false
+#  endif
+        ;
+    if (!isMount && !isPet)
+        return info;
+#else
+    if (proto->SubClass != 2 && proto->SubClass != 5)
+        return info;
+#endif
+
+    info.isCosmetic = true;
+
+    // First, check if the item teaches a spell the bot already knows (typical for mounts/pets).
+    for (int i = 0; i < MAX_ITEM_PROTO_SPELLS; ++i)
+    {
+        uint32 const spellId = proto->Spells[i].SpellId;
+        if (!spellId)
+            continue;
+
+        if (bot->HasSpell(spellId))
+        {
+            info.alreadyOwned = true;
+            return info;
+        }
+    }
+
+    // Fallback: if the bot already has at least one copy of the item (bags or bank),
+    // consider the collectible as "already owned" and do not roll NEED again.
+    if (bot->GetItemCount(proto->ItemId, true) > 0)
+        info.alreadyOwned = true;
+
+    return info;
 }
 
 // Pretty helper for RollVote name in logs
@@ -964,75 +840,85 @@ static void DebugRecipeRoll(Player* bot, ItemTemplate const* proto, ItemUsage us
               botRank, VoteTxt(before), VoteTxt(after), bot->GetItemCount(proto->ItemId, true));
 }
 
-// Map a RECIPE subclass to the SkillLine when RequiredSkill is missing (fallback for DBs).
-static uint32 GuessRecipeSkill(ItemTemplate const* proto)
+// Recipe info value object: captures the profession, ranks and known-state for a recipe item.
+struct RecipeInfo
 {
-    if (!proto)
-        return 0;
-    // If the core DB is sane, this is set and we can just return it in the caller.
-    // Fallback heuristic on SubClass (books used by professions)
-    switch (proto->SubClass)
+    uint32 requiredSkill = 0;
+    uint32 requiredRank = 0;
+    uint32 botRank = 0;
+    bool botHasProfession = false;
+    bool known = false;
+};
+
+static RecipeInfo BuildRecipeInfo(Player* bot, ItemTemplate const* proto)
+{
+    RecipeInfo info;
+
+    if (!bot || !IsRecipeItem(proto))
+        return info;
+
+    // Primary path: GetRecipeSkill handles RequiredSkill + fallback by SubClass/name.
+    info.requiredSkill = GetRecipeSkill(proto);
+    info.requiredRank = proto->RequiredSkillRank;
+
+    if (!info.requiredSkill)
+        return info; // unknown profession, be conservative
+
+    info.botHasProfession = bot->HasSkill(info.requiredSkill);
+    if (info.botHasProfession)
+        info.botRank = bot->GetSkillValue(info.requiredSkill);
+
+    // Detect whether the bot already knows at least one spell taught by this recipe.
+    // Many recipes have a single spell that "teaches" another spell (learned spell in EffectTriggerSpell).
+    if (bot)
     {
-        case ITEM_SUBCLASS_BOOK:  // e.g. Book of Glyph Mastery
-            // If the name hints glyphs, assume Inscription
+        for (int i = 0; i < MAX_ITEM_PROTO_SPELLS; ++i)
+        {
+            uint32 teach = proto->Spells[i].SpellId;
+            if (!teach)
+                continue;
+
+            SpellInfo const* si = sSpellMgr->GetSpellInfo(teach);
+            if (!si)
+                continue;
+
+            for (int eff = 0; eff < MAX_SPELL_EFFECTS; ++eff)
             {
-                std::string n = ToLowerAscii(proto->Name1);
-                if (n.find("glyph") != std::string::npos)
-                    return SKILL_INSCRIPTION;
+                if (si->Effects[eff].Effect != SPELL_EFFECT_LEARN_SPELL)
+                    continue;
+
+                uint32 learned = si->Effects[eff].TriggerSpell;
+                if (learned && bot->HasSpell(learned))
+                {
+                    // Bot already knows at least one spell taught by this recipe.
+                    info.known = true;
+                    break;
+                }
             }
-            break;
-        case ITEM_SUBCLASS_LEATHERWORKING_PATTERN:
-            return SKILL_LEATHERWORKING;
-        case ITEM_SUBCLASS_TAILORING_PATTERN:
-            return SKILL_TAILORING;
-        case ITEM_SUBCLASS_ENGINEERING_SCHEMATIC:
-            return SKILL_ENGINEERING;
-        case ITEM_SUBCLASS_BLACKSMITHING:
-            return SKILL_BLACKSMITHING;
-        case ITEM_SUBCLASS_COOKING_RECIPE:
-            return SKILL_COOKING;
-        case ITEM_SUBCLASS_ALCHEMY_RECIPE:
-            return SKILL_ALCHEMY;
-        case ITEM_SUBCLASS_FIRST_AID_MANUAL:
-            return SKILL_FIRST_AID;
-        case ITEM_SUBCLASS_ENCHANTING_FORMULA:
-            return SKILL_ENCHANTING;
-        case ITEM_SUBCLASS_FISHING_MANUAL:
-            return SKILL_FISHING;
-        case ITEM_SUBCLASS_JEWELCRAFTING_RECIPE:
-            return SKILL_JEWELCRAFTING;
-        default:
-            break;
+
+            if (info.known)
+                break;
+        }
     }
-    return 0;
+
+    return info;
 }
 
 // True if this recipe/pattern/book is useful for one of the bot's professions and not already known.
-static bool IsProfessionRecipeUsefulForBot(Player* bot, ItemTemplate const* proto)
+static bool IsProfessionRecipeUsefulForBot(RecipeInfo const& recipe)
 {
-    if (!bot || !IsRecipeItem(proto))
+    if (!recipe.requiredSkill)
         return false;
 
-    // Primary path: DB usually sets RequiredSkill/RequiredSkillRank on recipe items.
-    uint32 reqSkill = proto->RequiredSkill;
-    uint32 reqRank = proto->RequiredSkillRank;
-
-    if (!reqSkill)
-        reqSkill = GuessRecipeSkill(proto);
-
-    if (!reqSkill)
-        return false;  // unknown profession, be conservative
-
-    // Bot must have the profession (or secondary skill like Cooking/First Aid)
-    if (!bot->HasSkill(reqSkill))
+    if (!recipe.botHasProfession)
         return false;
 
     // Required rank check (can be disabled by config) — flatten nested if
-    if (!sPlayerbotAIConfig->recipesIgnoreSkillRank && reqRank && bot->GetSkillValue(reqSkill) < reqRank)
+    if (!sPlayerbotAIConfig->recipesIgnoreSkillRank && recipe.requiredRank && recipe.botRank < recipe.requiredRank)
         return false;
 
     // Avoid NEED if the taught spell is already known
-    if (BotAlreadyKnowsRecipeSpell(bot, proto))
+    if (recipe.known)
         return false;
 
     return true;
@@ -1494,30 +1380,64 @@ static bool IsTokenLikelyUpgrade(ItemTemplate const* token, uint8 invTypeSlot, P
     return (float)token->ItemLevel >= (float)oldProto->ItemLevel + margin;
 }
 
+// Value object describing how a token relates to the bot.
+// This is built once and reused by the loot rules.
+struct TokenInfo
+{
+    bool isToken = false;        // true if this item looks like a WotLK token (Misc/Junk/Epic)
+    bool classCanUse = false;    // true if the bot's class is allowed to use the token
+    int8 invTypeSlot = -1;       // InventoryType (HEAD/SHOULDERS/CHEST/HANDS/LEGS) or -1 if unknown
+    bool likelyUpgrade = false;  // true if ilvl(token) is likely an upgrade for the resolved slot
+};
+
+static TokenInfo BuildTokenInfo(ItemTemplate const* proto, Player* bot)
+{
+    TokenInfo info;
+
+    if (!proto || !bot)
+        return info;
+
+    // WotLK tier tokens are usually Misc / Junk / Epic.
+    info.isToken = (proto->Class == ITEM_CLASS_MISC &&
+                    proto->SubClass == ITEM_SUBCLASS_JUNK &&
+                    proto->Quality == ITEM_QUALITY_EPIC);
+    if (!info.isToken)
+        return info;
+
+    info.classCanUse = CanBotUseToken(proto, bot);
+    info.invTypeSlot = TokenSlotFromName(proto);
+
+    if (info.classCanUse && info.invTypeSlot >= 0)
+        info.likelyUpgrade = IsTokenLikelyUpgrade(proto, static_cast<uint8>(info.invTypeSlot), bot);
+
+    return info;
+}
+
 static bool TryTokenRollVote(ItemTemplate const* proto, Player* bot, RollVote& outVote)
 {
-    if (!proto || !bot)
+    TokenInfo const token = BuildTokenInfo(proto, bot);
+
+    // Not a token → let other rules decide.
+    if (!token.isToken)
         return false;
 
-    if (proto->Class != ITEM_CLASS_MISC || proto->SubClass != ITEM_SUBCLASS_JUNK ||
-        proto->Quality != ITEM_QUALITY_EPIC)
-        return false;
-
-    if (CanBotUseToken(proto, bot))
+    if (token.classCanUse)
     {
-        int8 const tokenSlot = TokenSlotFromName(proto);
-        if (tokenSlot >= 0)
+        if (token.invTypeSlot >= 0)
         {
-            outVote = IsTokenLikelyUpgrade(proto, static_cast<uint8>(tokenSlot), bot) ? NEED : GREED;
+            // Known slot: NEED only if it looks like an upgrade, otherwise GREED.
+            outVote = token.likelyUpgrade ? NEED : GREED;
         }
         else
         {
-            outVote = GREED;  // Unknown slot (e.g. T10 sanctification tokens)
+            // Unknown slot (e.g. T10 sanctification tokens): do not block loot, but stay in GREED.
+            outVote = GREED;
         }
     }
     else
     {
-        outVote = GREED;  // Not eligible, so Greed
+        // Not eligible, so GREED.
+        outVote = GREED;
     }
 
     return true;
@@ -1532,18 +1452,27 @@ static RollVote ApplyDisenchantPreference(RollVote currentVote, ItemTemplate con
     bool const hasEnchantSkill = bot && bot->HasSkill(SKILL_ENCHANTING);
     int32 const lootMethod = group ? static_cast<int32>(group->GetLootMethod()) : -1;
 
-    if (currentVote != NEED && sPlayerbotAIConfig->useDEButton && group &&
+    uint8 const deMode = sPlayerbotAIConfig->deButtonMode;
+    // Mode 0 = no DE button; 1 = enchanters only; 2 = all bots can DE.
+    bool const deAllowedForBot = (deMode == 2u) || (deMode == 1u && hasEnchantSkill);
+
+    if (currentVote != NEED &&
+        deAllowedForBot &&
+        group &&
         (group->GetLootMethod() == NEED_BEFORE_GREED || group->GetLootMethod() == GROUP_LOOT) &&
-        hasEnchantSkill && isDeCandidate && usage == ITEM_USAGE_DISENCHANT)
+        isDeCandidate &&
+        usage == ITEM_USAGE_DISENCHANT)
     {
         LOG_DEBUG("playerbots",
-                  "{} DE switch: {} -> DISENCHANT (lootMethod={}, enchSkill={}, deOK=1, usage=DISENCHANT)",
-                  tag, VoteTxt(currentVote), lootMethod, hasEnchantSkill ? 1 : 0);
+                  "{} DE switch: {} -> DISENCHANT (lootMethod={}, mode={}, enchSkill={}, deOK=1, usage=DISENCHANT)",
+                  tag, VoteTxt(currentVote), lootMethod, static_cast<uint32>(deMode), hasEnchantSkill ? 1 : 0);
         return DISENCHANT;
     }
 
-    LOG_DEBUG("playerbots", "{} no DE: vote={} lootMethod={} enchSkill={} deOK={} usage={}", tag, VoteTxt(currentVote),
-              lootMethod, hasEnchantSkill ? 1 : 0, isDeCandidate ? 1 : 0, static_cast<uint32>(usage));
+    LOG_DEBUG("playerbots",
+              "{} no DE: vote={} lootMethod={} mode={} enchSkill={} deOK={} usage={}",
+              tag, VoteTxt(currentVote), lootMethod, static_cast<uint32>(deMode),
+              hasEnchantSkill ? 1 : 0, isDeCandidate ? 1 : 0, static_cast<uint32>(usage));
 
     return currentVote;
 }
@@ -1610,7 +1539,7 @@ bool LootRollAction::Execute(Event event)
         std::string const itemUsageParam = BuildItemUsageParam(itemId, randomProperty);
         ItemUsage usage = AI_VALUE2(ItemUsage, "item usage", itemUsageParam);
 
-        LOG_DEBUG("playerbots", "[LootRollDBG] usage={} (EQUIP=1 REPLACE=2 BAD_EQUIP=8 DISENCHANT=13)", (int)usage);
+        LOG_DEBUG("playerbots", "[LootRollDBG] usage={} (EQUIP=1 REPLACE=2 BAD_EQUIP=8 DISENCHANT=9)", (int)usage);
         if (!TryTokenRollVote(proto, bot, vote))
         {
             // Lets CalculateRollVote decide (includes SmartNeedBySpec, BoE/BoU, unique, cross-armor)
@@ -1644,8 +1573,10 @@ RollVote LootRollAction::CalculateRollVote(ItemTemplate const* proto, int32 rand
 
     RollVote vote = PASS;
 
-    bool const isCollectibleCosmetic = IsCosmeticCollectible(proto);
-    bool const alreadyHasCollectible = isCollectibleCosmetic && BotAlreadyHasCollectible(bot, proto);
+    CollectibleInfo const collectible = BuildCollectibleInfo(bot, proto);
+
+    bool const isCollectibleCosmetic = collectible.isCosmetic;
+    bool const alreadyHasCollectible = collectible.alreadyOwned;
 
     if (isCollectibleCosmetic)
         vote = alreadyHasCollectible ? GREED : NEED;
@@ -1659,14 +1590,16 @@ RollVote LootRollAction::CalculateRollVote(ItemTemplate const* proto, int32 rand
     // Professions: NEED on useful recipes/patterns/books when enabled.
     if (sPlayerbotAIConfig->needOnProfessionRecipes && IsRecipeItem(proto))
     {
+        RecipeInfo const recipe = BuildRecipeInfo(bot, proto);
+
         recipeChecked = true;
         // Collect debug data (what the helper va décider)
-        reqSkillDbg = proto->RequiredSkill ? proto->RequiredSkill : GuessRecipeSkill(proto);
-        reqRankDbg = proto->RequiredSkillRank;
-        botRankDbg = reqSkillDbg ? bot->GetSkillValue(reqSkillDbg) : 0;
-        recipeKnown = BotAlreadyKnowsRecipeSpell(bot, proto);
+        reqSkillDbg = recipe.requiredSkill;
+        reqRankDbg = recipe.requiredRank;
+        botRankDbg = recipe.botRank;
+        recipeKnown = recipe.known;
 
-        recipeUseful = IsProfessionRecipeUsefulForBot(bot, proto);
+        recipeUseful = IsProfessionRecipeUsefulForBot(recipe);
         if (recipeUseful)
         {
             vote = NEED;
@@ -1697,21 +1630,23 @@ RollVote LootRollAction::CalculateRollVote(ItemTemplate const* proto, int32 rand
 
                     else
                     {
-                        // Off-spec fallback: allow NEED only if there is no "desperate" jewelry user
-                        // with an empty/very bad item in the same slot(s).
+                        // Off-spec fallback: for jewelry/cloak, be more conservative and only allow NEED
+                        // when the bot is clearly undergeared on the corresponding slots.
                         bool const isJewelry = IsJewelryOrCloak(proto);
 
-                        if (isJewelry && GroupHasDesperateJewelryUpgradeUser(bot, proto, randomProperty))
+                        if (isJewelry && !IsDesperateJewelryUpgradeForBot(bot, proto, randomProperty))
                         {
                             LOG_DEBUG("playerbots",
-                                      "[LootRollDBG] jewelry-fallback: downgrade NEED to GREED, desperate upgrade user present for item={} \"{}\"",
-                                      proto->ItemId, proto->Name1);
+                                      "[LootRollDBG] jewelry-fallback: {} is not desperate on jewelry, NEED downgraded to GREED for item={} \"{}\"",
+                                      bot->GetName(), proto->ItemId, proto->Name1);
                             vote = GREED;
                         }
                         else
+                        {
                             LOG_DEBUG("playerbots",
                                       "[LootRollDBG] secondary-fallback: no primary spec upgrade in group, {} may NEED item={} \"{}\"",
                                       bot->GetName(), proto->ItemId, proto->Name1);
+                        }
                     }
                 }
                 break;
@@ -1740,7 +1675,7 @@ RollVote LootRollAction::CalculateRollVote(ItemTemplate const* proto, int32 rand
 
     // Lockboxes: if the item is a lockbox and the bot is a Rogue with Lockpicking, prefer NEED (ignored by BoE/BoU).
     const SpecTraits traits = GetSpecTraits(bot);
-    const bool isLockbox = IsLockbox(proto);
+    const bool isLockbox = ItemUsageValue::IsLockboxItem(proto);
     if (isLockbox && traits.isRogue && bot->HasSkill(SKILL_LOCKPICKING))
         vote = NEED;
 
