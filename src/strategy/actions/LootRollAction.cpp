@@ -696,7 +696,7 @@ static inline int32 EncodeRandomEnchantParam(uint32 randomPropertyId, uint32 ran
 {
     if (randomPropertyId)
         return static_cast<int32>(randomPropertyId);
-	
+
     if (randomSuffix)
         return -static_cast<int32>(randomSuffix);
 
@@ -961,7 +961,7 @@ static bool IsWeaponOrShieldOrRelicAllowedForClass(SpecTraits const& traits, Ite
 
     if (!isShield && !isRelic && !isWeapon)
         return true;
-	
+
     return IsClassAllowedByItemTemplate(traits.cls, proto);
 }
 
