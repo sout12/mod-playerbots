@@ -2771,8 +2771,7 @@ bool PlayerbotAI::TellMaster(std::string const text, PlayerbotSecurityLevel secu
     if (!master)
     {
         if (sPlayerbotAIConfig->randomBotSayWithoutMaster)
-            TellMasterNoFacing(text, securityLevel);
-        return false;
+            return TellMasterNoFacing(text, securityLevel);
     }
     if (!TellMasterNoFacing(text, securityLevel))
         return false;
