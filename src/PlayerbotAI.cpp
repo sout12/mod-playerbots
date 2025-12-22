@@ -365,7 +365,7 @@ void PlayerbotAI::UpdateAI(uint32 elapsed, bool minimal)
     }
 
     // Update the bot's group status (moved to helper function)
-    UpdateAIGroupAndMaster();
+    UpdateAIGroupMaster();
 
     // Update internal AI
     UpdateAIInternal(elapsed, minimal);
@@ -373,7 +373,7 @@ void PlayerbotAI::UpdateAI(uint32 elapsed, bool minimal)
 }
 
 // Helper function for UpdateAI to check group membership and handle removal if necessary
-void PlayerbotAI::UpdateAIGroupAndMaster()
+void PlayerbotAI::UpdateAIGroupMaster()
 {
     if (!bot)
         return;
@@ -420,7 +420,7 @@ void PlayerbotAI::UpdateAIGroupAndMaster()
             {
                 botAI->ChangeStrategy("+follow", BOT_STATE_NON_COMBAT);
 
-                if (botAI->GetMaster() == botAI->GetGroupMaster())
+                if (botAI->GetMaster() == botAI->GetGroupLeader())
                     botAI->TellMaster("Hello, I follow you!");
                 else
                     botAI->TellMaster(!urand(0, 2) ? "Hello!" : "Hi!");
@@ -431,8 +431,6 @@ void PlayerbotAI::UpdateAIGroupAndMaster()
                 botAI->ChangeStrategy("-follow", BOT_STATE_NON_COMBAT);
             }
         }
-        else if (!newMaster && !bot->InBattleground())
-            LeaveOrDisbandGroup();
     }
 }
 
@@ -1397,9 +1395,6 @@ void PlayerbotAI::DoNextAction(bool min)
     else if (bot->isAFK())
         bot->ToggleAFK();
 
-    Group* group = bot->GetGroup();
-    PlayerbotAI* masterBotAI = nullptr;
-
     if (master && master->IsInWorld())
     {
         float distance = sServerFacade->GetDistance2d(bot, master);
@@ -1472,7 +1467,7 @@ void PlayerbotAI::ApplyInstanceStrategies(uint32 mapId, bool tellMaster)
             strategyName = "onyxia";  // Onyxia's Lair
             break;
         case 409:
-            strategyName = "mc";  // Molten Core
+            strategyName = "moltencore";  // Molten Core
             break;
         case 469:
             strategyName = "bwl";  // Blackwing Lair
@@ -2260,7 +2255,7 @@ uint32 PlayerbotAI::GetGroupTankNum(Player* player)
 
 bool PlayerbotAI::IsAssistTank(Player* player) { return IsTank(player) && !IsMainTank(player); }
 
-bool PlayerbotAI::IsAssistTankOfIndex(Player* player, int index)
+bool PlayerbotAI::IsAssistTankOfIndex(Player* player, int index, bool ignoreDeadPlayers)
 {
     Group* group = player->GetGroup();
     if (!group)
@@ -2276,6 +2271,9 @@ bool PlayerbotAI::IsAssistTankOfIndex(Player* player, int index)
         {
             continue;
         }
+
+        if (ignoreDeadPlayers && !member->IsAlive())
+            continue;
 
         if (group->IsAssistant(member->GetGUID()) && IsAssistTank(member))
         {
@@ -2295,6 +2293,9 @@ bool PlayerbotAI::IsAssistTankOfIndex(Player* player, int index)
         {
             continue;
         }
+
+        if (ignoreDeadPlayers && !member->IsAlive())
+            continue;
 
         if (!group->IsAssistant(member->GetGUID()) && IsAssistTank(member))
         {
@@ -4104,7 +4105,7 @@ Player* PlayerbotAI::FindNewMaster()
     if (!group)
         return nullptr;
 
-    Player* groupLeader = GetGroupMaster();
+    Player* groupLeader = GetGroupLeader();
     PlayerbotAI* leaderBotAI = GET_PLAYERBOT_AI(groupLeader);
     if (!leaderBotAI || leaderBotAI->IsRealPlayer())
         return groupLeader;
@@ -4155,7 +4156,7 @@ bool PlayerbotAI::HasActivePlayerMaster() { return master && !GET_PLAYERBOT_AI(m
 
 bool PlayerbotAI::IsAlt() { return HasRealPlayerMaster() && !sRandomPlayerbotMgr->IsRandomBot(bot); }
 
-Player* PlayerbotAI::GetGroupMaster()
+Player* PlayerbotAI::GetGroupLeader()
 {
     if (!bot->InBattleground())
         if (Group* group = bot->GetGroup())
