@@ -11,6 +11,9 @@
 #include <string>
 
 #include "AiFactory.h"
+#include "ArenaTeam.h"
+#include "ArenaTeamMgr.h"
+#include "Battleground.h"
 #include "BudgetValues.h"
 #include "ChannelMgr.h"
 #include "CharacterPackets.h"
@@ -505,6 +508,51 @@ void PlayerbotAI::UpdatePvPGearSwap(uint32 elapsed)
     // work around: distinguish from 0 if no gear
     if (gsLimit == 0)
         gsLimit = 1;
+    // Additional arena rating-based gear cap (level 80 only).
+    // 1000 rating => ilvl 200, 2400 rating => ilvl 300 (hard cap).
+    // This is an extra restriction on top of the existing master-gear based limit.
+    if (bot->GetSession() && bot->GetSession()->IsBot() && bot->GetLevel() == 80 && bot->InArena())
+    {
+        uint32 rating = 0;
+
+        if (Battleground* bg = bot->GetBattleground())
+        {
+            if (bg->isArena())
+            {
+                uint8 arenaType = bg->GetArenaType(); // 2,3,5
+                uint8 slot = ArenaTeam::GetSlotByType(arenaType);
+                uint32 teamId = bot->GetArenaTeamId(slot);
+                if (teamId)
+                {
+                    if (ArenaTeam* team = sArenaTeamMgr->GetArenaTeamById(teamId))
+                        rating = team->GetRating();
+                }
+            }
+        }
+
+        // Treat unrated/skirmish/unknown as low rating
+        if (rating == 0)
+            rating = 1000;
+
+        float ilvlCapF = 200.0f;
+        if (rating >= 2400)
+            ilvlCapF = 300.0f;
+        else if (rating > 1000)
+            ilvlCapF = 200.0f + (float(rating - 1000) * (100.0f / 1400.0f));
+
+        uint32 ilvlCap = uint32(ilvlCapF + 0.5f);
+
+        // Convert item-level cap to the same "mixed gear score" scale used by GetMixedGearScore.
+        // Arena gear at 80 is typically epic; use epic multiplier.
+        uint32 ratingGsCap = uint32(float(ilvlCap) * PlayerbotAI::GetItemScoreMultiplier(ITEM_QUALITY_EPIC) + 0.5f);
+
+        if (ratingGsCap == 0)
+            ratingGsCap = 1;
+
+        if (ratingGsCap < gsLimit)
+            gsLimit = ratingGsCap;
+    }
+
 
     PlayerbotFactory factory(bot, bot->GetLevel(), ITEM_QUALITY_LEGENDARY, gsLimit);
     factory.InitEquipment(false, true);
