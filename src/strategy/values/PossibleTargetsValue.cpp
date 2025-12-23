@@ -92,7 +92,7 @@ bool PossibleTargetsValue::AcceptUnit(Unit* unit)
                             zoneId == AREA_ORGRIMMAR        ||
                             zoneId == AREA_THUNDER_BLUFF    ||
                             zoneId == AREA_UNDERCITY        ||
-                            zoneId == AREA_SILVERMOON_CITY);
+                            zoneId == 3487);    // TODO, pending core update: AREA_SILVERMOON_CITY is not defined in AreaDefines.h
 
         if (inCapitalCity)
             return true;
