@@ -8,12 +8,55 @@
 #include "ArenaTeam.h"
 #include "ArenaTeamMgr.h"
 #include "BattlegroundMgr.h"
+#include "SharedDefines.h"
 #include "Event.h"
 #include "GroupMgr.h"
 #include "PlayerbotAI.h"
 #include "Playerbots.h"
 #include "PositionValue.h"
 #include "UpdateTime.h"
+
+
+namespace
+{
+    // Random Battleground (RB) uses a generic template that often reports 10v10.
+    // When queueing for RB, use a safe upper bound so bots don't stop filling at 10 per team
+    // on maps that actually require 15/40 per team (AB/AV/IOC, etc).
+    static uint32 GetEffectiveMaxPlayersPerTeam(BattlegroundTypeId bgTypeId)
+    {
+        Battleground* bg = sBattlegroundMgr->GetBattlegroundTemplate(bgTypeId);
+        if (!bg)
+            return 0;
+
+        if (bgTypeId != BATTLEGROUND_RB)
+            return bg->GetMaxPlayersPerTeam();
+
+        static uint32 cachedMaxNonArenaBgTeamSize = 0;
+        if (!cachedMaxNonArenaBgTeamSize)
+        {
+            for (uint32 t = 1; t < MAX_BATTLEGROUND_TYPE_ID; ++t)
+            {
+                BattlegroundTypeId id = BattlegroundTypeId(t);
+
+                if (id == BATTLEGROUND_RB || id == BATTLEGROUND_AA)
+                    continue;
+
+                Battleground* tmpl = sBattlegroundMgr->GetBattlegroundTemplate(id);
+                if (!tmpl || tmpl->isArena())
+                    continue;
+
+                uint32 teamSize = tmpl->GetMaxPlayersPerTeam();
+                if (teamSize > cachedMaxNonArenaBgTeamSize)
+                    cachedMaxNonArenaBgTeamSize = teamSize;
+            }
+
+            if (!cachedMaxNonArenaBgTeamSize)
+                cachedMaxNonArenaBgTeamSize = bg->GetMaxPlayersPerTeam();
+        }
+
+        return cachedMaxNonArenaBgTeamSize;
+    }
+}
 
 bool BGJoinAction::Execute(Event event)
 {
@@ -235,8 +278,8 @@ bool BGJoinAction::shouldJoinBg(BattlegroundQueueTypeId queueTypeId, Battlegroun
         return false;
 
     TeamId teamId = bot->GetTeamId();
-    uint32 BracketSize = bg->GetMaxPlayersPerTeam() * 2;
-    uint32 TeamSize = bg->GetMaxPlayersPerTeam();
+    uint32 TeamSize = GetEffectiveMaxPlayersPerTeam(bgTypeId);
+    uint32 BracketSize = TeamSize * 2;
 
     // If the bot is in a group, only the leader can queue
     if (bot->GetGroup() && !bot->GetGroup()->IsLeader(bot->GetGUID()))
@@ -409,8 +452,8 @@ bool BGJoinAction::JoinQueue(uint32 type)
 
     bracketId = pvpDiff->GetBracketId();
 
-    uint32 BracketSize = bg->GetMaxPlayersPerTeam() * 2;
-    uint32 TeamSize = bg->GetMaxPlayersPerTeam();
+    uint32 TeamSize = GetEffectiveMaxPlayersPerTeam(bgTypeId);
+    uint32 BracketSize = TeamSize * 2;
     TeamId teamId = bot->GetTeamId();
 
     // check if already in queue
@@ -573,8 +616,8 @@ bool FreeBGJoinAction::shouldJoinBg(BattlegroundQueueTypeId queueTypeId, Battleg
 
     TeamId teamId = bot->GetTeamId();
 
-    uint32 BracketSize = bg->GetMaxPlayersPerTeam() * 2;
-    uint32 TeamSize = bg->GetMaxPlayersPerTeam();
+    uint32 TeamSize = GetEffectiveMaxPlayersPerTeam(bgTypeId);
+    uint32 BracketSize = TeamSize * 2;
 
     // If the bot is in a group, only the leader can queue
     if (bot->GetGroup() && !bot->GetGroup()->IsLeader(bot->GetGUID()))
@@ -947,7 +990,10 @@ bool BGStatusAction::Execute(Event event)
         if (isArena)
             timer = TIME_TO_AUTOREMOVE;
         else
-            timer = TIME_TO_AUTOREMOVE + 1000 * (bg->GetMaxPlayersPerTeam() * 8);
+        {
+            uint32 teamSize = GetEffectiveMaxPlayersPerTeam(_bgTypeId);
+            timer = TIME_TO_AUTOREMOVE + 1000 * (teamSize * 8);
+        }
 
         if (Time2 > timer && isArena)  // disabled for BG
             leaveQ = true;
