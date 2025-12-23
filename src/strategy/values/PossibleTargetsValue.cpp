@@ -16,6 +16,7 @@
 #include "SpellAuraEffects.h"
 #include "SpellMgr.h"
 #include "Unit.h"
+#include "AreaDefines.h"
 #include <unordered_map>
 
 // Level difference thresholds for attack probability
@@ -84,14 +85,14 @@ bool PossibleTargetsValue::AcceptUnit(Unit* unit)
 
         // Capital cities - no restrictions
         uint32 zoneId = bot->GetZoneId();
-        bool inCapitalCity = (zoneId == 1657 ||  // Darnassus
-                              zoneId == 3557 ||  // Exodar
-                              zoneId == 1537 ||  // Ironforge
-                              zoneId == 1637 ||  // Orgrimmar
-                              zoneId == 3487 ||  // Silvermoon City
-                              zoneId == 1519 ||  // Stormwind City
-                              zoneId == 1638 ||  // Thunder Bluff
-                              zoneId == 1497);   // Undercity
+        bool inCapitalCity = (zoneId == AREA_STORMWIND_CITY ||
+                            zoneId == AREA_IRONFORGE        ||
+                            zoneId == AREA_DARNASSUS        ||
+                            zoneId == AREA_THE_EXODAR       ||
+                            zoneId == AREA_ORGRIMMAR        ||
+                            zoneId == AREA_THUNDER_BLUFF    ||
+                            zoneId == AREA_UNDERCITY        ||
+                            zoneId == AREA_SILVERMOON_CITY);
 
         if (inCapitalCity)
             return true;
@@ -105,21 +106,21 @@ bool PossibleTargetsValue::AcceptUnit(Unit* unit)
             return false;
 
         // Calculate attack chance based on level difference
-        float attackChance = 1.0f; // Default 100%: Bot and target's levels are very close
+        uint32 attackChance = 100; // Default 100%: Bot and target's levels are very close
 
         // There's a chance a bot might gank on an extremly low target
         if ((absLevelDifference < EXTREME_LEVEL_DIFF && absLevelDifference >= HIGH_LEVEL_DIFF) ||
             levelDifference <= -EXTREME_LEVEL_DIFF)
-            attackChance = 0.25f;
+            attackChance = 25;
 
         else if (absLevelDifference < HIGH_LEVEL_DIFF && absLevelDifference >= MID_LEVEL_DIFF)
-            attackChance = 0.5f;
+            attackChance = 50;
 
         else if (absLevelDifference < MID_LEVEL_DIFF && absLevelDifference >= LOW_LEVEL_DIFF)
-            attackChance = 0.75f;
+            attackChance = 75;
 
         // If probability check needed, use cache
-        if (attackChance < 1.0f)
+        if (attackChance < 100)
         {
             std::pair<ObjectGuid, ObjectGuid> cacheKey = std::make_pair(bot->GetGUID(), unit->GetGUID());
             time_t currentTime = time(nullptr);
@@ -131,7 +132,7 @@ bool PossibleTargetsValue::AcceptUnit(Unit* unit)
                     return it->second.first;
             }
 
-            bool shouldAttack = (rand_norm() < attackChance);
+            bool shouldAttack = (urand(1, 100) <= attackChance);
             attackDecisionCache[cacheKey] = std::make_pair(shouldAttack, currentTime);
             return shouldAttack;
         }
