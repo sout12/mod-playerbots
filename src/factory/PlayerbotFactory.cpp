@@ -448,7 +448,10 @@ void PlayerbotFactory::Randomize(bool incremental)
     if (pmo)
         pmo->finish();
 
-    if (bot->GetLevel() >= 70)
+    uint32 const maxLevelArena = sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL);
+    uint32 const requiredLevelArena = (maxLevelArena < 70 ? 70 : maxLevelArena);
+
+    if (bot->GetLevel() >= requiredLevelArena)
     {
         pmo = sPerformanceMonitor->start(PERF_MON_RNDBOT, "PlayerbotFactory_Arenas");
         // LOG_INFO("playerbots", "Initializing arena teams...");
@@ -4099,9 +4102,18 @@ void PlayerbotFactory::InitImmersive()
 
 void PlayerbotFactory::InitArenaTeam()
 {
+    uint32 const maxLevel = sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL);
+    uint32 const requiredLevel = (maxLevel < 70 ? 70 : maxLevel);
 
+    // Extra safety: even if InitArenaTeam() is called from somewhere else,
+    // never touch arena teams below the required level.
+    if (bot->GetLevel() < requiredLevel)
+        return;
+
+    // Arena teams are only for random-bot accounts, never for real player alts.
     if (!sPlayerbotAIConfig->IsInRandomAccountList(bot->GetSession()->GetAccountId()))
         return;
+
 
     // Currently the teams are only remade after a server restart and if deleteRandomBotArenaTeams = 1
     // This is because randomBotArenaTeams is only empty on server restart.
@@ -4161,7 +4173,7 @@ void PlayerbotFactory::InitArenaTeam()
             continue;
         }
 
-        if (arenateam->GetMembersSize() < ((uint32)arenateam->GetType()) && bot->GetLevel() >= 70)
+        if (arenateam->GetMembersSize() < ((uint32)arenateam->GetType()) && bot->GetLevel() >= requiredLevel)
         {
             ObjectGuid capt = arenateam->GetCaptain();
             Player* botcaptain = ObjectAccessor::FindPlayer(capt);
