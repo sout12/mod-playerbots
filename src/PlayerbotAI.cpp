@@ -4063,7 +4063,7 @@ bool PlayerbotAI::HasAuraToDispel(Unit* target, uint32 dispelType)
             continue;
 
         Aura* aura = itr->second->GetBase();
-        if (!aura || aura->IsPassive())
+        if (!aura || aura->IsPassive() || aura->IsRemoved())
             continue;
 
         if (sPlayerbotAIConfig->dispelAuraDuration && aura->GetDuration() &&
