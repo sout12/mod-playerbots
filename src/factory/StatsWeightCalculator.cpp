@@ -91,6 +91,17 @@ float StatsWeightCalculator::CalculateItem(uint32 itemId, int32 randomPropertyId
 
     CalculateSocketBonus(player_, proto);
 
+// PvP gear preference:
+// In BG/Arena prefer items with Resilience; in world prefer non-Resilience.
+bool inPvpContext = player_ && (player_->InBattleground() || player_->InArena());
+bool hasResilience = (collector_->stats[STATS_TYPE_RESILIENCE] > 0.0f);
+if (hasResilience && !inPvpContext)
+{
+    // Penalize resilience gear in PvE so bots swap back to PvE sets.
+    weight_ *= 0.001f;
+}
+
+
     if (enable_quality_blend_)
     {
         // Heirloom items scale with player level
@@ -100,6 +111,12 @@ float StatsWeightCalculator::CalculateItem(uint32 itemId, int32 randomPropertyId
             weight_ *= PlayerbotFactory::CalcMixedGearScore(lvl, ITEM_QUALITY_EPIC);
         else
             weight_ *= PlayerbotFactory::CalcMixedGearScore(proto->ItemLevel, proto->Quality);
+
+// PvP gear preference bonus (after blending):
+// Add a large constant so resilience gear is preferred even if other stats are neutral.
+if (hasResilience && inPvpContext)
+    weight_ += 1000000.0f;
+
 
         return weight_;
     }

@@ -11,6 +11,9 @@
 #include <string>
 
 #include "AiFactory.h"
+#include "ArenaTeam.h"
+#include "ArenaTeamMgr.h"
+#include "Battleground.h"
 #include "BudgetValues.h"
 #include "ChannelMgr.h"
 #include "CharacterPackets.h"
@@ -47,6 +50,7 @@
 #include "PointMovementGenerator.h"
 #include "PositionValue.h"
 #include "RandomPlayerbotMgr.h"
+#include "PlayerbotFactory.h"
 #include "SayAction.h"
 #include "ScriptMgr.h"
 #include "ServerFacade.h"
@@ -367,6 +371,9 @@ void PlayerbotAI::UpdateAI(uint32 elapsed, bool minimal)
     // Update the bot's group status (moved to helper function)
     UpdateAIGroupMaster();
 
+    // PvP/BG/Arena gear swap (switch between PvE and PvP sets)
+    UpdatePvPGearSwap(elapsed);
+
     // Update internal AI
     UpdateAIInternal(elapsed, minimal);
     YieldThread(GetReactDelay());
@@ -433,6 +440,126 @@ void PlayerbotAI::UpdateAIGroupMaster()
         }
     }
 }
+
+void PlayerbotAI::UpdatePvPGearSwap(uint32 elapsed)
+{
+    if (!bot || !bot->GetSession() || !bot->IsInWorld())
+        return;
+
+    bool isPvpContext = bot->InBattleground() || bot->InArena();
+
+    // Detect transitions world <-> BG/Arena
+    if (isPvpContext != lastPvpContext)
+    {
+        lastPvpContext = isPvpContext;
+        pvpGearSwapPending = true;
+        pvpGearSwapCooldown = 0;  // try immediately
+    }
+
+    if (!pvpGearSwapPending)
+        return;
+
+    if (pvpGearSwapCooldown)
+    {
+        if (pvpGearSwapCooldown > elapsed)
+        {
+            pvpGearSwapCooldown -= elapsed;
+            return;
+        }
+        pvpGearSwapCooldown = 0;
+    }
+
+    // Can't change equipment in combat / teleport; retry later.
+    if (!bot->IsAlive() || bot->IsInCombat() || bot->IsBeingTeleported() || bot->GetSession()->isLogingOut() ||
+        bot->IsDuringRemoveFromWorld())
+    {
+        pvpGearSwapCooldown = 5000;
+        return;
+    }
+
+    // Important: "alt" bots may be temporarily controlled by someone else.
+    // We must not decide this based on master's account.
+    // The module already uses RandomAccountList to distinguish real alts from bot accounts
+    // (see AutoGearAction / PlayerbotAIConfig::IsInRandomAccountList).
+    // - accounts in RandomAccountList => bot accounts (allowed to generate gear)
+    // - all other accounts            => real player alts (bag-only)
+    bool isBotAccount = sRandomPlayerbotMgr->IsRandomBot(bot) ||
+                        sPlayerbotAIConfig->IsInRandomAccountList(bot->GetSession()->GetAccountId());
+    bool bagOnly = !isBotAccount;
+
+    if (bagOnly)
+    {
+        // Bag-only swap for alts
+        if (DoSpecificAction("equip upgrade", Event("pvp gear swap"), true))
+            pvpGearSwapPending = false;
+        else
+            pvpGearSwapCooldown = 5000;
+
+        return;
+    }
+
+    // Gear generation swap (random bots + non-twink addbot bots):
+    // run equipment init only, but rely on resilience preference in StatsWeightCalculator to pick PvP in BG/Arena.
+    Player* gsRef = (master && master->GetSession()) ? master : bot;
+
+    uint32 gsLimit = uint32(PlayerbotAI::GetMixedGearScore(gsRef, true, false, 12) *
+                            sPlayerbotAIConfig->autoInitEquipLevelLimitRatio);
+
+    // work around: distinguish from 0 if no gear
+    if (gsLimit == 0)
+        gsLimit = 1;
+    // Additional arena rating-based gear cap (level 80 only).
+    // 1000 rating => ilvl 200, 2400 rating => ilvl 300 (hard cap).
+    // This is an extra restriction on top of the existing master-gear based limit.
+    if (bot->GetSession() && bot->GetSession()->IsBot() && bot->GetLevel() == 80 && bot->InArena())
+    {
+        uint32 rating = 0;
+
+        if (Battleground* bg = bot->GetBattleground())
+        {
+            if (bg->isArena())
+            {
+                uint8 arenaType = bg->GetArenaType(); // 2,3,5
+                uint8 slot = ArenaTeam::GetSlotByType(arenaType);
+                uint32 teamId = bot->GetArenaTeamId(slot);
+                if (teamId)
+                {
+                    if (ArenaTeam* team = sArenaTeamMgr->GetArenaTeamById(teamId))
+                        rating = team->GetRating();
+                }
+            }
+        }
+
+        // Treat unrated/skirmish/unknown as low rating
+        if (rating == 0)
+            rating = 1000;
+
+        float ilvlCapF = 200.0f;
+        if (rating >= 2400)
+            ilvlCapF = 300.0f;
+        else if (rating > 1000)
+            ilvlCapF = 200.0f + (float(rating - 1000) * (100.0f / 1400.0f));
+
+        uint32 ilvlCap = uint32(ilvlCapF + 0.5f);
+
+        // Convert item-level cap to the same "mixed gear score" scale used by GetMixedGearScore.
+        // Arena gear at 80 is typically epic; use epic multiplier.
+        uint32 ratingGsCap = uint32(float(ilvlCap) * PlayerbotAI::GetItemScoreMultiplier(ITEM_QUALITY_EPIC) + 0.5f);
+
+        if (ratingGsCap == 0)
+            ratingGsCap = 1;
+
+        if (ratingGsCap < gsLimit)
+            gsLimit = ratingGsCap;
+    }
+
+
+    PlayerbotFactory factory(bot, bot->GetLevel(), ITEM_QUALITY_LEGENDARY, gsLimit);
+    factory.InitEquipment(false, true);
+
+    pvpGearSwapPending = false;
+}
+
 
 void PlayerbotAI::UpdateAIInternal([[maybe_unused]] uint32 elapsed, bool minimal)
 {
