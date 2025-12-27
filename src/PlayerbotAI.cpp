@@ -4175,17 +4175,22 @@ bool PlayerbotAI::IsInterruptableSpellCasting(Unit* target, std::string const sp
 
 bool PlayerbotAI::HasAuraToDispel(Unit* target, uint32 dispelType)
 {
-    if (!target->IsInWorld())
-    {
+    if (!bot || !target || !target->IsInWorld() || !target->IsAlive())
         return false;
-    }
+
     bool isFriend = bot->IsFriendlyTo(target);
+
     Unit::VisibleAuraMap const* visibleAuras = target->GetVisibleAuras();
+    if (!visibleAuras)
+        return false;
+
     for (Unit::VisibleAuraMap::const_iterator itr = visibleAuras->begin(); itr != visibleAuras->end(); ++itr)
     {
-        Aura* aura = itr->second->GetBase();
+        if (!itr->second)
+            continue;
 
-        if (aura->IsPassive())
+        Aura* aura = itr->second->GetBase();
+        if (!aura || aura->IsPassive() || aura->IsRemoved())
             continue;
 
         if (sPlayerbotAIConfig->dispelAuraDuration && aura->GetDuration() &&
@@ -4193,6 +4198,8 @@ bool PlayerbotAI::HasAuraToDispel(Unit* target, uint32 dispelType)
             continue;
 
         SpellInfo const* spellInfo = aura->GetSpellInfo();
+        if (!spellInfo)
+            continue;
 
         bool isPositiveSpell = spellInfo->IsPositive();
         if (isPositiveSpell && isFriend)
@@ -4204,6 +4211,7 @@ bool PlayerbotAI::HasAuraToDispel(Unit* target, uint32 dispelType)
         if (canDispel(spellInfo, dispelType))
             return true;
     }
+
     return false;
 }
 
