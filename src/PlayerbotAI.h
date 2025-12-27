@@ -613,6 +613,8 @@ private:
                                    bool mixed = false);
     bool IsTellAllowed(PlayerbotSecurityLevel securityLevel = PLAYERBOT_SECURITY_ALLOW_ALL);
     void UpdateAIGroupMaster();
+    void UpdatePvPGearSwap(uint32 elapsed);
+
     Item* FindItemInInventory(std::function<bool(ItemTemplate const*)> checkItem) const;
     void HandleCommands();
     void HandleCommand(uint32 type, const std::string& text, Player& fromPlayer, const uint32 lang = LANG_UNIVERSAL);
@@ -643,6 +645,11 @@ protected:
     BotCheatMask cheatMask = BotCheatMask::none;
     Position jumpDestination = Position();
     uint32 nextTransportCheck = 0;
+    // PvP/BG/Arena gear swap tracking
+    bool lastPvpContext = false;
+    bool pvpGearSwapPending = false;
+    uint32 pvpGearSwapCooldown = 0;
+
 };
 
 #endif
