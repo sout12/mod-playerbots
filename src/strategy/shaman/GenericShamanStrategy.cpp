@@ -113,14 +113,13 @@ void GenericShamanStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
 
 void ShamanCureStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
 {
+    // Direct cures for poison and disease (implemented via Cure Toxins in actions)	
     triggers.push_back(new TriggerNode("cure poison", NextAction::array(0, new NextAction("cure poison", 21.0f), nullptr)));
     triggers.push_back(new TriggerNode("party member cure poison", NextAction::array(0, new NextAction("cure poison on party", 21.0f), nullptr)));
-    triggers.push_back(new TriggerNode("cleanse spirit poison", NextAction::array(0, new NextAction("cleanse spirit", 24.0f), nullptr)));
-    triggers.push_back(new TriggerNode("party member cleanse spirit poison", NextAction::array(0, new NextAction("cleanse spirit poison on party", 23.0f), nullptr)));
     triggers.push_back(new TriggerNode("cure disease", NextAction::array(0, new NextAction("cure disease", 31.0f), nullptr)));
     triggers.push_back(new TriggerNode("party member cure disease", NextAction::array(0, new NextAction("cure disease on party", 30.0f), nullptr)));
-    triggers.push_back(new TriggerNode("cleanse spirit disease", NextAction::array(0, new NextAction("cleanse spirit", 24.0f), nullptr)));
-    triggers.push_back(new TriggerNode("party member cleanse spirit disease", NextAction::array(0, new NextAction("cleanse spirit disease on party", 23.0f), nullptr)));
+
+    // Cleanse Spirit remains dedicated to curses
     triggers.push_back(new TriggerNode("cleanse spirit curse", NextAction::array(0, new NextAction("cleanse spirit", 24.0f), nullptr)));
     triggers.push_back(new TriggerNode("party member cleanse spirit curse", NextAction::array(0, new NextAction("cleanse spirit curse on party", 23.0f), nullptr)));
 }
