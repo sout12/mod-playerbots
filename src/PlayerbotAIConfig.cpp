@@ -610,6 +610,18 @@ bool PlayerbotAIConfig::Initialize()
     autoPickReward = sConfigMgr->GetOption<std::string>("AiPlayerbot.AutoPickReward", "yes");
     autoEquipUpgradeLoot = sConfigMgr->GetOption<bool>("AiPlayerbot.AutoEquipUpgradeLoot", true);
     equipUpgradeThreshold = sConfigMgr->GetOption<float>("AiPlayerbot.EquipUpgradeThreshold", 1.1f);
+    allowBoENeedIfUpgrade = sConfigMgr->GetOption<bool>("AiPlayerbot.Roll.AllowBoENeedIfUpgrade", true);
+    allowBoUNeedIfUpgrade = sConfigMgr->GetOption<bool>("AiPlayerbot.Roll.AllowBoUNeedIfUpgrade", true);
+    crossArmorExtraMargin = sConfigMgr->GetOption<float>("AiPlayerbot.Roll.CrossArmorExtraMargin", 1.20f);
+    crossArmorGreedIsPass = sConfigMgr->GetOption<bool>("AiPlayerbot.Roll.CrossArmorGreedIsPass", false);
+    uint32 deMode = sConfigMgr->GetOption<uint32>("AiPlayerbot.Roll.UseDEButton", 1u);
+    if (deMode > 2u)
+        deMode = 2u;
+    deButtonMode = static_cast<uint8>(deMode);
+    tokenILevelMargin = sConfigMgr->GetOption<float>("AiPlayerbot.Roll.TokenILevelMargin", 0.10f);
+    needOnProfessionRecipes = sConfigMgr->GetOption<bool>("AiPlayerbot.Roll.NeedOnProfessionRecipes", true);
+    recipesIgnoreSkillRank   = sConfigMgr->GetOption<bool>("AiPlayerbot.Roll.Recipes.IgnoreSkillRank", false);
+    smartNeedBySpec = sConfigMgr->GetOption<bool>("AiPlayerbot.Roll.SmartNeedBySpec", true);
     twoRoundsGearInit = sConfigMgr->GetOption<bool>("AiPlayerbot.TwoRoundsGearInit", false);
     syncQuestWithPlayer = sConfigMgr->GetOption<bool>("AiPlayerbot.SyncQuestWithPlayer", true);
     syncQuestForPlayer = sConfigMgr->GetOption<bool>("AiPlayerbot.SyncQuestForPlayer", false);
