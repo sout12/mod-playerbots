@@ -1,0 +1,159 @@
+{
+  "module": "Movement_AI",
+  "version": "3.3.5a",
+  "description": "Advanced movement, positioning, kiting, LOS, intercept, and pathing rules optimized for competitive PvP in WotLK 3.3.5a.",
+  "update_frequency_ms": 200,
+  "parameters": {
+    "max_kite_distance": 30,
+    "kite_threshold_hp_percent": 65,
+    "avoid_zerg_nearby_count": 6,
+    "flank_distance": 8,
+    "pillar_hug_radius": 6,
+    "line_of_sight_timeout_ms": 2000,
+    "pathfinding_update_frequency": 150,
+    "collision_detection_radius": 3
+  },
+  "behaviors": {
+    "kiting": {
+      "description": "When to kite versus commit.",
+      "conditions": [
+        "if self_role in ['ranged_dps','healer'] and attackers_count >= 1 and self_hp_percent < kite_threshold_hp_percent then kite",
+        "if target_is_melee and distance_to_target < 8 then move_backward_and_cast_kite_spells"
+      ],
+      "actions_sequence": [
+        "maintain_distance = clamp(desired_distance, 8, max_kite_distance)",
+        "use_movement_spells(priority=['Blink','Sprint','Ghost Wolf','Travel Form','Deterrence'])",
+        "use_line_of_sight_to_break_cc_if_path_blocked"
+      ],
+      "advanced_kiting": [
+        "circle_strafing_for_ranged_dps",
+        "juking_to_avoid_spells",
+        "using_terrain_for_cover",
+        "predicting_enemy_movement"
+      ]
+    },
+    "intercept_flag_carrier": {
+      "description": "Predict and cut off flag carrier paths.",
+      "prediction_window_ms": 1500,
+      "actions": [
+        "compute_predicted_position(target, prediction_window_ms)",
+        "move_to(intercept_point(predicted_position, flank_distance))",
+        "use_gapcloser_if_distance_gt_12 (e.g., Feral Charge/Intercept)"
+      ],
+      "advanced_intercept": [
+        "analyze_flag_carrier_movement_patterns",
+        "predict_escape_routes",
+        "coordinate_with_team_for_intercept",
+        "use_terrain_advantages"
+      ]
+    },
+    "positioning": {
+      "description": "Prefer soft cover and high ground; avoid center of field.",
+      "rules": [
+        "prefer_positions_within(pillars, walls) when attackers_gt=1",
+        "avoid_chokepoints_if_outnumbered by compare(team_count_vs_enemy_count)",
+        "seek_flank_routes for objective pushes if team_engaged_front"
+      ],
+      "advanced_positioning": [
+        "maintain_formation_with_team",
+        "position_for_role_requirements",
+        "use_terrain_advantages",
+        "avoid_harmful_areas"
+      ]
+    },
+    "vehicle_handling": {
+      "description": "Vehicle escort and control logic.",
+      "rules": [
+        "drivers_should_keep_vehicle_grouped_and_avoid_single_file_straight_paths",
+        "passengers_use_knockback_to_clear_melee_from_vehicle",
+        "escort_count_min=4 for siege_engines; if escorts_lt_min -> request_reinforcements"
+      ],
+      "advanced_vehicle": [
+        "coordinate_vehicle_routes",
+        "protect_vehicle_drivers",
+        "escort_vehicle_efficiently",
+        "use_terrain_for_vehicle_advantage"
+      ]
+    },
+    "pathfinding": {
+      "description": "Optimal pathing to objectives and targets.",
+      "rules": [
+        "avoid_zerg_clusters",
+        "use_shortest_safe_path",
+        "prefer_covered_routes",
+        "avoid_harmful_areas"
+      ],
+      "advanced_pathfinding": [
+        "predict_enemy_positions",
+        "use_terrain_advantages",
+        "coordinate_with_team_movement",
+        "avoid_ambush_locations"
+      ]
+    }
+  },
+  "movement_strategies": {
+    "aggressive": {
+      "approach": ["direct_path", "gap_closers", "aggressive_positioning"],
+      "engage_conditions": ["advantageous_situations", "outnumbered_enemies", "high_dps_targets"]
+    },
+    "balanced": {
+      "approach": ["balanced_path", "moderate_positioning", "team_coordination"],
+      "engage_conditions": ["balanced_situations", "team_support_available", "moderate_advantage"]
+    },
+    "defensive": {
+      "approach": ["safe_routes", "defensive_positioning", "cover_usage"],
+      "engage_conditions": ["defensive_positions", "team_support", "safe_engagement"]
+    },
+    "objective_focused": {
+      "approach": ["objective_routes", "minimize_risk", "escort_duty"],
+      "engage_conditions": ["objective_related", "safe_engagement", "team_support"]
+    }
+  },
+  "adaptive_behavior": {
+    "team_size": {
+      "1": ["defensive_movement", "avoid_fights", "safe_routes"],
+      "2-3": ["coordinated_movement", "selective_engagement", "team_support"],
+      "4+": ["aggressive_movement", "team_pushes", "objective_pushes"]
+    },
+    "enemy_composition": {
+      "high_healer_count": ["balanced_movement", "avoid_being_healed", "apply_pressure"],
+      "melee_heavy": ["kiting_movement", "maintain_distance", "use_los"],
+      "ranged_heavy": ["cover_movement", "use_terrain", "focus_fire"]
+    },
+    "game_state": {
+      "behind": ["defensive_movement", "protect_objectives", "safe_engagement"],
+      "ahead": ["aggressive_movement", "maintain_pressure", "objective_pushes"],
+      "close": ["maximize_movement", "win_exchanges", "control_outcomes"]
+    }
+  },
+  "tactical_positioning": {
+    "key_locations": {
+      "WSG_flag_room": {
+        "defensive_positions": ["flag_stand", "entrance", "behind_cover"],
+        "offensive_positions": ["approach", "escape_routes", "control_points"]
+      },
+      "AB_base_circles": {
+        "defensive_positions": ["inside_circle", "approach_angles", "escape_routes"],
+        "offensive_positions": ["approach", "flank_routes", "control_points"]
+      },
+      "AV_tower_approaches": {
+        "defensive_positions": ["tower_base", "approach_control", "escape_routes"],
+        "offensive_positions": ["approach_angles", "flank_routes", "control_points"]
+      }
+    }
+  },
+  "resource_management": {
+    "movement_efficiency": {
+      "spending_strategy": ["save_for_emergency", "spend_on_opportunity", "maintain_efficiency"],
+      "priority_targets": ["escape_mechanics", "gap_closers", "positioning_abilities"]
+    }
+  },
+  "cpp_hooks": [
+    "MovementAI::EvaluateKiting()",
+    "MovementAI::ComputeInterceptPoint()",
+    "MovementAI::ChooseCoverPosition()",
+    "MovementAI::UpdatePathfinding()",
+    "MovementAI::AnalyzeEnemyPositions()",
+    "MovementAI::CoordinateTeamMovement()"
+  ]
+}

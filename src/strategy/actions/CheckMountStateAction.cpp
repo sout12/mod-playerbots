@@ -99,8 +99,10 @@ bool CheckMountStateAction::isUseful()
     // BG Logic
     if (bot->InBattleground())
     {
-        // Do not use when carrying BG Flags
-        if (bot->HasAura(BG_WS_SPELL_WARSONG_FLAG) || bot->HasAura(BG_WS_SPELL_SILVERWING_FLAG) || bot->HasAura(BG_EY_NETHERSTORM_FLAG_SPELL))
+        // Do not mount when carrying BG Flags, but allow druids to shapeshift to travel form
+        // This gives druids a speed advantage as flag carriers (intended mechanic)
+        if ((bot->HasAura(BG_WS_SPELL_WARSONG_FLAG) || bot->HasAura(BG_WS_SPELL_SILVERWING_FLAG) || bot->HasAura(BG_EY_NETHERSTORM_FLAG_SPELL))
+            && bot->getClass() != CLASS_DRUID)
             return false;
 
         // Only mount if BG starts in less than 30 sec
@@ -122,6 +124,20 @@ bool CheckMountStateAction::Execute(Event /*event*/)
     bool shouldMount = false;
 
     Unit* currentTarget = AI_VALUE(Unit*, "current target");
+    
+    // FIX: In BGs, clear far-away targets to prevent mount/dismount loops at objectives
+    // If targeting someone >50 yards away, they're not a threat to current objective
+    if (bot->InBattleground() && currentTarget)
+    {
+        float distanceToTarget = bot->GetExactDist(currentTarget);
+        if (distanceToTarget > 50.0f)
+        {
+            // Target is too far to matter for immediate objective - clear it
+            bot->SetSelection(ObjectGuid::Empty);
+            currentTarget = nullptr;
+        }
+    }
+    
     if (currentTarget)
     {
         float dismountDistance = CalculateDismountDistance();

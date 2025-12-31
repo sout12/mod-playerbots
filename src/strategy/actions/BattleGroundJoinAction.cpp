@@ -8,12 +8,15 @@
 #include "ArenaTeam.h"
 #include "ArenaTeamMgr.h"
 #include "BattlegroundMgr.h"
-#include "SharedDefines.h"
+#include "CompetitiveQueueMgr.h"
 #include "Event.h"
+#include "Guild.h"
+#include "GuildMgr.h"
 #include "GroupMgr.h"
 #include "PlayerbotAI.h"
 #include "Playerbots.h"
 #include "PositionValue.h"
+#include "SharedDefines.h"
 #include "UpdateTime.h"
 
 
@@ -310,7 +313,7 @@ bool BGJoinAction::shouldJoinBg(BattlegroundQueueTypeId queueTypeId, Battlegroun
             {
                 sRandomPlayerbotMgr->BattlegroundData[queueTypeId][bracketId].ratedArenaBotCount += TeamSize;
                 ratedList.push_back(queueTypeId);
-                return true;
+                return true;  // Competitive queue already checked in isUseful()
             }
         }
 
@@ -330,7 +333,7 @@ bool BGJoinAction::shouldJoinBg(BattlegroundQueueTypeId queueTypeId, Battlegroun
 
         if ((skirmishArenaBotCount + skirmishArenaPlayerCount) < maxRequiredSkirmishBots)
         {
-            return true;
+            return true;  // Competitive queue already checked in isUseful()
         }
 
         return false;
@@ -341,18 +344,31 @@ bool BGJoinAction::shouldJoinBg(BattlegroundQueueTypeId queueTypeId, Battlegroun
     uint32 bgAlliancePlayerCount = sRandomPlayerbotMgr->BattlegroundData[queueTypeId][bracketId].bgAlliancePlayerCount;
     uint32 bgHordeBotCount = sRandomPlayerbotMgr->BattlegroundData[queueTypeId][bracketId].bgHordeBotCount;
     uint32 bgHordePlayerCount = sRandomPlayerbotMgr->BattlegroundData[queueTypeId][bracketId].bgHordePlayerCount;
-    uint32 activeBgQueue = sRandomPlayerbotMgr->BattlegroundData[queueTypeId][bracketId].activeBgQueue;
+    int activeBgQueue = sRandomPlayerbotMgr->BattlegroundData[queueTypeId][bracketId].activeBgQueue;
     uint32 bgInstanceCount = sRandomPlayerbotMgr->BattlegroundData[queueTypeId][bracketId].bgInstanceCount;
+
+    // Check if there are any real players in the BG
+    uint32 totalPlayers = bgAlliancePlayerCount + bgHordePlayerCount;
+
+    // If there is no active queue (meaning no real players queuing and no forced bot count)
+    // AND there are no real players currently in the BG
+    // THEN do not join.
+    if (!activeBgQueue && !totalPlayers)
+        return false;
 
     if (teamId == TEAM_ALLIANCE)
     {
         if ((bgAllianceBotCount + bgAlliancePlayerCount) < TeamSize * (activeBgQueue + bgInstanceCount))
-            return true;
+        {
+            return true;  // Competitive queue already checked in isUseful()
+        }
     }
     else
     {
         if ((bgHordeBotCount + bgHordePlayerCount) < TeamSize * (activeBgQueue + bgInstanceCount))
-            return true;
+        {
+            return true;  // Competitive queue already checked in isUseful()
+        }
     }
 
     return false;
@@ -384,28 +400,13 @@ bool BGJoinAction::isUseful()
     if (GET_PLAYERBOT_AI(bot)->HasActivePlayerMaster())
         return false;
 
-    // do not try if in group, if in group only leader can queue
-    if (bot->GetGroup() && !bot->GetGroup()->IsLeader(bot->GetGUID()))
-        return false;
-
-    // do not try if in combat
-    if (bot->IsInCombat())
-        return false;
-
-    // check Deserter debuff
-    if (!bot->CanJoinToBattleground())
-        return false;
-
-    // check if has free queue slots (pointless as already making sure not in queue)
-    // keeping just in case.
-    if (!bot->HasFreeBattlegroundQueueId())
-        return false;
-
-    // do not try if in dungeon
-    // Map* map = bot->GetMap();
-    // if (map && map->Instanceable())
-    //     return false;
-
+    // Competitive Queue Check - Roll ONCE per queue attempt (not per BG type!)
+    // This prevents rolling multiple times and drastically reducing queue rates
+    // Determine if this is an arena queue by checking later if we have any battleground options
+    // For now, check conservatively - we'll refine this below
+    bool isArenaQueue = false;
+    
+    // Build bgList first to determine queue type
     bgList.clear();
     ratedList.clear();
 
@@ -419,15 +420,120 @@ bool BGJoinAction::isUseful()
             if (!canJoinBg(queueTypeId, bracketId))
                 continue;
 
-            if (shouldJoinBg(queueTypeId, bracketId))
-                bgList.push_back(queueTypeId);
+            if (!shouldJoinBg(queueTypeId, bracketId))
+                continue;
+
+            // Determine if this is arena or BG
+            BattlegroundTypeId bgTypeId = BattlegroundMgr::BGTemplateId(queueTypeId);
+            ArenaType arenaType = ArenaType(BattlegroundMgr::BGArenaType(queueTypeId));
+            
+            if (arenaType != ARENA_TYPE_NONE)
+            {
+                isArenaQueue = true;
+            }
+
+            bgList.push_back(queueTypeId);
         }
     }
 
-    if (!bgList.empty())
-        return true;
+    // Now check competitive queue with appropriate ranking
+    if (!sCompetitiveQueueMgr->ShouldQueueForBG(bot, isArenaQueue))
+        return false;
 
-    return false;
+    // If we have no valid queues, return false
+    if (bgList.empty())
+        return false;
+
+    // PvP Guild Premade Formation
+    // If bot is in a PvP guild and not already in a group, 65% chance to form premade
+    if (sPlayerbotAIConfig->pvpGuildsEnabled && !bot->GetGroup())
+    {
+        uint32 guildId = bot->GetGuildId();
+        if (guildId)
+        {
+            // Check if this is a PvP guild
+            bool isPvPGuild = std::find(sPlayerbotAIConfig->pvpGuildIds.begin(), 
+                                       sPlayerbotAIConfig->pvpGuildIds.end(), 
+                                       guildId) != sPlayerbotAIConfig->pvpGuildIds.end();
+            
+            if (isPvPGuild)
+            {
+                // Roll for premade formation (65% chance)
+                if (frand(0.0f, 100.0f) < sPlayerbotAIConfig->pvpGuildPremadeChance)
+                {
+                    // Try to form group with guild members
+                    Guild* guild = sGuildMgr->GetGuildById(guildId);
+                    if (guild)
+                    {
+                        std::vector<Player*> availableMembers;
+                        
+                        // Use BroadcastWorker to find online guild members who can queue
+                        auto findMembers = [&](Player* guildMember)
+                        {
+                            if (!guildMember || guildMember == bot)
+                                return;
+                            
+                            // Check if member can join
+                            if (guildMember->GetLevel() < 10 ||
+                                guildMember->InBattleground() ||
+                                guildMember->InBattlegroundQueue() ||
+                                guildMember->GetGroup() ||
+                                guildMember->IsInCombat() ||
+                                !guildMember->CanJoinToBattleground())
+                                return;
+                                
+                            // Check if this is a bot (not a real player)
+                            if (!sRandomPlayerbotMgr->IsRandomBot(guildMember))
+                                return;
+                            
+                            availableMembers.push_back(guildMember);
+                        };
+                        
+                        guild->BroadcastWorker(findMembers, bot);
+                        
+                        // Form group if we have guild members available (2-4 members ideally)
+                        if (!availableMembers.empty())
+                        {
+                            Group* group = new Group();
+                            if (group->Create(bot))
+                            {
+                                sGroupMgr->AddGroup(group);
+                                
+                                // Add 1-3 guild members (total group size 2-4)
+                                uint32 membersToAdd = std::min((uint32)availableMembers.size(), urand(1, 3));
+                                uint32 added = 0;
+                                
+                                for (uint32 i = 0; i < availableMembers.size() && added < membersToAdd; ++i)
+                                {
+                                    if (group->AddMember(availableMembers[i]))
+                                    {
+                                        added++;
+                                    }
+                                }
+                                
+                                LOG_DEBUG("playerbots", "PvP Guild Premade: {} formed group with {} guild members from {}",
+                                         bot->GetName(), added, guild->GetName());
+                            }
+                            else
+                            {
+                                delete group;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // do not try if in dungeon
+    // Map* map = bot->GetMap()
+    // if (map && map->Instanceable())
+    //     return false;
+
+    // bgList already built above - just validate we have options
+    if (bgList.empty() && ratedList.empty())
+        return false;
+    return true;
 }
 
 bool BGJoinAction::JoinQueue(uint32 type)
@@ -648,7 +754,8 @@ bool FreeBGJoinAction::shouldJoinBg(BattlegroundQueueTypeId queueTypeId, Battleg
             {
                 sRandomPlayerbotMgr->BattlegroundData[queueTypeId][bracketId].ratedArenaBotCount += TeamSize;
                 ratedList.push_back(queueTypeId);
-                return true;
+                // Apply competitive queue chance check for rated arenas
+                return sCompetitiveQueueMgr->ShouldQueueForBG(bot);
             }
         }
 
@@ -668,7 +775,8 @@ bool FreeBGJoinAction::shouldJoinBg(BattlegroundQueueTypeId queueTypeId, Battleg
 
         if ((skirmishArenaBotCount + skirmishArenaPlayerCount) < maxRequiredSkirmishBots)
         {
-            return true;
+            // Apply competitive queue chance check for skirmish arenas
+            return sCompetitiveQueueMgr->ShouldQueueForBG(bot);
         }
 
         return false;
@@ -685,12 +793,18 @@ bool FreeBGJoinAction::shouldJoinBg(BattlegroundQueueTypeId queueTypeId, Battleg
     if (teamId == TEAM_ALLIANCE)
     {
         if ((bgAllianceBotCount + bgAlliancePlayerCount) < TeamSize * (activeBgQueue + bgInstanceCount))
-            return true;
+        {
+            // Apply competitive queue chance check for battlegrounds
+            return sCompetitiveQueueMgr->ShouldQueueForBG(bot);
+        }
     }
     else
     {
         if ((bgHordeBotCount + bgHordePlayerCount) < TeamSize * (activeBgQueue + bgInstanceCount))
-            return true;
+        {
+            // Apply competitive queue chance check for battlegrounds
+            return sCompetitiveQueueMgr->ShouldQueueForBG(bot);
+        }
     }
 
     return false;

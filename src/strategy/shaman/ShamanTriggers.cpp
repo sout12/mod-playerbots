@@ -484,3 +484,30 @@ bool SetTotemTrigger::IsActive()
 
    return false;
 }
+
+// Ghost Wolf PvP - Use for flag carrier speed and mobility  
+bool GhostWolfPvPTrigger::IsActive()
+{
+    // Must have Ghost Wolf spell (2645)
+    if (!bot->HasSpell(2645))
+        return false;
+    
+    // Works in battlegrounds, arenas, AND world PvP
+    if (!bot->InBattleground() && !bot->InArena() && !bot->IsInCombat())
+        return false;
+    
+    // Already in Ghost Wolf form
+    if (botAI->HasAura("ghost wolf", bot))
+        return false;
+    
+    // Use Ghost Wolf if we're a flag carrier (WSG: 23333/23335, EotS: 34976)
+    if (bot->HasAura(23333) || bot->HasAura(23335) || bot->HasAura(34976))
+        return true;
+    
+    // Use Ghost Wolf when out of combat to reposition quickly in PvP
+    if (!bot->IsInCombat() && bot->InBattleground())
+        return true;
+    
+    return false;
+}
+

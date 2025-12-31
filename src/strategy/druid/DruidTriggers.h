@@ -280,4 +280,28 @@ protected:
     static const std::set<uint32> HURRICANE_SPELL_IDS;
 };
 
+// PvP-specific Travel Form trigger for flag carrier speed boost
+class TravelFormPvPTrigger : public Trigger
+{
+public:
+    TravelFormPvPTrigger(PlayerbotAI* botAI) : Trigger(botAI, "travel form pvp") {}
+    bool IsActive() override;
+};
+
+// PvP-specific Entangling Roots trigger for rooting fleeing flag carriers
+class EntanglingRootsPvPTrigger : public Trigger
+{
+public:
+    EntanglingRootsPvPTrigger(PlayerbotAI* botAI) : Trigger(botAI, "entangling roots pvp") {}
+    bool IsActive() override;
+};
+
+// Dash PvP trigger for cat form speed in PvP
+class DashPvPTrigger : public Trigger
+{
+public:
+    DashPvPTrigger(PlayerbotAI* botAI) : Trigger(botAI, "dash pvp") {}
+    bool IsActive() override;
+};
+
 #endif

@@ -110,3 +110,129 @@ bool LeaveVehicleAction::Execute(Event event)
 
     return true;
 }
+
+// ==========================================
+// IOC SIEGE ENGINE ACTIONS
+// ==========================================
+
+bool IoCDriveSiegeEngineAction::isUseful()
+{
+    // Only useful if driving a siege engine in IoC
+    if (!bot->InBattleground())
+        return false;
+    
+    Battleground* bg = bot->GetBattleground();
+    if (!bg || bg->GetBgTypeID() != BATTLEGROUND_IC)
+        return false;
+    
+    // Must be in vehicle
+    if (!bot->GetVehicle())
+        return false;
+    
+    // Check if it's a siege engine
+    Unit* vehicle = bot->GetVehicle()->GetBase();
+    if (!vehicle)
+        return false;
+    
+    uint32 entry = vehicle->GetEntry();
+    return (entry == 34776 || entry == 35273);  // Siege engines
+}
+
+bool IoCDriveSiegeEngineAction::Execute(Event event)
+{
+    if (!bot->GetVehicle())
+        return false;
+    
+    Battleground* bg = bot->GetBattleground();
+    if (!bg)
+        return false;
+    
+    // Get enemy gate position
+    Position gatePos;
+    if (bot->GetTeamId() == TEAM_ALLIANCE)
+        gatePos = Position(1270.0f, -765.0f, 48.0f, 0.0f);  // Horde gate
+    else
+        gatePos = Position(341.0f, -872.0f, 47.0f, 0.0f);   // Alliance gate
+    
+    // Drive to gate
+    float dist = bot->GetDistance(gatePos.GetPositionX(), gatePos.GetPositionY(), gatePos.GetPositionZ());
+    
+    // If HP < 40%, retreat (per IoC guide)
+    Unit* vehicle = bot->GetVehicle()->GetBase();
+    if (vehicle && vehicle->GetHealthPct() < 40.0f)
+    {
+        // Retreat - move away from gate
+        float retreatDist = 30.0f;
+        float angle = vehicle->GetAngle(gatePos.GetPositionX(), gatePos.GetPositionY()) + M_PI;
+        float retreatX = vehicle->GetPositionX() + retreatDist * cos(angle);
+        float retreatY = vehicle->GetPositionY() + retreatDist * sin(angle);
+        
+        return MoveTo(bot->GetMapId(), retreatX, retreatY, vehicle->GetPositionZ());
+    }
+    
+    // Drive to enemy gate
+    if (dist > 5.0f)
+        return MoveTo(bot->GetMapId(), gatePos.GetPositionX(), gatePos.GetPositionY(), gatePos.GetPositionZ());
+    
+    // At gate - ram it! (vehicle spell)
+    // Ram spell: 49366
+    botAI->CastSpell(49366, bot);
+    
+    return true;
+}
+
+bool IoCPassengerCombatAction::isUseful()
+{
+    // Only useful if passenger in siege engine
+    if (!bot->GetVehicle())
+        return false;
+    
+    if (!bot->InBattleground())
+        return false;
+    
+    Battleground* bg = bot->GetBattleground();
+    if (!bg || bg->GetBgTypeID() != BATTLEGROUND_IC)
+        return false;
+    
+    // Check if in a vehicle
+    return true;  // Simplified - assumes passenger if in vehicle
+}
+
+bool IoCPassengerCombatAction::Execute(Event event)
+{
+    if (!bot->GetVehicle())
+        return false;
+    
+    Unit* vehicle = bot->GetVehicle()->GetBase();
+    if (!vehicle)
+        return false;
+    
+    // Find nearest melee attacker (within 20y)
+    Unit* nearestAttacker = nullptr;
+    float nearestDist = 20.0f;
+    
+    GuidVector targets = AI_VALUE(GuidVector, "possible targets");
+    for (auto guid : targets)
+    {
+        Unit* unit = botAI->GetUnit(guid);
+        if (!unit || !unit->IsAlive())
+            continue;
+        
+        float dist = vehicle->GetDistance(unit);
+        if (dist < nearestDist)
+        {
+            nearestDist = dist;
+            nearestAttacker = unit;
+        }
+    }
+    
+    if (nearestAttacker)
+    {
+        // Use Steam Blast (passenger ability: 49549)
+        botAI->CastSpell(49549, nearestAttacker);
+        return true;
+    }
+    
+    return false;
+}
+

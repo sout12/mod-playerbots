@@ -86,6 +86,10 @@ float StatsWeightCalculator::CalculateItem(uint32 itemId, int32 randomPropertyId
 
     CalculateItemTypePenalty(proto);
 
+    // Apply stat appropriateness penalty BEFORE quality blending
+    // This ensures items with wrong primary stats are heavily penalized
+    ApplyStatAppropriateness(proto);
+
     if (enable_item_set_bonus_)
         CalculateItemSetMod(player_, proto);
 
@@ -218,6 +222,8 @@ void StatsWeightCalculator::GenerateBasicWeights(Player* player)
         stats_weights_[STATS_TYPE_HIT] += 1.7f;
         stats_weights_[STATS_TYPE_CRIT] += 1.4f;
         stats_weights_[STATS_TYPE_HASTE] += 1.6f;
+        stats_weights_[STATS_TYPE_ARMOR] += 0.05f;  // Value armor to prefer mail over leather
+        stats_weights_[STATS_TYPE_MELEE_DPS] += 1.5f;  // Value melee weapon DPS (stat sticks)
         stats_weights_[STATS_TYPE_RANGED_DPS] += 7.5f;
     }
     else if (cls == CLASS_HUNTER && tab == HUNTER_TAB_MARKSMANSHIP)
@@ -228,6 +234,8 @@ void StatsWeightCalculator::GenerateBasicWeights(Player* player)
         stats_weights_[STATS_TYPE_HIT] += 2.1f;
         stats_weights_[STATS_TYPE_CRIT] += 2.0f;
         stats_weights_[STATS_TYPE_HASTE] += 1.8f;
+        stats_weights_[STATS_TYPE_ARMOR] += 0.05f;  // Value armor to prefer mail over leather
+        stats_weights_[STATS_TYPE_MELEE_DPS] += 1.5f;  // Value melee weapon DPS (stat sticks)
         stats_weights_[STATS_TYPE_RANGED_DPS] += 10.0f;
     }
     else if (cls == CLASS_ROGUE && tab == ROGUE_TAB_COMBAT)
@@ -240,6 +248,7 @@ void StatsWeightCalculator::GenerateBasicWeights(Player* player)
         stats_weights_[STATS_TYPE_CRIT] += 1.4f;
         stats_weights_[STATS_TYPE_HASTE] += 1.7f;
         stats_weights_[STATS_TYPE_EXPERTISE] += 2.0f;
+        stats_weights_[STATS_TYPE_ARMOR] += 0.05f;  // Value armor
         stats_weights_[STATS_TYPE_MELEE_DPS] += 7.0f;
     }
     else if (cls == CLASS_DRUID && tab == DRUID_TAB_FERAL && !PlayerbotAI::IsTank(player))
@@ -264,6 +273,7 @@ void StatsWeightCalculator::GenerateBasicWeights(Player* player)
         stats_weights_[STATS_TYPE_CRIT] += 1.1f;
         stats_weights_[STATS_TYPE_HASTE] += 1.8f;
         stats_weights_[STATS_TYPE_EXPERTISE] += 2.1f;
+        stats_weights_[STATS_TYPE_ARMOR] += 0.05f;  // Value armor
         stats_weights_[STATS_TYPE_MELEE_DPS] += 5.0f;
     }
     else if (cls == CLASS_WARRIOR && tab == WARRIOR_TAB_FURY)  //  fury
@@ -276,6 +286,7 @@ void StatsWeightCalculator::GenerateBasicWeights(Player* player)
         stats_weights_[STATS_TYPE_CRIT] += 2.2f;
         stats_weights_[STATS_TYPE_HASTE] += 1.8f;
         stats_weights_[STATS_TYPE_EXPERTISE] += 2.5f;
+        stats_weights_[STATS_TYPE_ARMOR] += 0.05f;  // Value armor to prefer plate
         stats_weights_[STATS_TYPE_MELEE_DPS] += 7.0f;
     }
     else if (cls == CLASS_WARRIOR && tab == WARRIOR_TAB_ARMS)  // arm
@@ -288,6 +299,7 @@ void StatsWeightCalculator::GenerateBasicWeights(Player* player)
         stats_weights_[STATS_TYPE_CRIT] += 1.9f;
         stats_weights_[STATS_TYPE_HASTE] += 0.8f;
         stats_weights_[STATS_TYPE_EXPERTISE] += 1.4f;
+        stats_weights_[STATS_TYPE_ARMOR] += 0.05f;  // Value armor to prefer plate
         stats_weights_[STATS_TYPE_MELEE_DPS] += 7.0f;
     }
     else if (cls == CLASS_DEATH_KNIGHT && tab == DEATHKNIGHT_TAB_FROST)  // frost dk
@@ -326,6 +338,7 @@ void StatsWeightCalculator::GenerateBasicWeights(Player* player)
         stats_weights_[STATS_TYPE_CRIT] += 1.7f;
         stats_weights_[STATS_TYPE_HASTE] += 1.6f;
         stats_weights_[STATS_TYPE_EXPERTISE] += 2.0f;
+        stats_weights_[STATS_TYPE_ARMOR] += 0.05f;  // Value armor to prefer plate
         stats_weights_[STATS_TYPE_MELEE_DPS] += 9.0f;
     }
     else if ((cls == CLASS_SHAMAN && tab == SHAMAN_TAB_ENHANCEMENT))  // enhancement
@@ -340,6 +353,7 @@ void StatsWeightCalculator::GenerateBasicWeights(Player* player)
         stats_weights_[STATS_TYPE_CRIT] += 1.5f;
         stats_weights_[STATS_TYPE_HASTE] += 1.8f;
         stats_weights_[STATS_TYPE_EXPERTISE] += 2.0f;
+        stats_weights_[STATS_TYPE_ARMOR] += 0.05f;  // Value armor to prefer mail
         stats_weights_[STATS_TYPE_MELEE_DPS] += 8.5f;
     }
     else if (cls == CLASS_WARLOCK || (cls == CLASS_MAGE && tab != MAGE_TAB_FIRE) ||
@@ -537,12 +551,22 @@ void StatsWeightCalculator::CalculateSocketBonus(Player* player, ItemTemplate co
 
 void StatsWeightCalculator::CalculateItemTypePenalty(ItemTemplate const* proto)
 {
-    // // penalty for different type armor
-    // if (proto->Class == ITEM_CLASS_ARMOR && proto->SubClass >= ITEM_SUBCLASS_ARMOR_CLOTH &&
-    //     proto->SubClass <= ITEM_SUBCLASS_ARMOR_PLATE && NotBestArmorType(proto->SubClass))
-    // {
-    //     weight_ *= 1.0;
-    // }
+    // Apply heavy penalty for wearing wrong armor type (leather on mail user, cloth on plate user, etc.)
+    // This prevents hunters from wearing leather, warriors from wearing mail/leather, etc.
+    if (proto->Class == ITEM_CLASS_ARMOR && proto->SubClass >= ITEM_SUBCLASS_ARMOR_CLOTH &&
+        proto->SubClass <= ITEM_SUBCLASS_ARMOR_PLATE && NotBestArmorType(proto->SubClass))
+    {
+        // Body armor (chest, legs, shoulders, etc.) with wrong armor type gets massive penalty
+        // Jewelry/cloaks/shields are exempted - they don't have armor type restrictions
+        bool isBodyArmor = (proto->InventoryType == INVTYPE_HEAD || proto->InventoryType == INVTYPE_SHOULDERS ||
+                           proto->InventoryType == INVTYPE_CHEST || proto->InventoryType == INVTYPE_ROBE ||
+                           proto->InventoryType == INVTYPE_WAIST || proto->InventoryType == INVTYPE_LEGS ||
+                           proto->InventoryType == INVTYPE_FEET || proto->InventoryType == INVTYPE_WRISTS ||
+                           proto->InventoryType == INVTYPE_HANDS);
+        
+        if (isBodyArmor)
+            weight_ *= 0.1;  // 90% penalty for wrong armor type on body pieces
+    }
     if (proto->Class == ITEM_CLASS_WEAPON)
     {
         // double hand
@@ -621,6 +645,57 @@ void StatsWeightCalculator::CalculateItemTypePenalty(ItemTemplate const* proto)
         bool slowDelay = proto->Delay > 2500;
         if (cls == CLASS_SHAMAN && tab == SHAMAN_TAB_ENHANCEMENT && slowDelay)
             weight_ *= 1.1;
+    }
+}
+
+void StatsWeightCalculator::ApplyStatAppropriateness(ItemTemplate const* proto)
+{
+    // Only check armor and weapons
+    if (proto->Class != ITEM_CLASS_ARMOR && proto->Class != ITEM_CLASS_WEAPON)
+        return;
+
+    bool hasAppropriateStats = false;
+    float inappropriateStatScore = 0.0f;
+
+    // Check based on collector type
+    if (type_ & (CollectorType::SPELL_HEAL | CollectorType::SPELL_DMG))
+    {
+        // Caster/Healer - needs spell power, heal power, or significant intellect
+        if (collector_->stats[STATS_TYPE_SPELL_POWER] > 0.0f ||
+            collector_->stats[STATS_TYPE_HEAL_POWER] > 0.0f ||
+            collector_->stats[STATS_TYPE_INTELLECT] > 50.0f)  // High intellect threshold
+        {
+            hasAppropriateStats = true;
+        }
+
+        // Calculate inappropriate stat score (physical stats on caster gear)
+        inappropriateStatScore = collector_->stats[STATS_TYPE_AGILITY] +
+                                collector_->stats[STATS_TYPE_STRENGTH] +
+                                collector_->stats[STATS_TYPE_ATTACK_POWER] * 0.1f;
+    }
+    else if (type_ & (CollectorType::MELEE_DMG | CollectorType::RANGED | CollectorType::MELEE_TANK))
+    {
+        // Physical DPS/Tank - needs agility, strength, attack power, or tank stats
+        if (collector_->stats[STATS_TYPE_AGILITY] > 0.0f ||
+            collector_->stats[STATS_TYPE_STRENGTH] > 0.0f ||
+            collector_->stats[STATS_TYPE_ATTACK_POWER] > 0.0f ||
+            collector_->stats[STATS_TYPE_DEFENSE] > 0.0f ||
+            collector_->stats[STATS_TYPE_DODGE] > 0.0f ||
+            collector_->stats[STATS_TYPE_PARRY] > 0.0f)
+        {
+            hasAppropriateStats = true;
+        }
+
+        // Calculate inappropriate stat score (caster stats on physical gear)
+        inappropriateStatScore = collector_->stats[STATS_TYPE_SPELL_POWER] +
+                                collector_->stats[STATS_TYPE_HEAL_POWER];
+    }
+
+    // Apply heavy penalty if no appropriate stats but has wrong stats
+    // This ensures that even high ilvl gear with wrong stats will never be chosen
+    if (!hasAppropriateStats && inappropriateStatScore > 0.0f)
+    {
+        weight_ *= 0.001f;  // 99.9% penalty - effectively worthless
     }
 }
 

@@ -209,6 +209,19 @@ bool PlayerbotAIConfig::Initialize()
         sConfigMgr->GetOption<int32>("AiPlayerbot.MaxRandomBotsPriceChangeInterval", 48 * HOUR);
     randomBotJoinLfg = sConfigMgr->GetOption<bool>("AiPlayerbot.RandomBotJoinLfg", true);
 
+    // PvP Configuration
+    pvpTitlesEnabled = sConfigMgr->GetOption<bool>("AiPlayerbot.PvPTitles", true);
+    competitiveQueueEnabled = sConfigMgr->GetOption<bool>("AiPlayerbot.RandomBotCompetitiveQueue", true);
+    competitiveQueueTopRank = sConfigMgr->GetOption<uint32>("AiPlayerbot.RandomBotCompetitiveQueueTopRank", 25);
+    competitiveQueueTopChance = sConfigMgr->GetOption<float>("AiPlayerbot.RandomBotCompetitiveQueueTopChance", 0.8f);
+    competitiveQueueNormalChance = sConfigMgr->GetOption<float>("AiPlayerbot.RandomBotCompetitiveQueueNormalChance", 0.3f);
+
+    // PvP Guilds
+    pvpGuildsEnabled = sConfigMgr->GetOption<bool>("AiPlayerbot.RandomBotPvPGuildsEnabled", true);
+    pvpGuildPremadeChance = sConfigMgr->GetOption<float>("AiPlayerbot.RandomBotPvPGuildPremadeChance", 65.0f);
+    eliteGuildThreshold = sConfigMgr->GetOption<uint32>("AiPlayerbot.RandomBotEliteGuildThreshold", 2000);
+    eliteGuildHonorKillThreshold = sConfigMgr->GetOption<uint32>("AiPlayerbot.EliteGuildHonorKillThreshold", 10000);
+
     restrictHealerDPS = sConfigMgr->GetOption<bool>("AiPlayerbot.HealerDPSMapRestriction", false);
     LoadList<std::vector<uint32>>(
         sConfigMgr->GetOption<std::string>("AiPlayerbot.RestrictedHealerDPSMaps",

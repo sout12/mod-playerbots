@@ -1,0 +1,227 @@
+{
+  "arena": "general",
+  "version": "3.3.5a",
+  "description": "General arena strategies and mechanics for Wrath of the Lich King",
+  "arena_mechanics": {
+    "pre_combat": {
+      "duration": "pre-pull",
+      "focus": "positioning, buffs, pre-potting, enemy spec identification, formation setup",
+      "priority": ["secure_positioning", "apply_buffs", "check_enemy_specs", "formation_setup", "role_assignment"]
+    },
+    "early_game": {
+      "duration": 0,
+      "focus": "establish presence, contest objectives",
+      "priority": ["interrupt_casters", "apply_pressure", "maintain_positioning", "identify_enemy_strats", "role_coordination"]
+    },
+    "mid_game": {
+      "duration": 60,
+      "focus": "control key targets, engage in team fights",
+      "priority": ["focus_fire", "control_escape", "maintain_formation", "coordinate_burst", "aoe_management"]
+    },
+    "late_game": {
+      "duration": 120,
+      "focus": "secure win condition, adapt to enemy strategy",
+      "priority": ["close_out_game", "maintain_advantage", "counter_enemy_strats", "manage_resources", "team_coordination"]
+    }
+  },
+  "arena_specific_mechanics": {
+    "rating_protection": {
+      "early_season": "play_cautiously_to_protect_rating",
+      "established_rating": "play_aggressively_to_climb_rating",
+      "end_game": "maintain_rating_advantage"
+    },
+    "trinket_usage": {
+      "trinket_timing": ["emergency_situations", "cc_break", "burst_prevention"],
+      "trinket_synergy": ["cooldown_alignment", "team_trinket_usage", "strategic_timing"]
+    },
+    "arena_map_specifics": {
+      "blades_edge_arena": {
+        "features": ["multiple_levels", "pillar_control", "jump_points", "line_of_sight"],
+        "tactical_advantages": ["high_ground", "pillar_access", "jump_escape_routes"],
+        "strategies": ["control_top_level", "deny_pillars", "use_jump_advantage"]
+      },
+      "dalaran_sewers": {
+        "features": ["underwater_sections", "teleporters", "narrow_corridors", "pillars"],
+        "tactical_advantages": ["teleporter_control", "underwater_advantage", "corridor_control"],
+        "strategies": ["control_teleporters", "use_underwater_advantage", "corridor_fighting"]
+      },
+      "ring_of_law": {
+        "features": ["circular_arena", "sand_pit", "multiple_levels", "trap_doors"],
+        "tactical_advantages": ["center_control", "trap_advantage", "level_positioning"],
+        "strategies": ["control_center", "trap_utilization", "level_advantage"]
+      },
+      "nagrand_arena": {
+        "features": ["open_arena", "pillars", "no_los", "wide_open_spaces"],
+        "tactical_advantages": ["range_advantage", "pillar_control", "open_field_tactics"],
+        "strategies": ["pillar_control", "range_superiority", "open_field_combat"]
+      },
+      "ruins_of_lordaeron": {
+        "features": ["multiple_levels", "pillars", "corridors", "line_of_sight"],
+        "tactical_advantages": ["upper_level_advantage", "pillar_control", "corridor_control"],
+        "strategies": ["upper_level_control", "pillar_tactics", "corridor_fighting"]
+      },
+      "twin_peaks": {
+        "features": ["flag_based", "two_peaks", "pillars", "flag_capturing"],
+        "tactical_advantages": ["peak_control", "flag_advantage", "height_advantage"],
+        "strategies": ["peak_control", "flag_combos", "height_tactics"]
+      }
+    }
+  },
+  "team_composition_synergies": {
+    "meta_favored": {
+      "2v2": ["prot_paladin + healer", "druid + healer", "hunter + healer"],
+      "3v3": ["prot_paladin + healer + ranged_dps", "death_knight + healer + ranged_dps", "druid + healer + melee_dps"],
+      "5v5": ["prot_paladin + healer + healer + dps + dps", "death_knight + tank + healer + healer + ranged_dps"]
+    },
+    "class_synergies": {
+      "prot_paladin": {
+        "strengths": ["high_survivability", "strong_peel", "reliable_healing", "aoe_control"],
+        "best_teammates": ["caster_dps", "healer", "ranged_dps"],
+        "tactics": ["tank_enemy_dps", "protect_ally", "maintain_aggro_control", "control_aoe_spam"]
+      },
+      "resto_druid": {
+        "strengths": ["mobile_healing", "strong_dispel", "survivability", "team_healing"],
+        "best_teammates": ["melee_dps", "caster_dps", "tank"],
+        "tactics": ["maintain_distance", "dispel_important_buffs", "heal_efficiently", "use_wild_growth"]
+      },
+      "disc_priest": {
+        "strengths": ["preventative_shielding", "strong_burst", "utility", "defensive_shielding"],
+        "best_teammates": ["dps", "tank", "caster_heavy_enemies"],
+        "tactics": ["shield_ally", "apply_damage", "maintain_positioning", "use_pain_suppression"]
+      },
+      "resto_shaman": {
+        "strengths": ["team_healing", "offensive_rolls", "cleansing", "offensive_totems"],
+        "best_teammates": ["melee_dps", "caster_dps", "tank"],
+        "tactics": ["maintain_earth_shield", "roll_damage", "cleanse_important_debuffs", "use_grounding_totem"]
+      },
+      "holy_paladin": {
+        "strengths": ["strong_single_heal", "blessing_utility", "survivability", "team_buffs"],
+        "best_teammates": ["dps", "tank", "balanced_teams"],
+        "tactics": ["maintain_beacon", "protect_ally", "use_defensive_cds", "blessing_management"]
+      },
+      "hunter": {
+        "strengths": ["range_control", "pet_utility", "kiting", "aoe_damage"],
+        "best_teammates": ["caster_dps", "healer", "range_superiority"],
+        "tactics": ["maintain_range", "use_pet_control", "control_escape_routes", "use_multi_shots"]
+      },
+      "rogue": {
+        "strengths": ["burst_damage", "control", "mobility", "target_elimination"],
+        "best_teammates": ["healer", "control_teams", "burst_strats"],
+        "tactics": ["stealth_opener", "apply_cc", "avoid_damage", "focus_fire_targets"]
+      },
+      "warrior": {
+        "strengths": ["control", "survivability", "interrupts", "aoe_damage"],
+        "best_teammates": ["melee_dps", "control_situations", "tank_strats"],
+        "tactics": ["control_targets", "maintain_aggro", "interrupt_casting", "use_thunder_clap"]
+      },
+      "death_knight": {
+        "strengths": ["survivability", "control", "sustained_damage", "disease_application"],
+        "best_teammates": ["sustained_combat", "tank_strats", "control_situations"],
+        "tactics": ["apply_pressure", "use_defensive_cds", "maintain_damage", "use_how"]
+      },
+      "mage": {
+        "strengths": ["range_control", "cc", "burst_damage", "aoe_damage"],
+        "best_teammates": ["caster_dps", "kiting_strats", "control_situations"],
+        "tactics": ["maintain_distance", "apply_cc", "control_arena", "use_aoe_spells"]
+      },
+      "warlock": {
+        "strengths": ["sustained_damage", "control", "survivability", "pet_utility"],
+        "best_teammates": ["sustained_combat", "control_teams", "pet_strats"],
+        "tactics": ["apply_dots", "control_with_cc", "maintain_pet", "use_aoe_dots"]
+      },
+      "shaman": {
+        "strengths": ["utility", "team_support", "offensive_spells", "cleansing"],
+        "best_teammates": ["melee_dps", "team_support", "aoe_damage"],
+        "tactics": ["maintain_totems", "roll_damage", "support_ally", "use_purge"]
+      },
+      "priest": {
+        "strengths": ["dispel", "cc", "utility", "aoe_fear"],
+        "best_teammates": ["dispel_heavy_teams", "control_situations", "utility_teams"],
+        "tactics": ["dispel_important_buffs", "apply_psychic_scream", "maintain_shields", "use_silence"]
+      }
+    }
+  },
+  "strategic_positioning": {
+    "key_locations": {
+      "center_control": {
+        "importance": "high",
+        "tactics": ["control_center", "deny_enemy_access", "maintain_position", "aoe_advantage"]
+      },
+      "pillar_control": {
+        "importance": "high",
+        "tactics": ["use_pillars_for_protection", "deny_enemy_pillars", "position_advantageously", "control_access"]
+      },
+      "escape_routes": {
+        "importance": "medium",
+        "tactics": ["maintain_escape_options", "deny_enemy_escape", "control_retreat_paths", "regroup_points"]
+      },
+      "spreading": {
+        "importance": "high",
+        "tactics": ["avoid_aoe_damage", "maintain_individual_survival", "control_cc_chain", "protect_healer"]
+      }
+    }
+  },
+  "communication_signals": {
+    "focus_fire": ["enemy_healer", "low_hp_target", "priority_target", "team_burst"],
+    "danger": ["ally_under_attack", "immediate_threat", "need_assistance", "peel_needed"],
+    "engage": ["advantageous_position", "cooldown_alignment", "safe_engagement", "team_ready"],
+    "disengage": ["immediate_danger", "no_escape_options", "regroup_needed", "reset_combat"],
+    "aoe_warning": ["aoe_damage_coming", "spread_out", "avoid_damage", "position_safely"]
+  },
+  "adaptive_behavior": {
+    "enemy_composition": {
+      "caster_heavy": {
+        "strategy": "apply pressure, control range, interrupt casting, use_aoe",
+        "tactics": ["close_distance", "interrupt_healing", "control_escape", "use_aoe_cc"]
+      },
+      "melee_heavy": {
+        "strategy": "use_terrain, maintain_distance, control_positioning, spread_out",
+        "tactics": ["use_pillars", "kite_effectively", "control_engagement", "avoid_aoe"]
+      },
+      "healer_kill": {
+        "strategy": "focus_fire_healer, prevent_escape, apply_cc, coordinate_burst",
+        "tactics": ["interrupt_healing", "apply_damage", "control_protection", "burst_rotation"]
+      },
+      "balanced": {
+        "strategy": "maintain_formation, control_arena, adapt_to_situation, coordinate",
+        "tactics": ["maintain_spacing", "control_center", "adapt_to_threats", "team_coordination"]
+      }
+    }
+  },
+  "resource_management": {
+    "cooldown_rotation": {
+      "offensive": ["burst_damage", "focus_fire", "maximize_output", "team_burst"],
+      "defensive": ["survival", "ally_protection", "avoid_damage", "team_protection"],
+      "utility": ["control", "positioning", "team_support", "aoe_management"]
+    },
+    "mana_efficiency": {
+      "caster_healers": ["maintain_efficiency", "use_spirit_tap", "manage_pools", "innervate_timing"],
+      "druid_healers": ["use_lifebloom_efficiency", "maintain_rejuv", "manage_mana", "wild_growth_usage"]
+    }
+  },
+  "tactical_formations": {
+    "2v2": {
+      "standard": ["tank_dps_pairing", "healer_protection", "coordinated_burst"],
+      "kiting": ["range_superiority", "controlled_retreat", "aoe_suppression"],
+      "control": ["cc_chain", "focus_fire", "peel_support"]
+    },
+    "3v3": {
+      "balanced": ["tank_support_dps", "role_coordination", "team_synergy"],
+      "offensive": ["focus_fire", "burst_phase", "peel_support"],
+      "defensive": ["kiting", "control_phase", "disengage"]
+    },
+    "5v5": {
+      "standard": ["tank_healer_dps_balance", "role_specialization", "team_coordination"],
+      "offensive": ["team_burst", "focus_fire", "aoe_suppression"],
+      "defensive": ["team_protection", "kiting", "aoe_defense"]
+    }
+  },
+  "cpp_hooks": [
+    "ArenaAI::AnalyzeEnemyComposition()",
+    "ArenaAI::SelectFocusTarget()",
+    "ArenaAI::CoordinateCooldowns()",
+    "ArenaAI::UpdatePositioning()",
+    "ArenaAI::ManageResources()",
+    "ArenaAI::CommunicateTeamStrategy()"
+  ]
+}

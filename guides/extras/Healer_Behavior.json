@@ -1,0 +1,127 @@
+{
+  "module": "Healer_Behavior",
+  "version": "3.3.5a",
+  "description": "Advanced triage, cooldown usage, position awareness, threat management, mana conservation and clutch rezzing.",
+  "parameters": {
+    "emergency_heal_threshold_percent": 40,
+    "priority_heal_threshold_percent": 75,
+    "mana_conserve_below_percent": 25,
+    "clutch_rez_distance_max": 25,
+    "heal_prediction_window_s": 2,
+    "threat_generation_modifier": 0.7
+  },
+  "triage_logic": {
+    "priority_rules": [
+      "if ally_is_flag_carrier then priority = highest",
+      "if ally_is_healer then priority = high",
+      "if ally_hp_percent <= emergency_heal_threshold_percent then emergency_heal",
+      "if multiple_allies_below priority_heal_threshold -> use_aoe_heal (Chain Heal/Prayer of Healing)",
+      "prioritize_tanks_over_dps_for_sustained_damage",
+      "consider_damage_over_time_for_healing_priorities",
+      "evaluate_immediate_vs_sustained_damage_needs"
+    ],
+    "cooldown_coordination": [
+      "coordinate_use_of_defensive_cds (e.g., Pain Suppression, Guardian Spirit, Divine Shield) through Team_Coordination",
+      "save_major_heal_cd_for_flag_runs or critical objective pushes",
+      "coordinate_cooldown_usage_with_other_healers",
+      "avoid_cooldown_waste_through_coordination"
+    ],
+    "positioning": [
+      "stay_midline 8-12 yards behind melee",
+      "line_of_sight_management: avoid walls that block team heals but use LOS to avoid burst when alone",
+      "maintain_escape_routes",
+      "position_for_aoe_healing_efficiency",
+      "avoid_standing_in_harmful_areas"
+    ],
+    "rescue_logic": [
+      "if healer_is_being_dove -> request_peel_and_move_to_safe_position",
+      "auto_self_defensive_cd_if multiple_attackers >=2",
+      "use_escape_mechanics_when_overwhelmed",
+      "request_assistance_when_under_pressure"
+    ]
+  },
+  "healing_rotation": {
+    "priority_heals": [
+      "Power Word: Shield (Priest)",
+      "Earth Shield (Shaman)",
+      "Renew (Priest)",
+      "Riptide (Shaman)"
+    ],
+    "direct_heals": [
+      "Flash Heal (Priest)",
+      "Lesser Healing Wave (Shaman)",
+      "Flash of Light (Paladin)"
+    ],
+    "aoe_heals": [
+      "Prayer of Healing (Priest)",
+      "Chain Heal (Shaman)",
+      "Holy Light (Paladin)"
+    ],
+    "emergency_heals": [
+      "Divine Hymn (Priest)",
+      "Nature's Swiftness + Healing Touch (Druid)",
+      "Divine Favor + Holy Light (Paladin)"
+    ]
+  },
+  "mana_efficiency": {
+    "spending_strategy": [
+      "prioritize_preventive_heals_over_reactive_heals",
+      "use_efficient_heals_for_sustained_damage",
+      "save_big_heals_for_emergency_situations",
+      "maintain_mana_pool_for_sustained_combat"
+    ],
+    "conservation_tactics": [
+      "use_spell_mana_gems_when_low",
+      "switch_to_less_mana_heals_when_low_mana",
+      "use_efficient_heals_for_small_damage",
+      "avoid_overhealing"
+    ]
+  },
+  "adaptive_behavior": {
+    "team_size": {
+      "1": ["avoid_fights", "defensive_positioning", "minimal_healing"],
+      "2-3": ["engage_favorable_fights", "support_team", "moderate_healing"],
+      "4+": ["aggressive_pushing", "team_support", "maximize_healing"]
+    },
+    "enemy_composition": {
+      "high_healer_count": ["prioritize_damage_over_healing", "apply_pressure", "avoid_being_healed"],
+      "melee_heavy": ["use_los", "maintain_distance", "kite_effectively"],
+      "ranged_heavy": ["use_cover", "control_area", "focus_fire"]
+    },
+    "game_state": {
+      "behind": ["defensive_positioning", "protect_team", "wait_for_mistakes"],
+      "ahead": ["aggressive_pushing", "maintain_pressure", "support_advantage"],
+      "close": ["maximize_support", "win_exchanges", "control_outcomes"]
+    }
+  },
+  "tactical_positioning": {
+    "key_locations": {
+      "WSG_flag_room": {
+        "defensive_positions": ["flag_stand", "entrance", "behind_cover"],
+        "offensive_positions": ["approach", "escape_routes", "control_points"]
+      },
+      "AB_base_circles": {
+        "defensive_positions": ["inside_circle", "approach_angles", "escape_routes"],
+        "offensive_positions": ["approach", "flank_routes", "control_points"]
+      },
+      "AV_tower_approaches": {
+        "defensive_positions": ["tower_base", "approach_control", "escape_routes"],
+        "offensive_positions": ["approach_angles", "flank_routes", "control_points"]
+      }
+    }
+  },
+  "resource_management": {
+    "mana_efficiency": {
+      "spending_strategy": ["save_for_emergency", "spend_on_opportunity", "maintain_efficiency"],
+      "priority_targets": ["emergency_healing", "sustained_healing", "preventive_healing"]
+    }
+  },
+  "cpp_hooks": [
+    "HealerAI::SelectHealTarget()",
+    "HealerAI::CoordinateCooldowns()",
+    "HealerAI::ShouldResurrect()",
+    "HealerAI::UpdateTriage()",
+    "HealerAI::ManageMana()",
+    "HealerAI::PositionForHealing()"
+  ]
+}

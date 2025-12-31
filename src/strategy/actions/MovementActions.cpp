@@ -1903,7 +1903,27 @@ bool FleeWithPetAction::Execute(Event event)
 
 bool AvoidAoeAction::isUseful()
 {
-    if (getMSTime() - moveInterval < lastMoveTimer)
+    // Faster reaction time in dungeons and boss fights
+    int effectiveMoveInterval = moveInterval;
+    
+    // Reduce interval to 500ms in dungeons for faster reactions
+    if (bot->GetMap() && bot->GetMap()->IsDungeon())
+    {
+        effectiveMoveInterval = 500;
+        
+        // Even faster (250ms) if actively fighting a boss
+        Unit* target = AI_VALUE(Unit*, "current target");
+        if (target && (target->GetCreatureType() == CREATURE_TYPE_DEMON || 
+                       target->GetCreatureType() == CREATURE_TYPE_DRAGONKIN ||
+                       target->GetCreatureType() == CREATURE_TYPE_GIANT ||
+                       target->GetCreatureType() == CREATURE_TYPE_UNDEAD ||
+                       target->GetLevel() > bot->GetLevel() + 2))
+        {
+            effectiveMoveInterval = 250;
+        }
+    }
+    
+    if (getMSTime() - effectiveMoveInterval < lastMoveTimer)
     {
         return false;
     }

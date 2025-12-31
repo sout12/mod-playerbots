@@ -1,0 +1,569 @@
+{
+  "class": "Druid",
+  "version": "3.3.5a",
+  "roles": [
+    "healer",
+    "melee_dps",
+    "flag_runner",
+    "objective_support"
+  ],
+  "game_state": {
+    "early_game": {
+      "focus": "establish presence, contest objectives",
+      "priority": ["maintain_vision", "apply_pressure", "maintain_positioning"]
+    },
+    "mid_game": {
+      "focus": "control key objectives, engage in team fights",
+      "priority": ["flag_carrier_support", "objective_control", "team_fight_support"]
+    },
+    "late_game": {
+      "focus": "secure win condition, defend lead",
+      "priority": ["protect_flag_carrier", "defend_objectives", "close_out_game"]
+    }
+  },
+  "general_priority_list": [
+    "cyclone_on_healers_casters",
+    "root_slow_flag_runners",
+    "use_movement_to_escape_or_chase",
+    "rebirth_for_clutch_rez",
+    "heal_ally_emergency_situations",
+    "maintain_formation_with_team",
+    "control_area_with_crowd_control"
+  ],
+  "spell_rules": {
+    "crowd_control": [
+      {
+        "name": "Cyclone",
+        "when": "Neutralize healer or dangerous caster",
+        "priority": "very_high",
+        "conditions": [
+          "is_healer(target) == true",
+          "or target_is_priority == true",
+          "or target_is_flag_carrier_and_low_hp == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "healer": 2.0,
+          "flag_carrier": 1.8,
+          "caster": 1.5,
+          "priority_target": 1.2
+        }
+      },
+      {
+        "name": "Entangling Roots",
+        "when": "Slow fleeing or keep flag runner in place",
+        "priority": "high",
+        "conditions": [
+          "target_is_fleeing == true",
+          "or target_is_flag_carrier_moving_away == true",
+          "or target_is_trying_to_escape == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "fleeing_target": 1.5,
+          "escape_attempt": 1.2
+        }
+      },
+      {
+        "name": "Hibernate",
+        "when": "CC sleeping target or low priority",
+        "priority": "medium",
+        "conditions": [
+          "target_is_low_priority == true",
+          "or target_is_out_of_combat == true",
+          "or need_to_control_area == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "low_priority": 1.0,
+          "area_control": 1.2,
+          "out_of_combat": 0.8
+        }
+      }
+    ],
+    "interrupts": [
+      {
+        "name": "Bash/Skull Bash",
+        "when": "Interrupt casting",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_casting == true and within_melee == true",
+          "or target_is_healer_casting_emergency_heal == true",
+          "or target_is_casting_high_priority_spell == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "healer_casting": 2.0,
+          "emergency_heal": 1.8,
+          "high_priority_spell": 1.5
+        }
+      }
+    ],
+    "healing": [
+      {
+        "name": "Swiftmend/Regrowth",
+        "when": "Heal immediate medium damage",
+        "priority": "high",
+        "conditions": [
+          "ally_hp_percent <= 75",
+          "or ally_is_flag_carrier_and_damaged == true",
+          "or ally_is_under_heavy_damage == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "emergency_heal": 1.8,
+          "medium_damage": 1.5
+        }
+      },
+      {
+        "name": "Healing Touch",
+        "when": "Large heal needed",
+        "priority": "high",
+        "conditions": [
+          "ally_hp_percent <= 40",
+          "or ally_is_flag_carrier_critical == true",
+          "or ally_is_key_player_critical == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "flag_carrier_critical": 2.0,
+          "key_player_critical": 1.8,
+          "large_damage": 1.5
+        }
+      },
+      {
+        "name": "Rejuvenation",
+        "when": "Maintain ally health over time",
+        "priority": "medium",
+        "conditions": [
+          "ally_hp_percent <= 90",
+          "or ally_is_in_sustained_combat == true",
+          "or ally_is_flag_carrier_and_moving == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "flag_carrier": 1.8,
+          "sustained_combat": 1.5,
+          "maintain_health": 1.2
+        }
+      },
+      {
+        "name": "Lifebloom",
+        "when": "Maintain emergency heal over time",
+        "priority": "high",
+        "conditions": [
+          "ally_is_flag_carrier == true",
+          "or ally_is_key_player == true",
+          "or ally_is_under_sustained_damage == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "key_player": 1.8,
+          "sustained_damage": 1.5
+        }
+      },
+      {
+        "name": "Wild Growth",
+        "when": "AoE healing needed",
+        "priority": "high",
+        "conditions": [
+          "multiple_allies_below_percent == 80",
+          "or team_in_combat_and_damaged == true",
+          "or ally_group_under_area_damage == true"
+        ],
+        "target": "ally_group",
+        "context_weights": {
+          "team_combat": 2.0,
+          "area_damage": 1.8,
+          "multiple_damaged": 1.5
+        }
+      },
+      {
+        "name": "Nourish",
+        "when": "Efficient healing with HoTs",
+        "priority": "high",
+        "conditions": [
+          "ally_has_multiple_hots == true",
+          "or efficient_healing_opportunity == true",
+          "or emergency_healing_needed == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "multiple_hots": 2.0,
+          "efficient_healing": 1.8,
+          "emergency": 1.5
+        }
+      }
+    ],
+    "defensive": [
+      {
+        "name": "Barkskin",
+        "when": "Mitigate incoming damage",
+        "priority": "high",
+        "conditions": [
+          "self_hp_percent <= 60",
+          "or incoming_damage_estimate >= 1500",
+          "or self_is_targeted_by_multiple_attackers == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "lethal_damage": 2.0,
+          "multiple_attackers": 1.8,
+          "high_damage": 1.5
+        }
+      },
+      {
+        "name": "Survival Instincts",
+        "when": "Survive burst damage",
+        "priority": "very_high",
+        "conditions": [
+          "self_hp_percent <= 30",
+          "or incoming_burst_damage >= 2500",
+          "or self_is_targeted_by_lethal_damage == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "lethal_damage": 2.0,
+          "burst_damage": 1.8,
+          "survival": 1.5
+        }
+      },
+      {
+        "name": "Frenzied Regeneration",
+        "when": "Heal damage taken in bear form",
+        "priority": "high",
+        "conditions": [
+          "self_hp_percent <= 50",
+          "or recent_damage_taken_high == true",
+          "or self_in_bear_form == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "recent_damage": 2.0,
+          "self_preservation": 1.8,
+          "bear_form": 1.5
+        }
+      },
+      {
+        "name": "Thorns",
+        "when": "Maintain damage reflection",
+        "priority": "medium",
+        "conditions": [
+          "buff_expired == true",
+          "or damage_reflection_needed == true",
+          "or sustained_combat_engagement == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "buff_refresh": 1.8,
+          "damage_reflection": 1.5,
+          "sustained_combat": 1.2
+        }
+      }
+    ],
+    "damage": [
+      {
+        "name": "Starfire",
+        "when": "High damage with crit chance",
+        "priority": "high",
+        "conditions": [
+          "clear_cast_available == true",
+          "or high_damage_opportunity == true",
+          "or crit_chance_boosted == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "clear_cast": 2.0,
+          "high_damage": 1.8,
+          "crit_boost": 1.5
+        }
+      },
+      {
+        "name": "Wrath",
+        "when": "Primary damage spell",
+        "priority": "high",
+        "conditions": [
+          "target_vulnerable == true",
+          "or damage_opportunity_available == true",
+          "or sustained_damage_needed == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "vulnerable_target": 2.0,
+          "damage_opportunity": 1.8,
+          "sustained_damage": 1.5
+        }
+      },
+      {
+        "name": "Moonfire",
+        "when": "Damage over time",
+        "priority": "medium",
+        "conditions": [
+          "target_does_not_have_moonfire == true",
+          "or moonfire_expiring_soon == true",
+          "or sustained_damage_over_time_needed == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "no_moonfire": 2.0,
+          "expiring_soon": 1.8,
+          "sustained_damage": 1.5
+        }
+      },
+      {
+        "name": "Insect Swarm",
+        "when": "Damage over time and hit reduction",
+        "priority": "medium",
+        "conditions": [
+          "target_does_not_have_insect_swarm == true",
+          "or insect_swarm_expiring_soon == true",
+          "or hit_reduction_needed == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "no_insect_swarm": 2.0,
+          "expiring_soon": 1.8,
+          "hit_reduction": 1.5
+        }
+      },
+      {
+        "name": "Rake",
+        "when": "Damage and combo points in cat form",
+        "priority": "high",
+        "conditions": [
+          "in_cat_form == true",
+          "or combo_points_needed == true",
+          "or damage_opportunity_available == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "cat_form": 2.0,
+          "combo_points": 1.8,
+          "damage_opportunity": 1.5
+        }
+      },
+      {
+        "name": "Rip",
+        "when": "High damage over time in cat form",
+        "priority": "high",
+        "conditions": [
+          "in_cat_form == true",
+          "or combo_points_available == true",
+          "or high_damage_over_time_needed == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "cat_form": 2.0,
+          "combo_points": 1.8,
+          "high_damage": 1.5
+        }
+      }
+    ],
+    "utility": [
+      {
+        "name": "Innervate",
+        "when": "Support ally mana regeneration",
+        "priority": "high",
+        "conditions": [
+          "ally_is_healer_low_mana == true",
+          "or ally_is_key_caster_low_mana == true",
+          "or ally_is_flag_carrier_supporting == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "healer_low_mana": 2.0,
+          "key_caster": 1.8,
+          "support_role": 1.5
+        }
+      },
+      {
+        "name": "Tranquility",
+        "when": "AoE healing in sustained fights",
+        "priority": "high",
+        "conditions": [
+          "team_in_sustained_combat == true",
+          "or multiple_allies_damaged_over_time == true",
+          "or objective_defense_sustained == true"
+        ],
+        "target": "area",
+        "context_weights": {
+          "sustained_combat": 2.0,
+          "multiple_damaged": 1.8,
+          "objective_defense": 1.5
+        }
+      },
+      {
+        "name": "Rebirth",
+        "when": "Revive ally in combat",
+        "priority": "very_high",
+        "conditions": [
+          "ally_is_key_player_dead == true",
+          "or clutch_rez_opportunity == true",
+          "or combat_resurrection_needed == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "key_player": 2.0,
+          "clutch_rez": 1.8,
+          "combat_res": 1.5
+        }
+      }
+    ]
+  },
+  "form_and_mobility_logic": {
+    "use_travel_form_when_in_field": true,
+    "use_cat_form_for_chase": true,
+    "form_usage_by_role": {
+      "healer": ["bear_form_for_tank_support", "caster_form_for_healing", "cat_form_for_emergency"],
+      "melee_dps": ["cat_form_for_damage", "bear_form_for_tank_duty", "caster_form_for_cc"],
+      "flag_runner": ["travel_form_for_movement", "cat_form_for_escape", "caster_form_for_healing"]
+    },
+    "form_switching_conditions": [
+      "if_need_to_heal_switch_to_caster",
+      "if_need_to_melee_switch_to_cat",
+      "if_need_to_tank_switch_to_bear",
+      "if_need_to_move_switch_to_travel"
+    ]
+  },
+  "battleground_overrides": {
+    "WSG": {
+      "objective_focus": "flag_capture_defense",
+      "behavior_mods": [
+        "prioritize_speed_buffs_for_flag_carrier",
+        "assign_2_defenders_to_flagroom",
+        "intercept_high_value_flag_runners",
+        "maintain_flag_carrier_healing",
+        "use_cyclone_on_enemy_healers",
+        "apply_roots_to_enemy_flag_runners",
+        "maintain_flag_room_vision"
+      ],
+      "role_assignments": {
+        "flag_defender": ["maintain_flag_room", "kill_attackers", "apply_cc"],
+        "escort": ["protect_flag_carrier", "maintain_healing", "apply_cc_to_escorts"],
+        "midfield": ["control_tunnel", "intercept_resurrections", "maintain_vision"]
+      }
+    },
+    "AB": {
+      "objective_focus": "base_control",
+      "behavior_mods": [
+        "maintain_three_base_control_if_possible",
+        "leave_min_defenders_at_each_base(2)",
+        "rotate_to_reinforce_weak_base",
+        "maintain_base_healing",
+        "apply_cc_to_base_attackers",
+        "maintain_vision_control"
+      ],
+      "role_assignments": {
+        "base_defender": ["maintain_base_control", "kill_cappers", "apply_cc"],
+        "base_attacker": ["apply_pressure", "kill_defenders", "maintain_healing"],
+        "support": ["provide_healing", "maintain_vision", "assist_in_fights"]
+      }
+    },
+    "AV": {
+      "objective_focus": "tower_and_commander_kills",
+      "behavior_mods": [
+        "focus_on_capturing_towers_and_killing_captains",
+        "escort_raid_groups_for_commander_assaults",
+        "maintain_NPC_target_healing",
+        "apply_cc_to_NPC_guards",
+        "maintain_tower_control"
+      ],
+      "role_assignments": {
+        "tower_attacker": ["capture_towers", "kill_NPC_guards", "maintain_healing"],
+        "commander_assassin": ["kill_commanders", "apply_cc", "maintain_escape"],
+        "escort": ["protect_assassins", "kill_NPC_defenders", "maintain_healing"]
+      }
+    },
+    "EOTS": {
+      "objective_focus": "flag_and_mid_control",
+      "behavior_mods": [
+        "control_mid_for_flag_safety",
+        "escort_flag_carrier_via_towers",
+        "maintain_mid_healing",
+        "apply_cc_to_mid_attackers",
+        "maintain_flag_access_control"
+      ],
+      "role_assignments": {
+        "mid_controller": ["control_mid", "deny_flag_access", "maintain_healing"],
+        "flag_protector": ["escort_carrier", "maintain_healing", "apply_cc"],
+        "base_defender": ["defend_bases", "kill_cappers", "maintain_healing"]
+      }
+    },
+    "SOTA": {
+      "objective_focus": "vehicle_protection_and_wall_breach",
+      "behavior_mods": [
+        "protect_demolishers",
+        "clear_path_for_vehicle_push",
+        "maintain_vehicle_healing",
+        "apply_cc_to_vehicle_attackers",
+        "maintain_wall_breach_support"
+      ],
+      "role_assignments": {
+        "vehicle_protector": ["protect_vehicles", "maintain_healing", "apply_cc"],
+        "wall_destroyer": ["damage_walls", "maintain_healing", "apply_cc"],
+        "escort": ["clear_path", "kill_defenders", "maintain_healing"]
+      }
+    },
+    "IOC": {
+      "objective_focus": "workshop_and_gate_destruction",
+      "behavior_mods": [
+        "rush_workshop_priority",
+        "escort_siege_to_gate",
+        "if_towers_vulnerable -> docks_glaive_focus",
+        "maintain_workshop_healing",
+        "apply_cc_to_workshop_attackers"
+      ],
+      "role_assignments": {
+        "workshop_capper": ["capture_workshop", "maintain_healing", "apply_cc"],
+        "gate_destroyer": ["damage_gate", "maintain_healing", "apply_cc"],
+        "escort": ["protect_siege", "kill_attackers", "maintain_healing"]
+      }
+    }
+  },
+  "adaptive_behavior": {
+    "team_size": {
+      "1": ["avoid_fights", "objective_control", "defensive_positioning"],
+      "2-3": ["engage_favorable_fights", "objective_support", "coordinated_pushes"],
+      "4+": ["aggressive_objective_control", "team_fights", "win_conditions"]
+    },
+    "enemy_composition": {
+      "high_healer_count": ["prioritize_healer_cc", "interrupt_healing", "apply_pressure"],
+      "melee_heavy": ["use_barkskin", "maintain_distance", "kite_effectively"],
+      "ranged_heavy": ["close_distance", "apply_cc", "interrupt_casting"]
+    },
+    "game_state": {
+      "behind": ["defensive_positioning", "protect_objectives", "wait_for_mistakes"],
+      "ahead": ["aggressive_pushing", "maintain_pressure", "secure_win"],
+      "close": ["maximize_fights", "win_exchanges", "control_objectives"]
+    }
+  },
+  "tactical_positioning": {
+    "key_locations": {
+      "WSG_flag_room": {
+        "defensive_positions": ["flag_stand", "entrance", "behind_cover"],
+        "offensive_positions": ["approach", "escape_routes", "control_points"]
+      },
+      "AB_base_circles": {
+        "defensive_positions": ["inside_circle", "approach_angles", "escape_routes"],
+        "offensive_positions": ["approach", "flank_routes", "control_points"]
+      },
+      "AV_tower_approaches": {
+        "defensive_positions": ["tower_base", "approach_control", "escape_routes"],
+        "offensive_positions": ["approach_angles", "flank_routes", "control_points"]
+      }
+    }
+  },
+  "resource_management": {
+    "mana_efficiency": {
+      "spending_strategy": ["save_for_emergency", "spend_on_opportunity", "maintain_efficiency"],
+      "priority_targets": ["emergency_healing", "sustained_healing", "utility_benefits"]
+    },
+    "form_mechanics": {
+      "rotation_priority": ["defensive_needs", "offensive_opportunities", "utility_uses"],
+      "emergency_switches": ["bear_for_tank", "cat_for_escape", "caster_for_heal"]
+    }
+  }
+}

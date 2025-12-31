@@ -181,3 +181,54 @@ bool BlizzardChannelCheckTrigger::IsActive()
     // Not channeling Blizzard
     return false;
 }
+
+// Blink PvP - Use for flag carrier escape and repositioning
+bool BlinkPvPTrigger::IsActive()
+{
+    // Must have Blink spell (1953)
+    if (!bot->HasSpell(1953) || bot->HasSpellCooldown(1953))
+        return false;
+    
+    // Works in battlegrounds, arenas, AND world PvP
+    if (!bot->InBattleground() && !bot->InArena() && !bot->IsInCombat())
+        return false;
+    
+    // Priority 1: Use Blink if we're a flag carrier and enemies nearby
+    bool isFlagCarrier = bot->HasAura(23333) || bot->HasAura(23335) || bot->HasAura(34976);
+    if (isFlagCarrier)
+    {
+        uint8 attackerCount = AI_VALUE(uint8, "attacker count");
+        if (attackerCount > 0)
+            return true;
+    }
+    
+    // Priority 2: Emergency escape when low HP and in combat
+    if (bot->IsInCombat() && bot->GetHealthPct() < 30.0f)
+    {
+        uint8 attackerCount = AI_VALUE(uint8, "attacker count");
+        if (attackerCount > 0)
+            return true;
+    }
+    
+    return false;
+}
+
+// Frost Nova PvP - Root close-range enemies  
+bool FrostNovaPvPTrigger::IsActive()
+{
+    // Must have Frost Nova spell (122)
+    if (!bot->HasSpell(122) || bot->HasSpellCooldown(122))
+        return false;
+    
+    // Works in battlegrounds, arenas, AND world PvP
+    if (!bot->InBattleground() && !bot->InArena() && !bot->IsInCombat())
+        return false;
+    
+    // Use Frost Nova if enemies are in melee range
+    uint8 attackerCount = AI_VALUE(uint8, "attacker count");
+    if (attackerCount > 0)
+        return true;
+    
+    return false;
+}
+

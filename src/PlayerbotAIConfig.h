@@ -274,9 +274,23 @@ public:
     uint32 randomBotGuildCount, randomBotGuildSizeMax;
     bool deleteRandomBotGuilds;
     std::vector<uint32> randomBotGuilds;
+    std::vector<uint32> pvpGuildIds;  // Track which guilds are PvP guilds for premade formation
     std::vector<uint32> pvpProhibitedZoneIds;
     std::vector<uint32> pvpProhibitedAreaIds;
     bool fastReactInBG;
+
+    // PvP Configuration
+    bool pvpTitlesEnabled;
+    bool competitiveQueueEnabled;
+    uint32 competitiveQueueTopRank;
+    float competitiveQueueTopChance;
+    float competitiveQueueNormalChance;
+
+    // PvP Guilds
+    bool pvpGuildsEnabled;
+    float pvpGuildPremadeChance;
+    uint32 eliteGuildThreshold;
+    uint32 eliteGuildHonorKillThreshold;
 
     bool randombotsWalkingRPG;
     bool randombotsWalkingRPGInDoors;

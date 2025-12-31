@@ -1,0 +1,374 @@
+{
+  "file": "shared_utility.json",
+  "version": "3.3.5a",
+  "contents": {
+    "movement_spells": [
+      {
+        "name": "Ghost Wolf",
+        "classes": [
+          "Shaman"
+        ],
+        "use": "flag running and mobility",
+        "priority": "high",
+        "context_weights": {
+          "flag_running": 2.0,
+          "mobility": 1.5,
+          "escape": 1.2
+        },
+        "conditions": [
+          "need_to_move_quickly",
+          "or flag_running",
+          "or escaping_dangerous_situation"
+        ]
+      },
+      {
+        "name": "Sprint/Dash/Travel Form",
+        "classes": [
+          "Rogue",
+          "Warrior",
+          "Druid"
+        ],
+        "use": "flag movement and escape",
+        "priority": "very_high",
+        "context_weights": {
+          "flag_running": 2.0,
+          "escape_necessity": 1.8,
+          "chase_opportunity": 1.5,
+          "mobility": 1.2
+        },
+        "conditions": [
+          "need_to_escape",
+          "or chasing_flag_carrier",
+          "or moving_to_objective_quickly"
+        ]
+      },
+      {
+        "name": "Aspect of the Cheetah",
+        "classes": [
+          "Hunter"
+        ],
+        "use": "short burst movement",
+        "priority": "medium",
+        "context_weights": {
+          "escape": 2.0,
+          "chase": 1.8,
+          "repositioning": 1.5,
+          "mobility": 1.2
+        },
+        "conditions": [
+          "need_to_escape",
+          "or chasing_target",
+          "or repositioning_quickly"
+        ]
+      },
+      {
+        "name": "Blink",
+        "classes": [
+          "Mage"
+        ],
+        "use": "escape melee and reposition",
+        "priority": "high",
+        "context_weights": {
+          "escape_necessity": 2.0,
+          "repositioning": 1.8,
+          "melee_escape": 1.5,
+          "utility": 1.2
+        },
+        "conditions": [
+          "melee_too_close",
+          "or need_to_reposition",
+          "or escaping_dangerous_situation"
+        ]
+      },
+      {
+        "name": "Stampeding Roar",
+        "classes": [
+          "Druid"
+        ],
+        "use": "group movement speed",
+        "priority": "high",
+        "context_weights": {
+          "group_movement": 2.0,
+          "objective_push": 1.8,
+          "escape": 1.5,
+          "mobility": 1.2
+        },
+        "conditions": [
+          "group_needs_movement_speed",
+          "or objective_push",
+          "or group_escape_necessary"
+        ]
+      },
+      {
+        "name": "Berserker Rage",
+        "classes": [
+          "Warrior"
+        ],
+        "use": "maintain mobility during CC",
+        "priority": "high",
+        "context_weights": {
+          "cc_immunity": 2.0,
+          "mobility": 1.8,
+          "escape": 1.5,
+          "utility": 1.2
+        },
+        "conditions": [
+          "under_cc_and_need_to_move",
+          "or need_cc_immunity",
+          "or maintaining_combat_efficiency"
+        ]
+      }
+    ],
+    "cc_priority": [
+      {
+        "name": "Silence (Priest)",
+        "target": "healer casting",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_healer",
+          "and_target_is_casting_emergency_heal"
+        ]
+      },
+      {
+        "name": "Polymorph (Mage)",
+        "target": "remove key caster",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_healer_or_high_priority_caster",
+          "and_target_is_vulnerable"
+        ]
+      },
+      {
+        "name": "Fear (Warlock)",
+        "target": "peel melee",
+        "priority": "high",
+        "conditions": [
+          "multiple_melee_attackers",
+          "or_ally_under_melee_pressure"
+        ]
+      },
+      {
+        "name": "Howl of Terror (Warlock)",
+        "target": "peel melee",
+        "priority": "high",
+        "conditions": [
+          "multiple_melee_in_range",
+          "or_need_to_escape_dangerous_situation"
+        ]
+      },
+      {
+        "name": "Stuns (HoJ, Cheap Shot, Hammer/Disorient)",
+        "target": "priority targets",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_flag_carrier",
+          "or_target_is_healer_casting",
+          "or_target_is_high_priority_caster"
+        ]
+      },
+      {
+        "name": "Hex (Shaman)",
+        "target": "healer or key caster",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_healer",
+          "or_target_is_high_priority_caster",
+          "or_target_is_flag_carrier_trying_to_escape"
+        ]
+      },
+      {
+        "name": "Cyclone (Druid)",
+        "target": "healer or dangerous caster",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_healer",
+          "or_target_is_priority_caster",
+          "or_target_is_flag_carrier_low_hp"
+        ]
+      }
+    ],
+    "trinket_usage": {
+      "when_to_use": "When controlled or in lethal burst situations; prefer preemptive for arena/duel but reactive for battlegrounds",
+      "logic": "if stunned_or_rooted_or_feared and trinket_available -> use_trinket()",
+      "priority_weights": {
+        "lethal_damage": 2.0,
+        "control_effects": 1.8,
+        "emergency_situation": 1.5,
+        "utility": 1.2
+      },
+      "conditions": [
+        "under_lethal_damage",
+        "or_under_control_effect",
+        "or_emergency_situation",
+        "or_need_to_escape"
+      ]
+    },
+    "flag_mechanics": {
+      "flag_drop_abilities": {
+        "rogue": [
+          "Vanish"
+        ],
+        "paladin": [
+          "Divine Shield",
+          "Blessing of Protection (on self)"
+        ],
+        "mage": [
+          "Invisibility",
+          "Ice Block"
+        ],
+        "hunter": [
+          "Feign Death"
+        ],
+        "warlock": [
+          "Ritual of Soulcapture",
+          "Teleport (any)",
+          "Soulstone Resurrection (if self-cast)"
+        ]
+      },
+      "flag_runner_selection": "Prefer Druids/Rogues/Mages and Rogues for vanish plays",
+      "escort_formation": "Healer centered, two melee on flanks, one ranged behind",
+      "escort_priorities": [
+        "protect_flag_carrier",
+        "interrupt_escorts",
+        "maintain_distance_control",
+        "provide_healing_support"
+      ],
+      "escort_composition": {
+        "tank": "Hold flag carrier position and peel attackers",
+        "healer": "Maintain healing and shields on flag carrier",
+        "melee_dps": "Kill escort attackers and maintain pressure",
+        "ranged_dps": "Interrupt and damage from safe distance"
+      },
+      "flag_carrier_behavior": {
+        "avoid_flag_drop_spells": "Do not use abilities that cause flag to drop when carrying flag",
+        "maintain_escape_routes": "Keep multiple escape options available",
+        "communicate_danger": "Signal when under heavy pressure",
+        "use_speed_buffs": "Prioritize movement speed increasing abilities"
+      }
+    },
+    "defensive_spells": [
+      {
+        "name": "Damage Reduction",
+        "classes": [
+          "All"
+        ],
+        "use": "mitigate incoming damage",
+        "priority": "high",
+        "conditions": [
+          "incoming_damage_estimate_ge_2000",
+          "or_self_hp_percent_le_40",
+          "or_multiple_attackers_targeting"
+        ]
+      },
+      {
+        "name": "Healing Spells",
+        "classes": [
+          "All_healers"
+        ],
+        "use": "maintain ally health",
+        "priority": "high",
+        "conditions": [
+          "ally_hp_percent_le_75",
+          "or_ally_is_flag_carrier",
+          "or_ally_under_damage"
+        ]
+      },
+      {
+        "name": "Escape Mechanisms",
+        "classes": [
+          "All"
+        ],
+        "use": "avoid dangerous situations",
+        "priority": "high",
+        "conditions": [
+          "overwhelmed_by_enemies",
+          "or_outnumbered_2_to_1",
+          "or_need_to_escape_combat"
+        ]
+      }
+    ],
+    "interrupt_priority": [
+      {
+        "target": "healer_casting_emergency_heal",
+        "priority": "very_high",
+        "classes": [
+          "All_with_interrupts"
+        ]
+      },
+      {
+        "target": "caster_casting_high_damage_spell",
+        "priority": "very_high",
+        "classes": [
+          "All_with_interrupts"
+        ]
+      },
+      {
+        "target": "flag_carrier_casting_escape_spell",
+        "priority": "very_high",
+        "classes": [
+          "All_with_interrupts"
+        ]
+      },
+      {
+        "target": "caster_casting_medium_priority_spell",
+        "priority": "high",
+        "classes": [
+          "All_with_interrupts"
+        ]
+      }
+    ],
+    "resource_management": {
+      "mana_efficiency": [
+        "prioritize_high_efficiency_spells",
+        "avoid_spam_casting",
+        "use_mana_gems_when_low",
+        "maintain_sustained_combat"
+      ],
+      "rune_efficiency": [
+        "prioritize_defensive_needs",
+        "use_for_damage_spikes",
+        "maintain_utility_uses"
+      ],
+      "runic_power_efficiency": [
+        "save_for_emergency",
+        "spend_on_opportunity",
+        "maintain_efficiency"
+      ],
+      "energy_efficiency": [
+        "pool_for_burst_opportunities",
+        "maintain_rotation_efficiency",
+        "save_for_escape_mechanics"
+      ],
+      "rage_efficiency": [
+        "prioritize_damage_spells",
+        "avoid_wasting_rage",
+        "maintain_spell_rotation"
+      ],
+      "focus_efficiency": [
+        "maintain_pet_control",
+        "use_for_damage_spikes",
+        "pool_for_emergency"
+      ]
+    },
+    "team_coordination": {
+      "focus_fire_targets": [
+        "healer",
+        "flag_carrier",
+        "high_damage_dps",
+        "caster_with_high_priority_spells"
+      ],
+      "objective_priorities": [
+        "control_flag_carrier",
+        "defend_objectives",
+        "maintain_vision",
+        "apply_pressure"
+      ],
+      "communication_signals": [
+        "target_callouts",
+        "objective_calls",
+        "emergency_situations",
+        "push_timing"
+      ]
+    }
+  }
+}

@@ -1,0 +1,626 @@
+{
+  "class": "Paladin",
+  "version": "3.3.5a",
+  "roles": [
+    "healer",
+    "melee_support",
+    "tank",
+    "objective_defender"
+  ],
+  "game_state": {
+    "early_game": {
+      "focus": "establish presence, contest objectives",
+      "priority": ["maintain_vision", "apply pressure", "maintain_positioning"]
+    },
+    "mid_game": {
+      "focus": "control key objectives, engage in team fights",
+      "priority": ["flag_carrier_protection", "objective_control", "team_fight_support"]
+    },
+    "late_game": {
+      "focus": "secure win condition, defend lead",
+      "priority": ["protect_flag_carrier", "defend_objectives", "close_out_game"]
+    }
+  },
+  "general_priority_list": [
+    "healer_saves_and_dispels",
+    "cc_hoj_on_casters_or_critical_targets",
+    "purge_or_freedom_usage_for_mobility",
+    "use_of_bubble_divine_shield_as_last_resort",
+    "maintain_ally_protection",
+    "defensive_positioning",
+    "blessing_management"
+  ],
+  "spell_rules": {
+    "crowd_control": [
+      {
+        "name": "Hammer of Justice",
+        "when": "Stun dangerous caster or player about to escape",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_casting == true",
+          "or target_is_fleeing == true",
+          "or target_is_flag_carrier_trying_to_escape == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "caster": 1.8,
+          "fleeing_target": 1.5,
+          "priority_target": 1.2
+        }
+      },
+      {
+        "name": "Repentance",
+        "when": "CC humanoid targets",
+        "priority": "high",
+        "conditions": [
+          "target_is_humanoid == true",
+          "or target_is_low_hp_and_vulnerable == true",
+          "or need_to_control_area == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "low_hp_target": 2.0,
+          "humanoid_target": 1.5,
+          "area_control": 1.2
+        }
+      },
+      {
+        "name": "Avenger's Shield",
+        "when": "Interrupt casters at range and deal damage",
+        "priority": "high",
+        "conditions": [
+          "target_is_casting_at_range == true",
+          "or multiple_targets_available == true",
+          "or need_to_interrupt_ranged_caster == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "ranged_caster": 2.0,
+          "multiple_targets": 1.8,
+          "interrupt_opportunity": 1.5
+        }
+      }
+    ],
+    "defensive": [
+      {
+        "name": "Divine Shield",
+        "when": "Prevent lethal burst or secure objective retreat",
+        "priority": "very_high",
+        "conditions": [
+          "self_hp_percent <= 10 and not_flag_carrier == true",
+          "or multiple_attackers >= 3 and not_flag_carrier == true",
+          "or incoming_lethal_damage == true and not_flag_carrier == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "lethal_damage": 2.0,
+          "multiple_attackers": 1.8,
+          "survival": 1.5
+        },
+        "flag_mechanics": {
+          "drops_flag_when_used": true,
+          "avoid_when_flag_carrier": true,
+          "alternative_defenses": ["blessing_of_protection", "blessing_of_sanctuary", "guardian_spirit"]
+        }
+      },
+      {
+        "name": "Blessing of Protection",
+        "when": "Protect key ally from physical damage",
+        "priority": "very_high",
+        "conditions": [
+          "ally_is_flag_carrier == true",
+          "or ally_is_key_player_targeted == true",
+          "or ally_is_under_lethal_physical_damage == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "key_player": 1.8,
+          "lethal_damage": 1.5
+        },
+        "flag_mechanics": {
+          "drops_flag_when_used_on_self": true,
+          "avoid_when_self_flag_carrier": true,
+          "safe_usage_on_ally": true
+        }
+      },
+      {
+        "name": "Divine Protection",
+        "when": "Reduce physical damage taken",
+        "priority": "high",
+        "conditions": [
+          "self_hp_percent <= 30",
+          "or incoming_physical_damage >= 2000",
+          "or self_is_tanking == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "lethal_damage": 2.0,
+          "tanking_role": 1.8,
+          "high_damage": 1.5
+        }
+      },
+      {
+        "name": "Guardian of Ancient Kings",
+        "when": "Major defensive cooldown",
+        "priority": "very_high",
+        "conditions": [
+          "self_hp_percent <= 20",
+          "or ally_is_flag_carrier_under_attack == true",
+          "or team_in_major_danger == true"
+        ],
+        "target": "self_or_ally",
+        "context_weights": {
+          "lethal_damage": 2.0,
+          "flag_carrier_protection": 1.8,
+          "team_defense": 1.5
+        }
+      },
+      {
+        "name": "Sacred Shield",
+        "when": "Maintain shield on key targets",
+        "priority": "high",
+        "conditions": [
+          "ally_is_flag_carrier == true",
+          "or ally_is_key_healer == true",
+          "or ally_is_under_sustained_damage == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "key_healer": 1.8,
+          "sustained_damage": 1.5
+        }
+      },
+      {
+        "name": "Divine Sacrifice",
+        "when": "Absorb damage for party members",
+        "priority": "very_high",
+        "conditions": [
+          "multiple_allies_under_damage == true",
+          "or party_in_danger == true",
+          "or damage_share_opportunity == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "party_danger": 2.0,
+          "damage_share": 1.8,
+          "team_protection": 1.5
+        }
+      }
+    ],
+    "healing": [
+      {
+        "name": "Flash of Light",
+        "when": "Quick heal for medium damage",
+        "priority": "high",
+        "conditions": [
+          "ally_hp_percent <= 70",
+          "or ally_is_flag_carrier_and_damaged == true",
+          "or ally_is_under_moderate_damage == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "emergency_heal": 1.8,
+          "medium_damage": 1.5
+        }
+      },
+      {
+        "name": "Holy Light",
+        "when": "Larger heal needed",
+        "priority": "high",
+        "conditions": [
+          "ally_hp_percent <= 40",
+          "or ally_is_flag_carrier_critical == true",
+          "or ally_is_key_player_critical == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "flag_carrier_critical": 2.0,
+          "key_player_critical": 1.8,
+          "large_damage": 1.5
+        }
+      },
+      {
+        "name": "Divine Light",
+        "when": "Major heal needed",
+        "priority": "very_high",
+        "conditions": [
+          "ally_hp_percent <= 20",
+          "or ally_is_flag_carrier_in_danger == true",
+          "or ally_is_key_player_in_immediate_danger == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "flag_carrier_danger": 2.0,
+          "key_player_danger": 1.8,
+          "emergency_heal": 1.5
+        }
+      },
+      {
+        "name": "Holy Shock",
+        "when": "Instant heal or damage",
+        "priority": "high",
+        "conditions": [
+          "ally_hp_percent <= 60",
+          "or target_is_enemy_and_vulnerable == true",
+          "or need_instant_heal_or_damage == true"
+        ],
+        "target": "ally_or_enemy",
+        "context_weights": {
+          "instant_heal": 1.8,
+          "damage_opportunity": 1.5,
+          "emergency": 1.2
+        }
+      },
+      {
+        "name": "Beacon of Light",
+        "when": "Maintain healing over time",
+        "priority": "high",
+        "conditions": [
+          "ally_is_flag_carrier == true",
+          "or ally_is_key_player_in_sustained_combat == true",
+          "or sustained_damage_over_time_expected == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "key_player": 1.8,
+          "sustained_combat": 1.5
+        }
+      },
+      {
+        "name": "Word of Glory",
+        "when": "Self heal and damage boost",
+        "priority": "medium",
+        "conditions": [
+          "self_hp_percent <= 80",
+          "or need_damage_boost == true",
+          "or self_sustain_needed == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "self_sustain": 1.8,
+          "damage_boost": 1.5,
+          "healing_efficiency": 1.2
+        }
+      }
+    ],
+    "offensive": [
+      {
+        "name": "Crusader Strike",
+        "when": "Generate holy power and apply damage",
+        "priority": "high",
+        "conditions": [
+          "holy_power_needed == true",
+          "or target_is_vulnerable == true",
+          "or damage_rotation_opportunity == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "holy_power_generation": 2.0,
+          "vulnerable_target": 1.8,
+          "damage_rotation": 1.5
+        }
+      },
+      {
+        "name": "Judgements",
+        "when": "Apply beneficial effects and damage",
+        "priority": "medium",
+        "conditions": [
+          "buff_expired == true",
+          "or target_debuff_needed == true",
+          "or damage_opportunity_available == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "buff_refresh": 1.8,
+          "debuff_application": 1.5,
+          "damage_opportunity": 1.2
+        }
+      },
+      {
+        "name": "Consecration",
+        "when": "AoE damage and movement debuff",
+        "priority": "medium",
+        "conditions": [
+          "multiple_enemies_in_area == true",
+          "or area_control_needed == true",
+          "or aoe_damage_opportunity == true"
+        ],
+        "target": "area",
+        "context_weights": {
+          "multiple_targets": 2.0,
+          "area_control": 1.8,
+          "aoe_damage": 1.5
+        }
+      }
+    ],
+    "utility": [
+      {
+        "name": "Hand of Freedom",
+        "when": "Remove roots or slows from key players",
+        "priority": "high",
+        "conditions": [
+          "ally_is_rooted == true",
+          "or ally_is_slowed_and_needs_mobility == true",
+          "or ally_is_flag_carrier_rooted == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "key_player": 1.8,
+          "mobility_needed": 1.5
+        }
+      },
+      {
+        "name": "Hand of Sacrifice",
+        "when": "Absorb damage for ally",
+        "priority": "very_high",
+        "conditions": [
+          "ally_is_flag_carrier_under_attack == true",
+          "or ally_is_key_player_under_lethal_damage == true",
+          "or ally_is_under_major_damage_spikes == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "key_player": 1.8,
+          "lethal_damage": 1.5
+        }
+      },
+      {
+        "name": "Lay on Hands",
+        "when": "Emergency full heal for key target",
+        "priority": "very_high",
+        "conditions": [
+          "ally_hp_percent <= 10 and ally_is_key == true",
+          "or ally_is_flag_carrier_critical == true",
+          "or ally_is_in_immediate_danger_of_death == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "key_player": 1.8,
+          "emergency_heal": 1.5
+        }
+      },
+      {
+        "name": "Divine Favor",
+        "when": "Increase critical chance for healing",
+        "priority": "high",
+        "conditions": [
+          "ally_is_in_critical_condition == true",
+          "or need_large_heal_immediately == true",
+          "or sustained_combat_phase_starting == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "critical_heal": 2.0,
+          "emergency_situation": 1.8,
+          "sustained_combat": 1.5
+        }
+      },
+      {
+        "name": "Avenging Wrath",
+        "when": "Increase damage and healing output",
+        "priority": "high",
+        "conditions": [
+          "team_fight_engagement == true",
+          "or sustained_combat_phase == true",
+          "or need_damage_healing_boost == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "team_fight": 2.0,
+          "sustained_combat": 1.8,
+          "damage_boost": 1.5
+        }
+      }
+    ],
+    "blessings": [
+      {
+        "name": "Blessing of Kings",
+        "when": "Maintain group stats",
+        "priority": "medium",
+        "conditions": [
+          "ally_does_not_have_blessing == true",
+          "or team_fight_engagement_expected == true",
+          "or sustained_combat_engagement == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "team_fight": 1.8,
+          "sustained_combat": 1.5,
+          "stat_buff_needed": 1.2
+        }
+      },
+      {
+        "name": "Blessing of Might",
+        "when": "Maintain melee damage",
+        "priority": "medium",
+        "conditions": [
+          "ally_is_melee_dps == true",
+          "or ally_does_not_have_blessing == true",
+          "or damage_buff_needed == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "melee_dps": 1.8,
+          "damage_buff": 1.5,
+          "stat_buff_needed": 1.2
+        }
+      },
+      {
+        "name": "Blessing of Wisdom",
+        "when": "Maintain ally mana",
+        "priority": "medium",
+        "conditions": [
+          "ally_is_healer == true",
+          "or ally_does_not_have_blessing == true",
+          "or mana_buff_needed == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "healer": 1.8,
+          "mana_buff": 1.5,
+          "stat_buff_needed": 1.2
+        }
+      }
+    ]
+  },
+  "healing_priority_thresholds": {
+    "heal_when_ally_below": 85,
+    "emergency_below": 40,
+    "priority_target_weights": {
+      "flag_carrier": 2.0,
+      "healer": 1.8,
+      "tank": 1.6,
+      "melee_dps": 1.4,
+      "ranged_dps": 1.2
+    }
+  },
+  "battleground_overrides": {
+    "WSG": {
+      "objective_focus": "flag_capture_defense",
+      "behavior_mods": [
+        "prioritize_flag_carrier_protection",
+        "assign_2_defenders_to_flagroom",
+        "use_hoj_on_flag_carrier_escorts",
+        "maintain_vision_of_enemy_base",
+        "apply_pressure_with_support_damage",
+        "use_blessings_for_flag_carrier"
+      ],
+      "role_assignments": {
+        "flag_defender": ["maintain_flag_room", "kill_attackers", "apply_cc"],
+        "escort": ["protect_flag_carrier", "maintain_healing", "apply_blessings"],
+        "midfield": ["control_tunnel", "intercept_resurrections", "maintain_vision"]
+      }
+    },
+    "AB": {
+      "objective_focus": "base_control",
+      "behavior_mods": [
+        "maintain_three_base_control_if_possible",
+        "leave_min_defenders_at_each_base(2)",
+        "rotate_to_reinforce_weak_base",
+        "maintain_base_healing",
+        "apply_cc_to_base_attackers",
+        "maintain_vision_control"
+      ],
+      "role_assignments": {
+        "base_defender": ["maintain_base_control", "kill_cappers", "apply_cc"],
+        "base_attacker": ["apply_pressure", "kill_defenders", "maintain_healing"],
+        "support": ["provide_healing", "maintain_vision", "assist_in_fights"]
+      }
+    },
+    "AV": {
+      "objective_focus": "tower_and_commander_kills",
+      "behavior_mods": [
+        "focus_on_capturing_towers_and_killing_captains",
+        "escort_raid_groups_for_commander_assaults",
+        "maintain_NPC_target_healing",
+        "apply_cc_to_NPC_guards",
+        "maintain_tower_control"
+      ],
+      "role_assignments": {
+        "tower_attacker": ["capture_towers", "kill_NPC_guards", "maintain_healing"],
+        "commander_assassin": ["kill_commanders", "apply_cc", "maintain_escape"],
+        "escort": ["protect_assassins", "kill_NPC_defenders", "maintain_healing"]
+      }
+    },
+    "EOTS": {
+      "objective_focus": "flag_and_mid_control",
+      "behavior_mods": [
+        "control_mid_for_flag_safety",
+        "escort_flag_carrier_via_towers",
+        "maintain_mid_healing",
+        "apply_cc_to_mid_attackers",
+        "maintain_flag_access_control"
+      ],
+      "role_assignments": {
+        "mid_controller": ["control_mid", "deny_flag_access", "maintain_healing"],
+        "flag_protector": ["escort_carrier", "maintain_healing", "apply_cc"],
+        "base_defender": ["defend_bases", "kill_cappers", "maintain_healing"]
+      }
+    },
+    "SOTA": {
+      "objective_focus": "vehicle_protection_and_support",
+      "behavior_mods": [
+        "protect_demolishers",
+        "clear_path_for_vehicle_push",
+        "maintain_vehicle_healing",
+        "apply_cc_to_vehicle_attackers",
+        "maintain_wall_breach_support"
+      ],
+      "role_assignments": {
+        "vehicle_protector": ["protect_vehicles", "maintain_healing", "apply_cc"],
+        "wall_destroyer": ["damage_walls", "maintain_healing", "apply_cc"],
+        "escort": ["clear_path", "kill_defenders", "maintain_healing"]
+      }
+    },
+    "IOC": {
+      "objective_focus": "workshop_and_gate_destruction",
+      "behavior_mods": [
+        "rush_workshop_priority",
+        "escort_siege_to_gate",
+        "if_towers_vulnerable -> docks_glaive_focus",
+        "maintain_workshop_healing",
+        "apply_cc_to_workshop_attackers"
+      ],
+      "role_assignments": {
+        "workshop_capper": ["capture_workshop", "maintain_healing", "apply_cc"],
+        "gate_destroyer": ["damage_gate", "maintain_healing", "apply_cc"],
+        "escort": ["protect_siege", "kill_attackers", "maintain_healing"]
+      }
+    }
+  },
+  "adaptive_behavior": {
+    "team_size": {
+      "1": ["avoid_fights", "objective_control", "defensive_positioning"],
+      "2-3": ["engage_favorable_fights", "objective_support", "coordinated_pushes"],
+      "4+": ["aggressive_objective_control", "team_fights", "win_conditions"]
+    },
+    "enemy_composition": {
+      "high_healer_count": ["prioritize_healer_cc", "interrupt_healing", "apply_pressure"],
+      "melee_heavy": ["use_divine_shield", "maintain_distance", "kite_effectively"],
+      "ranged_heavy": ["use_repentance", "control_area", "focus_fire"]
+    },
+    "game_state": {
+      "behind": ["defensive_positioning", "protect_objectives", "wait_for_mistakes"],
+      "ahead": ["aggressive_pushing", "maintain_pressure", "secure_win"],
+      "close": ["maximize_fights", "win_exchanges", "control_objectives"]
+    }
+  },
+  "tactical_positioning": {
+    "key_locations": {
+      "WSG_flag_room": {
+        "defensive_positions": ["flag_stand", "entrance", "behind_cover"],
+        "offensive_positions": ["approach", "escape_routes", "control_points"]
+      },
+      "AB_base_circles": {
+        "defensive_positions": ["inside_circle", "approach_angles", "escape_routes"],
+        "offensive_positions": ["approach", "flank_routes", "control_points"]
+      },
+      "AV_tower_approaches": {
+        "defensive_positions": ["tower_base", "approach_control", "escape_routes"],
+        "offensive_positions": ["approach_angles", "flank_routes", "control_points"]
+      }
+    }
+  },
+  "resource_management": {
+    "mana_efficiency": {
+      "spending_strategy": ["save_for_emergency", "spend_on_opportunity", "maintain_efficiency"],
+      "priority_targets": ["emergency_healing", "sustained_healing", "utility_benefits"]
+    },
+    "holy_power_management": {
+      "spending_strategy": ["save_for_emergency", "spend_on_opportunity", "maintain_efficiency"],
+      "priority_spells": ["Word of Glory", "Light of Dawn", "Shield of Righteousness"]
+    },
+    "blessing_rotation": {
+      "priority_order": ["protection_for_flag_carrier", "stat_buffs_for_team", "situational_blessings"],
+      "refresh_timing": ["before_team_fights", "when_buff_expires", "when_needed"]
+    }
+  }
+}

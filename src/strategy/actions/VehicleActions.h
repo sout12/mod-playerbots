@@ -29,4 +29,21 @@ public:
     bool Execute(Event event) override;
 };
 
+// IoC Siege Engine Actions
+class IoCDriveSiegeEngineAction : public MovementAction
+{
+public:
+    IoCDriveSiegeEngineAction(PlayerbotAI* botAI) : MovementAction(botAI, "ioc drive siege") {}
+    bool Execute(Event event) override;
+    bool isUseful() override;
+};
+
+class IoCPassengerCombatAction : public Action
+{
+public:
+    IoCPassengerCombatAction(PlayerbotAI* botAI) : Action(botAI, "ioc passenger combat") {}
+    bool Execute(Event event) override;
+    bool isUseful() override;
+};
+
 #endif

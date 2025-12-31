@@ -1,0 +1,534 @@
+{
+  "class": "Hunter",
+  "version": "3.3.5a",
+  "roles": [
+    "ranged_dps",
+    "kiter",
+    "flag_hunter",
+    "objective_support"
+  ],
+  "game_state": {
+    "early_game": {
+      "focus": "establish presence, contest objectives",
+      "priority": ["maintain_vision", "apply_pressure", "maintain_positioning"]
+    },
+    "mid_game": {
+      "focus": "control key objectives, engage in team fights",
+      "priority": ["flag_carrier_hunting", "objective_control", "team_fight_support"]
+    },
+    "late_game": {
+      "focus": "secure win condition, defend lead",
+      "priority": ["hunt_flag_carrier", "defend_objectives", "close_out_game"]
+    }
+  },
+  "general_priority_list": [
+    "use_kiting_and_slows_on_flag_carriers",
+    "pet_control_to_interrupt_and_peel",
+    "deterrence_for_big_burst_mitigation",
+    "maintain_distance_control",
+    "trap_placement_for_area_control",
+    "focus_fire_on_high_priority_targets",
+    "maintain_vision_and_tracking"
+  ],
+  "spell_rules": {
+    "crowd_control": [
+      {
+        "name": "Concussive Shot",
+        "when": "Slow fleeing or prevent escape",
+        "priority": "high",
+        "conditions": [
+          "target_is_fleeing == true",
+          "or target_is_flag_carrier_moving_away == true",
+          "or target_is_trying_to_escape == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "fleeing_target": 1.5,
+          "escape_attempt": 1.2
+        }
+      },
+      {
+        "name": "Scatter Shot",
+        "when": "Peel melee or interrupt casters",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_casting == true",
+          "or melee_aggro_on_pet == true",
+          "or ally_is_under_melee_attack == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "interrupt_caster": 2.0,
+          "peel_melee": 1.8,
+          "protect_ally": 1.5
+        }
+      },
+      {
+        "name": "Freezing Trap",
+        "when": "Control area or CC high priority targets",
+        "priority": "high",
+        "conditions": [
+          "high_priority_target_in_area == true",
+          "or area_control_needed == true",
+          "or need_to_escape_dangerous_area == true"
+        ],
+        "target": "area",
+        "context_weights": {
+          "high_priority_target": 2.0,
+          "area_control": 1.5,
+          "escape_necessity": 1.2
+        }
+      },
+      {
+        "name": "Wyvern Sting",
+        "when": "Silence and sleep target",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_healer == true",
+          "or target_is_flag_carrier == true",
+          "or target_is_high_priority_caster == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "healer": 2.0,
+          "flag_carrier": 1.8,
+          "high_priority_caster": 1.5
+        }
+      },
+      {
+        "name": "Intimidation",
+        "when": "Stun target with pet",
+        "priority": "high",
+        "conditions": [
+          "pet_active == true",
+          "or target_is_casting_emergency_spell == true",
+          "or interrupt_opportunity_available == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "pet_available": 2.0,
+          "emergency_interrupt": 1.8,
+          "interrupt_opportunity": 1.5
+        }
+      }
+    ],
+    "defensive": [
+      {
+        "name": "Feign Death",
+        "when": "Drop threat and reset combat",
+        "priority": "high",
+        "conditions": [
+          "focus_target_is_badly_overgeared == true",
+          "or overwhelmed == true",
+          "or need_to_reset_combat == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "overgeared_target": 2.0,
+          "overwhelmed": 1.8,
+          "combat_reset": 1.5
+        }
+      },
+      {
+        "name": "Deterrence",
+        "when": "Mitigate burst damage",
+        "priority": "very_high",
+        "conditions": [
+          "incoming_burst_damage >= 2000",
+          "or self_hp_percent <= 40",
+          "or multiple_attackers_targeting == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "lethal_damage": 2.0,
+          "multiple_attackers": 1.8,
+          "high_damage": 1.5
+        }
+      },
+      {
+        "name": "Disengage",
+        "when": "Create distance and escape",
+        "priority": "high",
+        "conditions": [
+          "enemy_too_close == true",
+          "or need_to_escape_melee == true",
+          "or positioning_adjustment_needed == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "escape_necessity": 2.0,
+          "positioning_adjustment": 1.5,
+          "melee_escape": 1.2
+        }
+      },
+      {
+        "name": "Aspect of the Pack",
+        "when": "Increase movement speed for flag running",
+        "priority": "high",
+        "conditions": [
+          "self_is_flag_carrier == true",
+          "or need_to_escape == true",
+          "or positioning_adjustment_needed == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "escape_necessity": 1.8,
+          "positioning": 1.5
+        }
+      }
+    ],
+    "interrupts": [
+      {
+        "name": "Silencing Shot",
+        "when": "Interrupt casting at range",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_casting == true",
+          "or target_is_healer_casting == true",
+          "or target_is_casting_high_priority_spell == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "healer_casting": 2.0,
+          "high_priority_spell": 1.8,
+          "casting_interrupt": 1.5
+        }
+      }
+    ],
+    "utility": [
+      {
+        "name": "Tranquilizing Shot",
+        "when": "Remove enrage or buff from boss type NPCs",
+        "priority": "low",
+        "conditions": [
+          "npc_has_enrage == true",
+          "or enemy_has_magic_buff == true",
+          "or buff_is_combat_relevant == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "npc_enrage": 2.0,
+          "magic_buff": 1.5,
+          "combat_relevant": 1.2
+        }
+      },
+      {
+        "name": "Hunter's Mark",
+        "when": "Maintain damage debuff",
+        "priority": "high",
+        "conditions": [
+          "target_does_not_have_hunters_mark == true",
+          "or target_is_high_priority == true",
+          "or focus_fire_target == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "high_priority_target": 2.0,
+          "focus_fire": 1.8,
+          "maintain_debuff": 1.5
+        }
+      }
+    ],
+    "utility": [
+      {
+        "name": "Tranquilizing Shot",
+        "when": "Remove enrage or buff from boss type NPCs",
+        "priority": "low",
+        "conditions": [
+          "npc_has_enrage == true",
+          "or enemy_has_magic_buff == true",
+          "or buff_is_combat_relevant == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "npc_enrage": 2.0,
+          "magic_buff": 1.5,
+          "combat_relevant": 1.2
+        }
+      },
+      {
+        "name": "Hunter's Mark",
+        "when": "Maintain damage debuff",
+        "priority": "high",
+        "conditions": [
+          "target_does_not_have_hunters_mark == true",
+          "or target_is_high_priority == true",
+          "or focus_fire_target == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "high_priority_target": 2.0,
+          "focus_fire": 1.8,
+          "maintain_debuff": 1.5
+        }
+      },
+      {
+        "name": "Misdirection",
+        "when": "Redirect aggro to pet or ally",
+        "priority": "high",
+        "conditions": [
+          "ally_is_tank_under_attack == true",
+          "or need_to_redirect_aggro == true",
+          "or pet_aggro_opportunity == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "tank_protection": 2.0,
+          "aggro_redirection": 1.8,
+          "pet_utility": 1.5
+        }
+      },
+      {
+        "name": "Feign Death",
+        "when": "Drop all aggro and reset",
+        "priority": "high",
+        "conditions": [
+          "overwhelmed_by_enemies == true",
+          "or need_to_reset_combat == true",
+          "or escape_necessity == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "overwhelmed": 2.0,
+          "combat_reset": 1.8,
+          "escape_necessity": 1.5
+        }
+      }
+    ],
+    "damage": [
+      {
+        "name": "Aimed Shot",
+        "when": "High damage shot with focus",
+        "priority": "high",
+        "conditions": [
+          "focus_available_for_aimed_shot == true",
+          "or target_is_low_hp == true",
+          "or need_to_burst_target == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "burst_opportunity": 2.0,
+          "low_hp_target": 1.8,
+          "focus_available": 1.5
+        }
+      },
+      {
+        "name": "Chimera Shot",
+        "when": "Apply damage and heal",
+        "priority": "medium",
+        "conditions": [
+          "self_hp_percent <= 80",
+          "or target_has_serious_wound == true",
+          "or sustained_combat_engagement == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "self_heal_needed": 2.0,
+          "sustained_combat": 1.5,
+          "damage_opportunity": 1.2
+        }
+      },
+      {
+        "name": "Explosive Shot",
+        "when": "Damage over time and DoT",
+        "priority": "medium",
+        "conditions": [
+          "target_does_not_have_explosive_shot == true",
+          "or explosive_shot_expiring_soon == true",
+          "or sustained_damage_over_time_needed == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "no_explosive_shot": 2.0,
+          "expiring_soon": 1.8,
+          "sustained_damage": 1.5
+        }
+      },
+      {
+        "name": "Serpent Sting",
+        "when": "Damage over time",
+        "priority": "high",
+        "conditions": [
+          "target_does_not_have_serpent_sting == true",
+          "or serpent_sting_expiring_soon == true",
+          "or sustained_damage_over_time_needed == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "no_serpent_sting": 2.0,
+          "expiring_soon": 1.8,
+          "sustained_damage": 1.5
+        }
+      },
+      {
+        "name": "Arcane Shot",
+        "when": "Primary damage shot",
+        "priority": "high",
+        "conditions": [
+          "target_vulnerable == true",
+          "or damage_opportunity_available == true",
+          "or sustained_damage_needed == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "vulnerable_target": 2.0,
+          "damage_opportunity": 1.8,
+          "sustained_damage": 1.5
+        }
+      }
+    ]
+  },
+  "pet_logic": {
+    "use_pet_to_kite": true,
+    "pet_focus_fire_on_flag_carrier": true,
+    "pet_behavior_by_role": {
+      "kiter": ["pet_tank_melee", "pet_peel_attackers", "maintain_distance"],
+      "damage": ["pet_focus_fire", "pet_attack_high_priority", "pet_maintain_aggro"],
+      "support": ["pet_control_area", "pet_interrupt_casters", "pet_peel_ally"]
+    },
+    "pet_commands": [
+      "if_enemy_approaching -> pet_attack_target",
+      "if_need_to_escape -> pet_taunt_attackers",
+      "if_ally_under_attack -> pet_peel_target"
+    ]
+  },
+  "battleground_overrides": {
+    "WSG": {
+      "objective_focus": "flag_hunting_and_defense",
+      "behavior_mods": [
+        "prioritize_flag_carrier_hunting",
+        "assign_2_defenders_to_flagroom",
+        "use_scatter_shot_to_peel_attackers",
+        "maintain_vision_of_enemy_base",
+        "apply_slow_to_flag_runners",
+        "use_pet_to_interrupt_flag_carrier_escorts"
+      ],
+      "role_assignments": {
+        "flag_hunter": ["hunt_flag_carrier", "interrupt_escorts", "maintain_vision"],
+        "escort": ["protect_flag_carrier", "interrupt_enemy_escorts", "maintain_distance"],
+        "midfield": ["control_tunnel", "intercept_resurrections", "maintain_vision"]
+      }
+    },
+    "AB": {
+      "objective_focus": "base_control_and_hunting",
+      "behavior_mods": [
+        "maintain_three_base_control_if_possible",
+        "leave_min_defenders_at_each_base(2)",
+        "rotate_to_reinforce_weak_base",
+        "use_traps_for_base_control",
+        "hunt_base_attackers",
+        "maintain_vision_control"
+      ],
+      "role_assignments": {
+        "base_defender": ["maintain_base_control", "kill_cappers", "use_traps"],
+        "base_attacker": ["apply_pressure", "kill_defenders", "maintain_vision"],
+        "support": ["provide_vision", "hunt_attackers", "assist_in_fights"]
+      }
+    },
+    "AV": {
+      "objective_focus": "tower_control_and_hunting",
+      "behavior_mods": [
+        "focus_on_capturing_towers_and_killing_captains",
+        "escort_raid_groups_for_commander_assaults",
+        "use_pet_to_control_NPC_guards",
+        "hunt_tower_attackers",
+        "maintain_tower_control"
+      ],
+      "role_assignments": {
+        "tower_attacker": ["capture_towers", "kill_NPC_guards", "maintain_vision"],
+        "commander_assassin": ["kill_commanders", "apply_damage", "maintain_escape"],
+        "escort": ["protect_assassins", "kill_NPC_defenders", "maintain_vision"]
+      }
+    },
+    "EOTS": {
+      "objective_focus": "flag_and_mid_control",
+      "behavior_mods": [
+        "control_mid_for_flag_safety",
+        "escort_flag_carrier_via_towers",
+        "use_traps_in_mid_area",
+        "hunt_mid_attackers",
+        "maintain_flag_access_control"
+      ],
+      "role_assignments": {
+        "mid_controller": ["control_mid", "deny_flag_access", "hunt_attackers"],
+        "flag_protector": ["escort_carrier", "interrupt_escorts", "maintain_vision"],
+        "base_defender": ["defend_bases", "kill_cappers", "maintain_vision"]
+      }
+    },
+    "SOTA": {
+      "objective_focus": "vehicle_protection_and_hunting",
+      "behavior_mods": [
+        "protect_demolishers",
+        "clear_path_for_vehicle_push",
+        "use_pet_to_protect_vehicles",
+        "hunt_vehicle_attackers",
+        "maintain_wall_breach_support"
+      ],
+      "role_assignments": {
+        "vehicle_protector": ["protect_vehicles", "hunt_attackers", "maintain_vision"],
+        "wall_destroyer": ["damage_walls", "maintain_vision", "hunt_defenders"],
+        "escort": ["clear_path", "kill_defenders", "maintain_vision"]
+      }
+    },
+    "IOC": {
+      "objective_focus": "workshop_and_gate_control",
+      "behavior_mods": [
+        "rush_workshop_priority",
+        "escort_siege_to_gate",
+        "if_towers_vulnerable -> docks_glaive_focus",
+        "use_traps_for_workshop_control",
+        "hunt_workshop_attackers"
+      ],
+      "role_assignments": {
+        "workshop_capper": ["capture_workshop", "maintain_vision", "use_traps"],
+        "gate_destroyer": ["damage_gate", "maintain_vision", "hunt_attackers"],
+        "escort": ["protect_siege", "kill_attackers", "maintain_vision"]
+      }
+    }
+  },
+  "adaptive_behavior": {
+    "team_size": {
+      "1": ["avoid_fights", "objective_control", "defensive_positioning"],
+      "2-3": ["engage_favorable_fights", "objective_support", "coordinated_pushes"],
+      "4+": ["aggressive_objective_control", "team_fights", "win_conditions"]
+    },
+    "enemy_composition": {
+      "high_healer_count": ["prioritize_healer_hunting", "interrupt_healing", "apply_pressure"],
+      "melee_heavy": ["use_disengage", "maintain_distance", "kite_effectively"],
+      "ranged_heavy": ["use_traps", "control_area", "focus_fire"]
+    },
+    "game_state": {
+      "behind": ["defensive_positioning", "protect_objectives", "wait_for_mistakes"],
+      "ahead": ["aggressive_pushing", "maintain_pressure", "secure_win"],
+      "close": ["maximize_fights", "win_exchanges", "control_objectives"]
+    }
+  },
+  "tactical_positioning": {
+    "key_locations": {
+      "WSG_flag_room": {
+        "defensive_positions": ["flag_stand", "entrance", "behind_cover"],
+        "offensive_positions": ["approach", "escape_routes", "control_points"]
+      },
+      "AB_base_circles": {
+        "defensive_positions": ["inside_circle", "approach_angles", "escape_routes"],
+        "offensive_positions": ["approach", "flank_routes", "control_points"]
+      },
+      "AV_tower_approaches": {
+        "defensive_positions": ["tower_base", "approach_control", "escape_routes"],
+        "offensive_positions": ["approach_angles", "flank_routes", "control_points"]
+      }
+    }
+  },
+  "resource_management": {
+    "focus_efficiency": {
+      "spending_strategy": ["save_for_emergency", "spend_on_opportunity", "maintain_efficiency"],
+      "priority_targets": ["burst_damage", "sustained_damage", "utility_benefits"]
+    },
+    "trap_utilization": {
+      "placement_strategy": ["area_control", "escape_routes", "high_traffic_areas"],
+      "priority_locations": ["base_circles", "chokepoints", "escape_paths"]
+    }
+  }
+}

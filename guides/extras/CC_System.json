@@ -1,0 +1,132 @@
+{
+  "module": "CC_System",
+  "version": "3.3.5a",
+  "description": "DR tracking, CC sequencing, CC assignment, and healer denial logic.",
+  "parameters": {
+    "stun_dr_window_s": 18,
+    "poly_dr_window_s": 15,
+    "fear_dr_window_s": 20,
+    "max_cc_stack_on_target": 2,
+    "cc_effectiveness_decay": 0.8,
+    "cc_priority_refresh_time": 30
+  },
+  "rules": {
+    "dr_tracking": [
+      "record_cc_use(enemy_id, cc_type, timestamp)",
+      "if cc_type_used_within_window(cc_type, dr_window) then increment_dr_counter",
+      "if dr_counter_for_target >= 2 then avoid_similar_cc_on_target",
+      "reset_dr_counter_after_window_expires",
+      "track_cc_effectiveness_for_each_type"
+    ],
+    "cc_chain_logic": [
+      "if target_is_healer then chain = [stun -> silence -> interrupt]",
+      "if target_has_dispel -> avoid_long_duration_cc_until_dispel_used",
+      "if target_is_flag_carrier then chain = [control -> slow -> damage]",
+      "if target_is_low_hp then chain = [stun -> execute -> control]",
+      "if target_is_high_dps then chain = [interrupt -> control -> damage]"
+    ],
+    "cc_assignment": [
+      "prioritize_cc_on = is_healer*3 + is_flag_carrier*5 + is_glaive_driver*4",
+      "avoid_wasting_cc_on_targets_with_trinket_ready within 4s_of_cc_use",
+      "assign_cc_based_on_class_specific_strengths",
+      "coordinate_cc_usage_to_avoid_waste",
+      "prioritize_cc_on_high_value_targets"
+    ],
+    "cc_timing": [
+      "use_cc_during_favorable_moments",
+      "avoid_cc_waste_during_immunity",
+      "time_cc_for_maximum_effectiveness",
+      "coordinate_cc_with_team_damage_spikes"
+    ]
+  },
+  "cc_priorities": {
+    "highest": ["flag_carrier", "enemy_healer_casting", "high_dps_target"],
+    "high": ["caster_in_melee", "target_trying_to_escape", "priority_caster"],
+    "medium": ["general_cc_opportunity", "area_control", "team_fight_support"],
+    "low": ["low_priority_targets", "utility_cc", "situational_cc"]
+  },
+  "class_specific_cc": {
+    "warrior": {
+      "priority_cc": ["charge", "intercept", "intimidating_shout", "pummel"],
+      "best_targets": ["casters", "healers", "flag_carriers"],
+      "situational_use": ["initiate_combat", "interrupt_casting", "control_area"]
+    },
+    "rogue": {
+      "priority_cc": ["cheap_shot", "kidney_shot", "gouge", "blind"],
+      "best_targets": ["casters", "healers", "flag_carriers"],
+      "situational_use": ["stealth_openers", "interrupt_casting", "escape_mechanics"]
+    },
+    "mage": {
+      "priority_cc": ["polymorph", "frost_nova", "cone_of_cold", "counterspell"],
+      "best_targets": ["healers", "casters", "melee_approaching"],
+      "situational_use": ["area_control", "interrupt_casting", "escape_mechanics"]
+    },
+    "priest": {
+      "priority_cc": ["psychic_scream", "silence", "shackle_undead", "mind_control"],
+      "best_targets": ["healers", "casters", "melee_pressure"],
+      "situational_use": ["team_protection", "interrupt_casting", "control_escape"]
+    },
+    "shaman": {
+      "priority_cc": ["hex", "earthbind_totem", "wind_shear", "frost_shock"],
+      "best_targets": ["casters", "melee", "flag_carriers"],
+      "situational_use": ["interrupt_casting", "slow_pursuit", "area_control"]
+    },
+    "warlock": {
+      "priority_cc": ["fear", "howl_of_terror", "spell_lock", "soul_shatter"],
+      "best_targets": ["casters", "healers", "melee_groups"],
+      "situational_use": ["area_control", "interrupt_casting", "escape_mechanics"]
+    },
+    "druid": {
+      "priority_cc": ["cyclone", "entangling_roots", "bash", "hibernate"],
+      "best_targets": ["healers", "casters", "flag_carriers"],
+      "situational_use": ["interrupt_casting", "control_escape", "area_denial"]
+    },
+    "paladin": {
+      "priority_cc": ["hammer_of_justice", "repentance", "divine_storm", "consecration"],
+      "best_targets": ["casters", "healers", "flag_carriers"],
+      "situational_use": ["interrupt_casting", "control_approach", "team_protection"]
+    },
+    "hunter": {
+      "priority_cc": ["scare_beast", "freezing_trap", "wyvern_sting", "concussive_shot"],
+      "best_targets": ["casters", "healers", "flag_carriers"],
+      "situational_use": ["interrupt_casting", "slow_pursuit", "escape_mechanics"]
+    }
+  },
+  "adaptive_behavior": {
+    "team_size": {
+      "1": ["avoid_cc_waste", "prioritize_escape", "defensive_cc"],
+      "2-3": ["coordinate_cc_usage", "focus_fire_support", "situational_cc"],
+      "4+": ["cc_rotation", "team_fight_cc", "maximize_cc_efficiency"]
+    },
+    "enemy_composition": {
+      "high_healer_count": ["prioritize_healer_cc", "interrupt_healing", "apply_pressure"],
+      "melee_heavy": ["use_knockback_cc", "control_approach", "area_denial"],
+      "ranged_heavy": ["use_interrupt_cc", "control_distance", "focus_fire"]
+    },
+    "game_state": {
+      "behind": ["defensive_cc", "protect_objectives", "avoid_risky_cc"],
+      "ahead": ["aggressive_cc", "maintain_pressure", "maximize_cc"],
+      "close": ["maximize_cc", "win_exchanges", "control_targets"]
+    }
+  },
+  "tactical_positioning": {
+    "cc_placement": {
+      "aoe_cc": ["chokepoints", "escape_routes", "team_fight_areas"],
+      "single_cc": ["isolation", "control_points", "strategic_positions"],
+      "utility_cc": ["objectives", "escape_paths", "team_support"]
+    }
+  },
+  "resource_management": {
+    "cc_efficiency": {
+      "spending_strategy": ["save_for_emergency", "spend_on_opportunity", "maintain_efficiency"],
+      "priority_targets": ["high_value_targets", "situational_opportunities", "team_support"]
+    }
+  },
+  "cpp_hooks": [
+    "CCManager::RecordCC()",
+    "CCManager::ShouldApplyCC()",
+    "CCManager::GetCCPriority()",
+    "CCManager::UpdateDRTracking()",
+    "CCManager::CoordinateTeamCC()"
+  ]
+}

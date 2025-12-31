@@ -69,6 +69,23 @@ public:
         {
             return;
         }
+        
+        // PvP Priority System for BG/Arena
+        Player* bot = botAI->GetBot();
+        if ((bot->InBattleground() || bot->InArena()) && attacker->IsPlayer())
+        {
+            float priority = CalculatePvPPriority(attacker);
+            float currentPriority = result && result->IsPlayer() ? CalculatePvPPriority(result) : 0.0f;
+            
+            // Switch to higher priority target
+            if (priority > currentPriority && priority >= 100.0f) // Threshold for high priority
+            {
+                result = attacker;
+                foundHighPriority = (priority >= 150.0f); // Healer+ priority
+                return;
+            }
+        }
+        
         if (IsHighPriority(attacker))
         {
             result = attacker;
@@ -160,6 +177,22 @@ public:
         {
             return;
         }
+        
+        // PvP Priority System for BG/Arena
+        Player* bot = botAI->GetBot();
+        if ((bot->InBattleground() || bot->InArena()) && attacker->IsPlayer())
+        {
+            float priority = CalculatePvPPriority(attacker);
+            float currentPriority = result && result->IsPlayer() ? CalculatePvPPriority(result) : 0.0f;
+            
+            if (priority > currentPriority && priority >= 100.0f)
+            {
+                result = attacker;
+                foundHighPriority = (priority >= 150.0f);
+                return;
+            }
+        }
+        
         if (IsHighPriority(attacker))
         {
             result = attacker;
@@ -234,6 +267,22 @@ public:
         {
             return;
         }
+        
+        // PvP Priority System for BG/Arena
+        Player* bot = botAI->GetBot();
+        if ((bot->InBattleground() || bot->InArena()) && attacker->IsPlayer())
+        {
+            float priority = CalculatePvPPriority(attacker);
+            float currentPriority = result && result->IsPlayer() ? CalculatePvPPriority(result) : 0.0f;
+            
+            if (priority > currentPriority && priority >= 100.0f)
+            {
+                result = attacker;
+                foundHighPriority = (priority >= 150.0f);
+                return;
+            }
+        }
+        
         if (IsHighPriority(attacker))
         {
             result = attacker;

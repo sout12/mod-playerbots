@@ -1,0 +1,139 @@
+{
+  "module": "Gear_Stats",
+  "version": "3.3.5a",
+  "description": "Stat priority rules, resilience utilization, hit/crit caps, and gear swapping heuristics for PvP.",
+  "rules": {
+    "stat_priority_by_role": {
+      "melee_dps": [
+        "Resilience",
+        "Hit Cap(263->?)",
+        "Strength/Agility",
+        "Crit",
+        "Haste",
+        "Expertise"
+      ],
+      "ranged_dps": [
+        "Resilience",
+        "Hit Cap(263->?)",
+        "Intellect",
+        "Crit",
+        "Haste"
+      ],
+      "healer": [
+        "Resilience",
+        "Spirit/Intellect",
+        "ManaPer5",
+        "Haste",
+        "Crit"
+      ],
+      "tank": [
+        "Stamina",
+        "Resilience",
+        "Armor",
+        "Avoidance"
+      ]
+    },
+    "hit_caps": {
+      "melee_hit_cap": 263,
+      "ranged_hit_cap": 263,
+      "spell_hit_cap": 164,
+      "expertise_cap": 263,
+      "priority": ["hit_cap_first", "expertise_second", "then_other_stats"]
+    },
+    "crit_caps": {
+      "melee_crit_cap": 77,
+      "ranged_crit_cap": 77,
+      "spell_crit_cap": 77,
+      "consider_targets_resistance": true
+    },
+    "haste_breakpoints": {
+      "caster_haste": {
+        "first": 128,
+        "second": 256,
+        "third": 384
+      },
+      "melee_haste": {
+        "first": 142,
+        "second": 284,
+        "third": 426
+      }
+    },
+    "auto_equip_logic": [
+      "if entering_battleground then equip_pvp_set_if_available",
+      "if matched_against_higher_skill and gear_resilience_diff>5% then prefer_survivability_items",
+      "prioritize_role_specific_gear",
+      "maintain_stat_balance",
+      "consider_enemy_composition"
+    ],
+    "trinket_selection": [
+      "prefer_effects_that_remove_cc_or_reduce_incoming_burst",
+      "use_offensive_trinket_only_when_assigned_focus_target_and_not_in_cover",
+      "defensive_trinkets_for_high_dps_targets",
+      "offensive_trinkets_for_damage_dealing"
+    ],
+    "enchant_priorities": {
+      "weapons": ["superior_striking", "agility", "strength", "spell_power"],
+      "armor": ["resilience", "stamina", "armor", "avoidance"],
+      "jewelry": ["resilience", "role_specific_stats", "hit_caps"]
+    },
+    "gem_strategies": {
+      "meta_gem_requirements": ["red", "yellow", "blue", "purple", "orange", "green", "prismatic"],
+      "stat_matching": ["match_socket_bonuses", "consider_resilience", "role_specific"],
+      "priority": ["resilience", "hit_caps", "role_specific_stats"]
+    }
+  },
+  "pvp_gear_sets": {
+    "arena_set": {
+      "priority": "highest",
+      "conditions": ["arena_combat", "pvp_environment"],
+      "stats": ["resilience", "hit_caps", "role_specific"]
+    },
+    "battleground_set": {
+      "priority": "high",
+      "conditions": ["battleground_combat", "team_environment"],
+      "stats": ["resilience", "survivability", "role_specific"]
+    },
+    "pve_set": {
+      "priority": "low",
+      "conditions": ["pve_combat", "non_pvp_environment"],
+      "stats": ["damage", "healing", "survivability"]
+    }
+  },
+  "adaptive_behavior": {
+    "team_size": {
+      "1": ["survivability_focus", "avoid_risky_gear", "defensive_stats"],
+      "2-3": ["balanced_gear", "moderate_resilience", "role_specific"],
+      "4+": ["damage_focus", "aggressive_stats", "maximize_output"]
+    },
+    "enemy_composition": {
+      "high_healer_count": ["resilience_focus", "interrupt_gear", "survivability"],
+      "melee_heavy": ["dodge_parry", "armor", "stamina"],
+      "ranged_heavy": ["resilience", "avoidance", "hit_caps"]
+    },
+    "game_state": {
+      "behind": ["survivability_gear", "defensive_stats", "avoid_risky_choices"],
+      "ahead": ["damage_gear", "aggressive_stats", "maximize_advantages"],
+      "close": ["balanced_gear", "situational_choices", "maximize_outcomes"]
+    }
+  },
+  "tactical_positioning": {
+    "gear_based": {
+      "movement": ["based_on_mobility_gear", "speed_buffs", "escape_mechanics"],
+      "positioning": ["based_on_survivability", "defensive_stats", "role_requirements"],
+      "engagement": ["based_on_damage_output", "hit_caps", "stat_balance"]
+    }
+  },
+  "resource_management": {
+    "gear_efficiency": {
+      "spending_strategy": ["save_for_best_upgrades", "spend_on_role_needs", "maintain_balance"],
+      "priority_targets": ["hit_caps", "resilience", "role_specific_stats"]
+    }
+  },
+  "cpp_hooks": [
+    "GearManager::SelectPvPSet()",
+    "GearManager::RecommendSwap()",
+    "GearManager::UpdateStatPriorities()",
+    "GearManager::CheckHitCaps()",
+    "GearManager::AnalyzeEnemyComposition()"
+  ]
+}

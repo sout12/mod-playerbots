@@ -11,6 +11,7 @@
 #include "GuildMgr.h"
 #include "PlayerbotFactory.h"
 #include "Playerbots.h"
+#include "PvPGuildNames.h"
 #include "ScriptMgr.h"
 #include "SharedDefines.h"
 #include "SocialMgr.h"
@@ -846,11 +847,60 @@ void RandomPlayerbotFactory::CreateRandomGuilds()
 
     // Create up to randomBotGuildCount by counting only EFFECTIVE creations
     uint32 createdThisRun = 0;
-    for (; guildNumber < sPlayerbotAIConfig->randomBotGuildCount; /* ++guildNumber -> done only if creation */)
+    uint32 maxAttempts = sPlayerbotAIConfig->randomBotGuildCount * 3; // Safety: max 3 attempts per guild
+    uint32 attempts = 0;
+    
+    for (; guildNumber < sPlayerbotAIConfig->randomBotGuildCount && attempts < maxAttempts; attempts++)
     {
-        std::string const guildName = CreateRandomGuildName();
+        std::string guildName = "";
+        
+        // Use PvP guild names if PvP guilds are enabled
+        if (sPlayerbotAIConfig->pvpGuildsEnabled)
+        {
+            // Check potential leader's stats to determine if it should be an elite guild
+            bool isEliteGuild = false;
+            
+            if (!availableLeaders.empty())
+            {
+                uint32 index = urand(0, availableLeaders.size() - 1);
+                ObjectGuid leader = availableLeaders[index];
+                Player* potentialLeader = ObjectAccessor::FindPlayer(leader);
+                
+                if (potentialLeader)
+                {
+                    // Check arena rating OR honor kills for elite status
+                    uint32 honorKills = potentialLeader->GetUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS);
+                    
+                    // Check if has elite arena rating in any team
+                    bool hasEliteArenaRating = false;
+                    for (uint32 slot = 0; slot < MAX_ARENA_SLOT; ++slot)
+                    {
+                        if (uint32 arenaTeamId = potentialLeader->GetArenaTeamId(slot))
+                        {
+                            if (ArenaTeam* team = sArenaTeamMgr->GetArenaTeamById(arenaTeamId))
+                            {
+                                if (team->GetRating() >= sPlayerbotAIConfig->eliteGuildThreshold)
+                                {
+                                    hasEliteArenaRating = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    isEliteGuild = hasEliteArenaRating || (honorKills >= sPlayerbotAIConfig->eliteGuildHonorKillThreshold);
+                }
+            }
+            
+            guildName = PvPGuildNames::GetRandomPvPGuildName(isEliteGuild);
+        }
+        else
+        {
+            guildName = CreateRandomGuildName();
+        }
+        
         if (guildName.empty())
-            break; // no more names available in playerbots_guild_names
+            break; // no more names available
 
         if (sGuildMgr->GetGuildByName(guildName))
             continue; // name already taken, skip
@@ -926,6 +976,14 @@ void RandomPlayerbotFactory::CreateRandomGuilds()
         }
 
         sPlayerbotAIConfig->randomBotGuilds.push_back(guild->GetId());
+        
+        // Track PvP guilds for premade formation
+        if (sPlayerbotAIConfig->pvpGuildsEnabled && !guildName.empty())
+        {
+            // If we used PvP guild names, this is a PvP guild
+            sPlayerbotAIConfig->pvpGuildIds.push_back(guild->GetId());
+        }
+        
         // The guild is only counted if it is actually created
         ++guildNumber;
         ++createdThisRun;

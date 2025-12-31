@@ -21,4 +21,11 @@ public:
     bool Execute(Event event) override;
 };
 
+class AvoidTribunalFireBeamAction : public MovementAction
+{
+public:
+    AvoidTribunalFireBeamAction(PlayerbotAI* ai) : MovementAction(ai, "avoid tribunal fire beam") {}
+    bool Execute(Event event) override;
+};
+
 #endif

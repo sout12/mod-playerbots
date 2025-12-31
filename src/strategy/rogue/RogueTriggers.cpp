@@ -125,3 +125,49 @@ bool OffHandWeaponNoEnchantTrigger::IsActive()
         return false;
     return true;
 }
+
+bool SprintPvPTrigger::IsPossible()
+{
+    // Works in battlegrounds, arenas, AND world PvP combat with players
+    return bot->HasSpell(2983) && (bot->InBattleground() || bot->InArena() || 
+                                     (bot->IsInCombat() && bot->GetSelectedUnit() && bot->GetSelectedUnit()->IsPlayer()));
+}
+
+bool SprintPvPTrigger::IsActive()
+{
+    // Already has Sprint buff or on cooldown
+    if (botAI->HasAura("sprint", bot) || bot->HasSpellCooldown(2983))
+        return false;
+    
+    // PRIORITY 1: Use Sprint if we're a flag carrier (WSG: 23333/23335, EotS: 34976)
+    if (bot->HasAura(23333) || bot->HasAura(23335) || bot->HasAura(34976))
+        return true;
+    
+    // PRIORITY 2: Use Sprint if chasing enemies (especially in combat when can't mount)
+    Unit* target = bot->GetSelectedUnit();
+    if (target && target->IsPlayer())
+    {
+        Player* enemy = target->ToPlayer();
+        float dist = bot->GetDistance(enemy);
+        bool isFlagCarrier = enemy->HasAura(23333) || enemy->HasAura(23335) || enemy->HasAura(34976);
+        bool isFleeing = enemy->isMoving() && !bot->IsWithinMeleeRange(enemy);
+        
+        // Chase flag carriers aggressively (top priority)
+        if (isFlagCarrier && isFleeing && dist > 15.0f)
+            return true;
+        
+        // Chase any fleeing enemy in combat when distance is increasing
+        if (bot->IsInCombat() && isFleeing && dist > 20.0f && dist < 40.0f)
+            return true;
+        
+        // Chase high-priority targets (healers) even outside combat
+        if (isFleeing && dist > 15.0f && dist < 35.0f)
+        {
+            // Check if target is a healer
+            if (botAI->IsHeal(enemy))
+                return true;
+        }
+    }
+    
+    return false;
+}

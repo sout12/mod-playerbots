@@ -987,6 +987,8 @@ void RandomPlayerbotMgr::CheckBgQueue()
     {
         for (int queueType = BATTLEGROUND_QUEUE_AV; queueType < MAX_BATTLEGROUND_QUEUE_TYPES; ++queueType)
         {
+            // Initialize ALL queue types including Random BG to prevent crashes
+            // We will skip PROCESSING Random BG later, but data structure must exist
             BattlegroundData[queueType][bracket] = BattlegroundInfo();
         }
     }
@@ -1013,6 +1015,12 @@ void RandomPlayerbotMgr::CheckBgQueue()
 
             // Check if real player is able to create/join this queue
             BattlegroundTypeId bgTypeId = sBattlegroundMgr->BGTemplateId(queueTypeId);
+            
+            // Skip Random BG - we don't want bots to react to player random queues
+            // Bots should only populate specific BGs configured in playerbots.conf
+            if (bgTypeId == BATTLEGROUND_RB)
+                continue;
+                
             uint32 mapId = sBattlegroundMgr->GetBattlegroundTemplate(bgTypeId)->GetMapId();
             PvPDifficultyEntry const* pvpDiff = GetBattlegroundBracketByLevel(mapId, player->GetLevel());
             if (!pvpDiff)
@@ -1103,6 +1111,11 @@ void RandomPlayerbotMgr::CheckBgQueue()
                 continue;
 
             BattlegroundTypeId bgTypeId = sBattlegroundMgr->BGTemplateId(queueTypeId);
+            
+            // Skip Random BG for bots - only join configured specific BGs
+            if (bgTypeId == BATTLEGROUND_RB)
+                continue;
+                
             uint32 mapId = sBattlegroundMgr->GetBattlegroundTemplate(bgTypeId)->GetMapId();
             PvPDifficultyEntry const* pvpDiff = GetBattlegroundBracketByLevel(mapId, bot->GetLevel());
             if (!pvpDiff)
@@ -1324,7 +1337,7 @@ void RandomPlayerbotMgr::LogBattlegroundInfo()
 
 void RandomPlayerbotMgr::CheckLfgQueue()
 {
-    if (!LfgCheckTimer || time(nullptr) > (LfgCheckTimer + 30))
+    if (!LfgCheckTimer || time(nullptr) > (LfgCheckTimer + 5))
         LfgCheckTimer = time(nullptr);
 
     LOG_DEBUG("playerbots", "Checking LFG Queue...");
@@ -1343,7 +1356,7 @@ void RandomPlayerbotMgr::CheckLfgQueue()
         ObjectGuid guid = group ? group->GetGUID() : player->GetGUID();
 
         lfg::LfgState gState = sLFGMgr->GetState(guid);
-        if (gState != lfg::LFG_STATE_NONE && gState < lfg::LFG_STATE_DUNGEON)
+        if (gState == lfg::LFG_STATE_QUEUED)
         {
             lfg::LfgDungeonSet const& dList = sLFGMgr->GetSelectedDungeons(player->GetGUID());
             for (lfg::LfgDungeonSet::const_iterator itr = dList.begin(); itr != dList.end(); ++itr)
@@ -3033,6 +3046,69 @@ void RandomPlayerbotMgr::OnBotLoginInternal(Player* const bot)
     else
     {
         bot->RemovePlayerFlag(PLAYER_FLAGS_NO_XP_GAIN);
+    }
+
+    // Auto-equip the highest earned PvP title for bots
+    // Title IDs based on faction (Alliance / Horde)
+    static const uint32 PVP_TITLE_IDS[14][2] = {
+        {1, 15},   // Rank 1: Private / Scout
+        {2, 16},   // Rank 2: Corporal / Grunt
+        {3, 17},   // Rank 3: Sergeant
+        {4, 18},   // Rank 4: Master Sergeant / Senior Sergeant
+        {5, 19},   // Rank 5: Sergeant Major / First Sergeant
+        {6, 20},   // Rank 6: Knight / Stone Guard
+        {7, 21},   // Rank 7: Knight-Lieutenant / Blood Guard
+        {8, 22},   // Rank 8: Knight-Captain / Legionnaire
+        {9, 23},   // Rank 9: Knight-Champion / Centurion
+        {10, 24},  // Rank 10: Lieutenant Commander / Champion
+        {11, 25},  // Rank 11: Commander / Lieutenant General
+        {12, 26},  // Rank 12: Marshal / General
+        {13, 27},  // Rank 13: Field Marshal / Warlord
+        {14, 28}   // Rank 14: Grand Marshal / High Warlord
+    };
+
+    static const uint32 RANK_REQUIREMENTS[14] = {
+        50,    // Rank 1
+        100,   // Rank 2
+        500,   // Rank 3
+        1000,  // Rank 4
+        2000,  // Rank 5
+        4000,  // Rank 6
+        5000,  // Rank 7
+        6000,  // Rank 8
+        8000,  // Rank 9
+        10000, // Rank 10
+        12500, // Rank 11
+        15000, // Rank 12
+        20000, // Rank 13
+        25000  // Rank 14
+    };
+
+    uint32 honorableKills = bot->GetUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS);
+    if (honorableKills > 0)
+    {
+        TeamId teamId = bot->GetTeamId(true);
+        uint32 highestTitleId = 0;
+
+        // Find the highest title the bot qualifies for
+        for (int i = 13; i >= 0; --i)  // Start from highest rank
+        {
+            if (honorableKills >= RANK_REQUIREMENTS[i])
+            {
+                highestTitleId = PVP_TITLE_IDS[i][teamId];
+                break;
+            }
+        }
+
+        // Equip the highest earned title
+        if (highestTitleId > 0)
+        {
+            CharTitlesEntry const* titleEntry = sCharTitlesStore.LookupEntry(highestTitleId);
+            if (titleEntry && bot->HasTitle(titleEntry))
+            {
+                bot->SetCurrentTitle(titleEntry, false);
+            }
+        }
     }
 }
 

@@ -1,0 +1,807 @@
+{
+  "class": "Warrior",
+  "version": "3.3.5a",
+  "roles": [
+    "melee_dps",
+    "tank",
+    "objective_defender",
+    "flag_protector"
+  ],
+  "game_state": {
+    "early_game": {
+      "focus": "establish presence, contest objectives",
+      "priority": [
+        "maintain_vision",
+        "apply pressure",
+        "maintain_positioning"
+      ]
+    },
+    "mid_game": {
+      "focus": "control key objectives, engage in team fights",
+      "priority": [
+        "flag_carrier_protection",
+        "objective_control",
+        "team_fight_support"
+      ]
+    },
+    "late_game": {
+      "focus": "secure win condition, defend lead",
+      "priority": [
+        "protect_flag_carrier",
+        "defend_objectives",
+        "close_out_game"
+      ]
+    }
+  },
+  "general_priority_list": [
+    "stuns_and_interrupts_pummel_shield_bash",
+    "gap_closers_intercept",
+    "slow_application_hamstring",
+    "defensive_cds_last_stand_shield_wall",
+    "group_buffs_battle_commanding_shout",
+    "maintain_aggro_control",
+    "melee_damage_dealing"
+  ],
+  "spell_rules": {
+    "interrupts": [
+      {
+        "name": "Pummel",
+        "when": "Interrupt caster or healer in melee",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_casting == true and target_distance <= 5",
+          "or target_is_healer_casting_emergency_heal == true",
+          "or target_is_casting_high_priority_spell == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "healer_casting": 2.0,
+          "emergency_heal": 1.8,
+          "high_priority_spell": 1.5,
+          "casting_interrupt": 1.2
+        }
+      },
+      {
+        "name": "Shield Bash",
+        "when": "Interrupt casting with shield",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_casting == true and target_distance <= 5",
+          "or target_is_healer_casting == true",
+          "or casting_interrupt_opportunity == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "healer_casting": 2.0,
+          "casting_interrupt": 1.8,
+          "shield_available": 1.5,
+          "utility_interrupt": 1.2
+        }
+      }
+    ],
+    "stuns_and_control": [
+      {
+        "name": "Charge",
+        "when": "Openers to gap close and stun",
+        "priority": "high",
+        "conditions": [
+          "in_open_field == true and target_distance >= 8",
+          "or need_to_initiate_combat == true",
+          "or flag_carrier_trying_to_escape == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "initiate_combat": 1.8,
+          "gap_closing": 1.5,
+          "stun_opportunity": 1.2
+        }
+      },
+      {
+        "name": "Intercept",
+        "when": "Close gap to ranged or fleeing target",
+        "priority": "high",
+        "conditions": [
+          "target_distance >= 10",
+          "or target_is_fleeing == true",
+          "or need_to_reach_target_quickly == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "fleeing_target": 2.0,
+          "gap_closing": 1.8,
+          "reach_target": 1.5,
+          "utility_gap_close": 1.2
+        }
+      },
+      {
+        "name": "Intimidating Shout",
+        "when": "AoE fear or combat initiation",
+        "priority": "high",
+        "conditions": [
+          "multiple_enemies_in_melee_range == true",
+          "or need_to_initiate_combat == true",
+          "or area_control_needed == true"
+        ],
+        "target": "area",
+        "context_weights": {
+          "multiple_targets": 2.0,
+          "combat_initiation": 1.8,
+          "area_control": 1.5,
+          "aoe_fear": 1.2
+        }
+      },
+      {
+        "name": "Thunder Clap",
+        "when": "AoE slow and damage",
+        "priority": "medium",
+        "conditions": [
+          "multiple_enemies_in_front == true",
+          "or need_to_slow_approaching_enemies == true",
+          "or sustained_combat_engagement == true"
+        ],
+        "target": "area",
+        "context_weights": {
+          "multiple_targets": 1.8,
+          "sustained_combat": 1.5,
+          "approach_control": 1.2
+        }
+      },
+      {
+        "name": "Concussion Blow",
+        "when": "Interrupt casting with stun",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_casting == true",
+          "or target_is_healer_casting == true",
+          "or casting_interrupt_opportunity == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "healer_casting": 2.0,
+          "casting_interrupt": 1.8,
+          "stun_interrupt": 1.5
+        }
+      }
+    ],
+    "damage": [
+      {
+        "name": "Execute",
+        "when": "Execute low health targets",
+        "priority": "high",
+        "conditions": [
+          "target_hp_percent <= 20",
+          "or need_to_execute_low_hp == true",
+          "or rage_available_for_execute == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "execute_opportunity": 2.0,
+          "low_hp_target": 1.8,
+          "rage_efficiency": 1.5,
+          "execute_phase": 1.2
+        }
+      },
+      {
+        "name": "Mortal Strike",
+        "when": "High damage with healing reduction",
+        "priority": "high",
+        "conditions": [
+          "target_is_tanking_me == true",
+          "or healing_reduction_needed == true",
+          "or high_damage_opportunity == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "tanking_target": 2.0,
+          "healing_reduction": 1.8,
+          "high_damage": 1.5,
+          "damage_spike": 1.2
+        }
+      },
+      {
+        "name": "Heroic Strike",
+        "when": "Rage dump for extra damage",
+        "priority": "medium",
+        "conditions": [
+          "rage_available_ge_30 == true",
+          "or need_to_dump_rage == true",
+          "or extra_damage_opportunity == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "rage_available": 1.8,
+          "rage_dump": 1.5,
+          "extra_damage": 1.2
+        }
+      },
+      {
+        "name": "Rend",
+        "when": "Maintain damage over time",
+        "priority": "high",
+        "conditions": [
+          "target_does_not_have_rend == true",
+          "or rend_expiring_soon == true",
+          "or sustained_damage_over_time_needed == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "no_rend": 2.0,
+          "expiring_soon": 1.8,
+          "sustained_damage": 1.5,
+          "dot_maintenance": 1.2
+        }
+      },
+      {
+        "name": "Bloodthirst",
+        "when": "Damage and heal self",
+        "priority": "high",
+        "conditions": [
+          "self_hp_percent <= 80",
+          "or need_to_heal_self == true",
+          "or damage_opportunity_available == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "self_heal_needed": 2.0,
+          "damage_opportunity": 1.8,
+          "sustained_combat": 1.5,
+          "self_sustain": 1.2
+        }
+      },
+      {
+        "name": "Whirlwind",
+        "when": "AoE damage to multiple targets",
+        "priority": "medium",
+        "conditions": [
+          "multiple_enemies_in_melee_range == true",
+          "or aoe_damage_needed == true",
+          "or sustained_aoe_damage == true"
+        ],
+        "target": "area",
+        "context_weights": {
+          "multiple_targets": 2.0,
+          "aoe_damage": 1.8,
+          "sustained_damage": 1.5
+        }
+      },
+      {
+        "name": "Cleave",
+        "when": "AoE damage with cleave effect",
+        "priority": "medium",
+        "conditions": [
+          "multiple_enemies_in_range == true",
+          "or cleave_damage_opportunity == true",
+          "or sustained_aoe_damage == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "multiple_targets": 2.0,
+          "cleave_opportunity": 1.8,
+          "sustained_damage": 1.5
+        }
+      },
+      {
+        "name": "Overpower",
+        "when": "Damage after successful dodge",
+        "priority": "high",
+        "conditions": [
+          "recent_dodge_occurred == true",
+          "or overpower_proc_available == true",
+          "or high_damage_opportunity == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "dodge_proc": 2.0,
+          "overpower_proc": 1.8,
+          "damage_opportunity": 1.5
+        }
+      },
+      {
+        "name": "Bladestorm",
+        "when": "Break roots/snares AND burst",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "self_is_rooted == true",
+          "or enemies_in_range >= 2 AND target_hp_percent < 50"
+        ],
+        "target": "self"
+      },
+      {
+        "name": "Intervene",
+        "when": "Eat Traps/Scatter for Healer",
+        "priority": "very_high",
+        "conditions": [
+          "ally_healer_is_cc_target == true",
+          "target_casting_scatter_shot == true OR target_casting_polymorph == true"
+        ],
+        "target": "ally_healer"
+      }
+    ],
+    "defensive": [
+      {
+        "name": "Shield Wall",
+        "when": "Anticipated heavy AoE or focus fire",
+        "priority": "very_high",
+        "conditions": [
+          "self_hp_percent <= 30",
+          "or multiple_attackers >= 3",
+          "or incoming_heavy_damage == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "lethal_damage": 2.0,
+          "multiple_attackers": 1.8,
+          "heavy_damage": 1.5,
+          "survival": 1.2
+        }
+      },
+      {
+        "name": "Last Stand",
+        "when": "Survive lethal damage",
+        "priority": "very_high",
+        "conditions": [
+          "self_hp_percent <= 10",
+          "or incoming_lethal_damage == true",
+          "or survival_necessary == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "lethal_damage": 2.0,
+          "survival": 1.8,
+          "emergency": 1.5,
+          "last_resort": 1.2
+        }
+      },
+      {
+        "name": "Enraged Regeneration",
+        "when": "Heal damage taken",
+        "priority": "high",
+        "conditions": [
+          "self_hp_percent <= 50",
+          "or recent_damage_taken_ge_1000 == true",
+          "or self_sustain_needed == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "recent_damage": 2.0,
+          "self_heal": 1.8,
+          "sustain_needed": 1.5,
+          "survival": 1.2
+        }
+      },
+      {
+        "name": "Taunt",
+        "when": "Gain aggro and control target",
+        "priority": "high",
+        "conditions": [
+          "ally_under_attack_from_target == true",
+          "or need_to_tank_target == true",
+          "or aggro_control_necessary == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "ally_protection": 2.0,
+          "tank_duty": 1.8,
+          "aggro_control": 1.5,
+          "utility_taunt": 1.2
+        }
+      },
+      {
+        "name": "Mocking Blow",
+        "when": "Interrupt and taunt target",
+        "priority": "high",
+        "conditions": [
+          "target_is_casting == true",
+          "or need_to_interrupt_casting == true",
+          "or aggro_control_needed == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "casting_interrupt": 2.0,
+          "aggro_control": 1.8,
+          "interrupt_opportunity": 1.5,
+          "utility_spell": 1.2
+        }
+      },
+      {
+        "name": "Shield Block",
+        "when": "Block attacks for 5 seconds",
+        "priority": "high",
+        "conditions": [
+          "incoming_physical_damage_expected == true",
+          "or multiple_melee_attackers == true",
+          "or burst_damage_phase_starting == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "physical_damage": 2.0,
+          "multiple_attackers": 1.8,
+          "burst_protection": 1.5
+        }
+      },
+      {
+        "name": "Spell Reflection",
+        "when": "Reflect harmful spells",
+        "priority": "high",
+        "conditions": [
+          "enemy_casting_harmful_spell == true",
+          "or spell_damage_expected == true",
+          "or reflect_opportunity_available == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "harmful_spell": 2.0,
+          "spell_damage": 1.8,
+          "reflect_opportunity": 1.5
+        }
+      }
+    ],
+    "utility": [
+      {
+        "name": "Battle Shout",
+        "when": "Maintain group damage buff",
+        "priority": "medium",
+        "conditions": [
+          "team_does_not_have_battle_shout == true",
+          "or battle_shout_expiring_soon == true",
+          "or group_damage_buff_needed == true"
+        ],
+        "target": "self_or_group",
+        "context_weights": {
+          "no_buff": 1.8,
+          "expiring_soon": 1.5,
+          "group_buff": 1.2
+        }
+      },
+      {
+        "name": "Commanding Shout",
+        "when": "Maintain group health buff",
+        "priority": "medium",
+        "conditions": [
+          "team_does_not_have_commanding_shout == true",
+          "or commanding_shout_expiring_soon == true",
+          "or group_health_buff_needed == true"
+        ],
+        "target": "self_or_group",
+        "context_weights": {
+          "no_buff": 1.8,
+          "expiring_soon": 1.5,
+          "group_buff": 1.2
+        }
+      },
+      {
+        "name": "Hamstring",
+        "when": "Apply slow to fleeing target or kiteable enemy",
+        "priority": "high",
+        "conditions": [
+          "target_is_fleeing == true",
+          "or needs_kite == true",
+          "or movement_control_needed == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "fleeing_target": 2.0,
+          "kite_needed": 1.8,
+          "movement_control": 1.5,
+          "slow_application": 1.2
+        }
+      },
+      {
+        "name": "Victory Rush",
+        "when": "Heal after killing target",
+        "priority": "high",
+        "conditions": [
+          "victory_rush_buff_available == true",
+          "or need_self_heal_after_kill == true",
+          "or sustain_opportunity == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "victory_rush_buff": 2.0,
+          "self_heal": 1.8,
+          "sustain_opportunity": 1.5
+        }
+      }
+    ]
+  },
+  "resource_logic": {
+    "rage_pool_min": 20,
+    "use_aoe_when_enemies_ge": 4,
+    "rage_efficiency": [
+      "prioritize_damage_spells",
+      "avoid_wasting_rage",
+      "maintain_spell_rotation"
+    ],
+    "defensive_resource": [
+      "save_rage_for_defensive_spells",
+      "maintain_shield_block_timing",
+      "pool_for_emergency_spells"
+    ]
+  },
+  "battleground_overrides": {
+    "WSG": {
+      "objective_focus": "flag_capture_defense",
+      "behavior_mods": [
+        "prioritize_flag_carrier_protection",
+        "assign_2_defenders_to_flagroom",
+        "use_charge_on_flag_carrier_escorts",
+        "maintain_vision_of_enemy_base",
+        "apply_pressure_with_melee_damage",
+        "maintain_flag_carrier_control"
+      ],
+      "role_assignments": {
+        "flag_defender": [
+          "maintain_flag_room",
+          "kill_attackers",
+          "apply_cc"
+        ],
+        "escort": [
+          "protect_flag_carrier",
+          "interrupt_escorts",
+          "maintain_aggro"
+        ],
+        "midfield": [
+          "control_tunnel",
+          "intercept_resurrections",
+          "maintain_vision"
+        ]
+      }
+    },
+    "AB": {
+      "objective_focus": "base_control",
+      "behavior_mods": [
+        "maintain_three_base_control_if_possible",
+        "leave_min_defenders_at_each_base(2)",
+        "rotate_to_reinforce_weak_base",
+        "maintain_base_control_with_aggro",
+        "apply_damage_to_base_attackers",
+        "maintain_vision_control"
+      ],
+      "role_assignments": {
+        "base_defender": [
+          "maintain_base_control",
+          "kill_cappers",
+          "apply_cc"
+        ],
+        "base_attacker": [
+          "apply_pressure",
+          "kill_defenders",
+          "maintain_aggro"
+        ],
+        "support": [
+          "provide_aggro",
+          "apply_damage",
+          "assist_in_fights"
+        ]
+      }
+    },
+    "AV": {
+      "objective_focus": "tower_and_commander_kills",
+      "behavior_mods": [
+        "focus_on_capturing_towers_and_killing_captains",
+        "escort_raid_groups_for_commander_assaults",
+        "maintain_NPC_target_control",
+        "apply_damage_to_tower_attackers",
+        "maintain_tower_control"
+      ],
+      "role_assignments": {
+        "tower_attacker": [
+          "capture_towers",
+          "kill_NPC_guards",
+          "maintain_aggro"
+        ],
+        "commander_assassin": [
+          "kill_commanders",
+          "apply_damage",
+          "maintain_escape"
+        ],
+        "escort": [
+          "protect_assassins",
+          "kill_NPC_defenders",
+          "maintain_aggro"
+        ]
+      }
+    },
+    "EOTS": {
+      "objective_focus": "flag_and_mid_control",
+      "behavior_mods": [
+        "control_mid_for_flag_safety",
+        "escort_flag_carrier_via_towers",
+        "maintain_mid_aggro_control",
+        "apply_damage_to_mid_attackers",
+        "maintain_flag_access_control"
+      ],
+      "role_assignments": {
+        "mid_controller": [
+          "control_mid",
+          "deny_flag_access",
+          "apply_damage"
+        ],
+        "flag_protector": [
+          "escort_carrier",
+          "interrupt_escorts",
+          "maintain_aggro"
+        ],
+        "base_defender": [
+          "defend_bases",
+          "kill_cappers",
+          "maintain_aggro"
+        ]
+      }
+    },
+    "SOTA": {
+      "objective_focus": "vehicle_protection_and_damage",
+      "behavior_mods": [
+        "protect_demolishers",
+        "clear_path_for_vehicle_push",
+        "maintain_vehicle_aggro_control",
+        "apply_damage_to_vehicle_attackers",
+        "maintain_wall_breach_support"
+      ],
+      "role_assignments": {
+        "vehicle_protector": [
+          "protect_vehicles",
+          "apply_damage",
+          "maintain_aggro"
+        ],
+        "wall_destroyer": [
+          "damage_walls",
+          "maintain_aggro",
+          "apply_damage"
+        ],
+        "escort": [
+          "clear_path",
+          "kill_defenders",
+          "maintain_aggro"
+        ]
+      }
+    },
+    "IOC": {
+      "objective_focus": "workshop_and_gate_destruction",
+      "behavior_mods": [
+        "rush_workshop_priority",
+        "escort_siege_to_gate",
+        "if_towers_vulnerable -> docks_glaive_focus",
+        "maintain_workshop_aggro_control",
+        "apply_damage_to_workshop_attackers"
+      ],
+      "role_assignments": {
+        "workshop_capper": [
+          "capture_workshop",
+          "maintain_aggro",
+          "apply_damage"
+        ],
+        "gate_destroyer": [
+          "damage_gate",
+          "maintain_aggro",
+          "apply_damage"
+        ],
+        "escort": [
+          "protect_siege",
+          "kill_attackers",
+          "maintain_aggro"
+        ]
+      }
+    }
+  },
+  "adaptive_behavior": {
+    "team_size": {
+      "1": [
+        "avoid_fights",
+        "objective_control",
+        "defensive_positioning"
+      ],
+      "2-3": [
+        "engage_favorable_fights",
+        "objective_support",
+        "coordinated_pushes"
+      ],
+      "4+": [
+        "aggressive_objective_control",
+        "team_fights",
+        "win_conditions"
+      ]
+    },
+    "enemy_composition": {
+      "high_healer_count": [
+        "prioritize_healer_control",
+        "interrupt_healing",
+        "apply_pressure"
+      ],
+      "melee_heavy": [
+        "use_shield_wall",
+        "maintain_aggro",
+        "control_combat"
+      ],
+      "ranged_heavy": [
+        "use_charge",
+        "close_distance",
+        "focus_fire"
+      ]
+    },
+    "game_state": {
+      "behind": [
+        "defensive_positioning",
+        "protect_objectives",
+        "wait_for_mistakes"
+      ],
+      "ahead": [
+        "aggressive_pushing",
+        "maintain_pressure",
+        "secure_win"
+      ],
+      "close": [
+        "maximize_fights",
+        "win_exchanges",
+        "control_objectives"
+      ]
+    }
+  },
+  "tactical_positioning": {
+    "key_locations": {
+      "WSG_flag_room": {
+        "defensive_positions": [
+          "flag_stand",
+          "entrance",
+          "behind_cover"
+        ],
+        "offensive_positions": [
+          "approach",
+          "escape_routes",
+          "control_points"
+        ]
+      },
+      "AB_base_circles": {
+        "defensive_positions": [
+          "inside_circle",
+          "approach_angles",
+          "escape_routes"
+        ],
+        "offensive_positions": [
+          "approach",
+          "flank_routes",
+          "control_points"
+        ]
+      },
+      "AV_tower_approaches": {
+        "defensive_positions": [
+          "tower_base",
+          "approach_control",
+          "escape_routes"
+        ],
+        "offensive_positions": [
+          "approach_angles",
+          "flank_routes",
+          "control_points"
+        ]
+      }
+    }
+  },
+  "resource_management": {
+    "rage_efficiency": {
+      "spending_strategy": [
+        "save_for_emergency",
+        "spend_on_opportunity",
+        "maintain_efficiency"
+      ],
+      "priority_targets": [
+        "damage_spikes",
+        "sustained_damage",
+        "defensive_needs"
+      ]
+    },
+    "defensive_timing": {
+      "rotation_priority": [
+        "survival_needs",
+        "aggro_control",
+        "damage_dealing"
+      ],
+      "emergency_reserves": [
+        "shield_wall",
+        "last_stand",
+        "enraged_regeneration"
+      ]
+    }
+  }
+}

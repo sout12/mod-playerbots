@@ -198,4 +198,20 @@ public:
     ArmyOfTheDeadTrigger(PlayerbotAI* botAI) : BoostTrigger(botAI, "army of the dead") {}
 };
 
+// PvP-specific Death Grip trigger for pulling fleeing flag carriers/healers
+class DeathGripPvPTrigger : public Trigger
+{
+public:
+    DeathGripPvPTrigger(PlayerbotAI* botAI) : Trigger(botAI, "death grip pvp") {}
+    bool IsActive() override;
+};
+
+// PvP-specific Chains of Ice trigger for slowing flag carriers
+class ChainsOfIcePvPTrigger : public Trigger
+{
+public:
+    ChainsOfIcePvPTrigger(PlayerbotAI* botAI) : Trigger(botAI, "chains of ice pvp") {}
+    bool IsActive() override;
+};
+
 #endif

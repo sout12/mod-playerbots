@@ -106,6 +106,15 @@ public:
     bool IsActive() override;
 };
 
+class SprintPvPTrigger : public BuffTrigger
+{
+public:
+    SprintPvPTrigger(PlayerbotAI* botAI) : BuffTrigger(botAI, "sprint", 3) {}
+
+    bool IsPossible();
+    bool IsActive() override;
+};
+
 class MainHandWeaponNoEnchantTrigger : public BuffTrigger
 {
 public:

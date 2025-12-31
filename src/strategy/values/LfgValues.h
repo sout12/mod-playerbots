@@ -16,4 +16,12 @@ public:
     LfgProposalValue(PlayerbotAI* botAI) : ManualSetValue<uint32>(botAI, 0, "lfg proposal") {}
 };
 
+class DungeonGuideValue : public ObjectGuidCalculatedValue
+{
+public:
+    DungeonGuideValue(PlayerbotAI* botAI) : ObjectGuidCalculatedValue(botAI, "dungeon guide") {}
+
+    virtual ObjectGuid Calculate();
+};
+
 #endif

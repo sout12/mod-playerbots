@@ -59,6 +59,40 @@ struct BGStrategyData
 
 extern std::unordered_map<uint32, BGStrategyData> bgStrategies;
 
+// =============================================
+// REACTIVE DEFENSE SYSTEM - Node State Tracking
+// =============================================
+
+enum NodeOwnerState : uint8
+{
+    NODE_STATE_NEUTRAL        = 0,
+    NODE_STATE_ALLY_CONTROLLED = 1,
+    NODE_STATE_ALLY_CONTESTED  = 2,  // Was ours, being captured
+    NODE_STATE_ENEMY_CONTROLLED = 3,
+    NODE_STATE_ENEMY_CONTESTED = 4,  // Was theirs, we're capturing
+};
+
+struct NodeStateInfo
+{
+    uint32 nodeId = 0;
+    NodeOwnerState currentState = NODE_STATE_NEUTRAL;
+    NodeOwnerState previousState = NODE_STATE_NEUTRAL;
+    time_t stateChangeTime = 0;
+    Position position;
+    bool needsDefense = false;
+    float defensivePriority = 0.0f;
+};
+
+// Global node state cache per battleground instance
+extern std::unordered_map<uint32, std::unordered_map<uint32, NodeStateInfo>> bgNodeStates;
+
+// Defensive recapture constants
+constexpr float AB_CAPTURE_TIME = 60.0f;  // 60 seconds in AB
+constexpr float DEFENSIVE_PRIORITY_MULTIPLIER_BASE = 2.0f;
+constexpr float DEFENSIVE_RESPONSE_RADIUS = 200.0f;  // How far bots will travel to defend
+constexpr uint32 MIN_DEFENDERS_RESPONSE = 2;
+constexpr uint32 MAX_DEFENDERS_RESPONSE = 4;
+
 struct BattleBotWaypoint
 {
     BattleBotWaypoint(float x_, float y_, float z_, BattleBotWaypointFunc func) : x(x_), y(y_), z(z_), pFunc(func){};
@@ -131,6 +165,96 @@ private:
     bool useBuff();
     uint32 getPlayersInArea(TeamId teamId, Position point, float range, bool combat = true);
     bool IsLockedInsideKeep();
+    
+    // Game State Awareness
+    bool IsLosingBadly(Battleground* bg);
+    bool IsWinning(Battleground* bg);
+    bool ShouldPlayAggressive(Battleground* bg);
+    bool ShouldPlayDefensive(Battleground* bg);
+    uint32 GetTeamBasesControlled(Battleground* bg, TeamId teamId);
+    
+    // Opening Strategy (AB)
+    bool IsGameOpening(Battleground* bg);
+    uint32 GetAssignedOpeningNode(Battleground* bg);
+    bool ShouldRushContestedObjectives();
+    bool MoveToABNode(uint32 nodeIndex);
+    
+    // Objective Focus System
+    bool ShouldEngageInCombat(Unit* target);
+    bool IsNearObjective(float maxDistance = 40.0f);
+    bool IsTargetThreateningObjective(Unit* target);
+    bool IsDefendingObjective();
+    bool IsAttackingObjective();
+    Position GetNearestObjectivePosition();
+
+    // Arena Intelligence Methods
+    Unit* GetArenaFocusTarget();  // Get coordinated focus target (healer priority)
+    bool ShouldFocusHealer();     // Check if should focus enemy healer
+    bool IsUnderHeavyPressure();  // Check if bot is being heavily pressured
+    bool ShouldUseDefensiveCooldown();  // Check if should use defensive CD
+    bool IsBurstWindow();         // Check if it's a good time to burst
+    bool ShouldUseBurstCooldown();  // Check if should use offensive CDs
+    uint8 CountEnemyHealers();    // Count enemy healers in arena
+    bool IsEnemyHealerCCd();      // Check if enemy healer is CC'd
+
+    // Team Coordination Methods
+    bool ShouldProtectHealer();   // Check if should peel for healer
+    Unit* GetAllyHealer();        // Get allied healer to protect
+    bool IsAllyHealerThreatened();  // Check if ally healer under attack
+    bool ShouldEscortFlagCarrier();  // Check if should escort FC
+
+    // Tactical Vision & Risk Assessment
+    uint8 CountEnemiesNearPosition(Position pos, float radius = 40.0f);  // Count enemies near position
+    uint8 CountAlliesNearPosition(Position pos, float radius = 40.0f);   // Count allies near position
+    bool IsSafeToAttackObjective(Position objPos);  // Check if safe to attack (not outnumbered)
+    Position GetSafestObjective();  // Get objective with best ally:enemy ratio
+    bool ShouldRegroupBeforeAttack();  // Check if should wait for allies
+    bool IsCriticalSituation();  // Check if situation demands aggressive play despite risk
+    bool IsEnemyFCNearCap();  // Check if enemy FC is about to score
+
+    // IoC Vehicle & Coordination Methods
+    bool IsDrivingSiegeEngine();  // Check if driving siege engine
+    bool IsVehiclePassenger();    // Check if passenger in vehicle
+    Position GetEnemyGatePosition();  // Get enemy gate position
+    Unit* FindNearestSiegeVehicle(float radius);  // Find nearest siege vehicle
+    bool ShouldWaitForSiegeGroup();  // Wait for allies before assault
+    bool ShouldProtectSiegeEngine();  // Protect allied siege engines
+    Unit* FindAlliedSiegeEngine(float radius);  // Find allied siege to protect
+    bool TeamControlsWorkshop();  // Check workshop control
+    bool TeamControlsHangar();    // Check hangar control
+
+    // =============================================
+    // REACTIVE DEFENSE SYSTEM
+    // =============================================
+    
+    // Node State Tracking
+    // React to node state changes
+    void UpdateNodeStates(Battleground* bg);           // Check all nodes for state changes
+    
+    // Current Objective Tracking (Make accessible to helpers)
+    WorldObject* BgObjective = nullptr;
+
+    void OnNodeContested(uint32 nodeId, Position pos); // Handler when our node is attacked
+    void OnNodeLost(uint32 nodeId, Position pos);      // Handler when we lose a node
+    void OnNodeRecaptured(uint32 nodeId);              // Handler when we recapture
+    
+    // Defensive Response
+    bool IsDefensiveRecaptureTarget(uint32 nodeId);    // Check if node is defensive priority
+    float GetDefensiveRecapturePriority(uint32 nodeId, Position nodePos);  // Priority calculation
+    bool ShouldRespondToDefense(uint32 nodeId, Position nodePos);  // Should this bot respond?
+    uint32 GetClosestContestedNode();                  // Find nearest contested node
+    float GetCaptureTimeRemaining(uint32 nodeId);      // Time left before node fully captured
+    
+    // Priority Boost System
+    float GetNodeStrategicValue(uint32 nodeId, BattlegroundTypeId bgType);  // Base strategic value
+    float GetDefensivePriorityMultiplier(float timeRemaining);  // Urgency multiplier
+    bool HasCriticalObjective();  // Check if bot has critical task (flag, etc)
+    
+    // Helper Methods
+    Position GetNodePosition(uint32 nodeId, BattlegroundTypeId bgType);
+    std::string GetNodeName(uint32 nodeId, BattlegroundTypeId bgType);
+    uint8 GetEnemiesAtNode(uint32 nodeId, Position nodePos);
+    uint8 GetAlliesAtNode(uint32 nodeId, Position nodePos);
 };
 
 class ArenaTactics : public MovementAction

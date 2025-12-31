@@ -100,6 +100,7 @@ void FindTargetStrategy::GetPlayerCount(Unit* creature, uint32* tankCount, uint3
 
 bool FindTargetStrategy::IsHighPriority(Unit* attacker)
 {
+    // Check raid icon priority
     if (Group* group = botAI->GetBot()->GetGroup())
     {
         ObjectGuid guid = group->GetTargetIcon(7);
@@ -108,6 +109,8 @@ bool FindTargetStrategy::IsHighPriority(Unit* attacker)
             return true;
         }
     }
+    
+    // Check manual prioritized targets
     GuidVector prioritizedTargets = botAI->GetAiObjectContext()->GetValue<GuidVector>("prioritized targets")->Get();
     for (ObjectGuid targetGuid : prioritizedTargets)
     {
@@ -116,7 +119,137 @@ bool FindTargetStrategy::IsHighPriority(Unit* attacker)
             return true;
         }
     }
+    
+    // PvP Priority System - use scoring for battlegrounds and arenas
+    Player* bot = botAI->GetBot();
+    if (bot->InBattleground() || bot->InArena())
+    {
+        float priority = CalculatePvPPriority(attacker);
+        // High priority threshold: 100+ (healers, flag carriers, low HP)
+        return priority >= 100.0f;
+    }
+    
     return false;
+}
+
+float FindTargetStrategy::CalculatePvPPriority(Unit* target)
+{
+    if (!target || !target->IsPlayer())
+        return 0.0f;
+
+    Player* player = target->ToPlayer();
+    float priority = 0.0f;
+
+    // PRIORITY 1: Flag Carrier (300 points)
+    if (IsFlagCarrier(player))
+        priority += 300.0f;
+
+    // PRIORITY 2: Enemy Siege Engines in IoC (400 points - HIGHEST!)
+    if (player->GetVehicle())  // Player is in a vehicle
+    {
+        // Check if in IoC battleground
+        if (botAI->GetBot()->InBattleground())
+        {
+            Battleground* bg = botAI->GetBot()->GetBattleground();
+            if (bg && bg->GetBgTypeID() == BATTLEGROUND_IC)
+                priority += 400.0f;  // KILL SIEGE MACHINES in IoC!
+        }
+    }
+
+    // PRIORITY 3: Healer (150 points)
+    if (IsHealer(player))
+        priority += 150.0f;
+
+    // PRIORITY 4: Low HP (100 points)
+    if (IsLowHealthPriority(player))
+        priority += 100.0f;
+
+    // Distance bonus - but reduce penalty for high-priority targets
+    float distance = botAI->GetBot()->GetDistance(player);
+    
+    // High priority targets (healers, flag carriers) get extended range
+    bool isHighPriorityTarget = (IsHealer(player) || IsFlagCarrier(player));
+    
+    if (isHighPriorityTarget)
+    {
+        // High priority targets: maintain good priority up to 60y range
+        // This ensures healers/FCs are targeted even at distance
+        if (distance < 60.0f)
+        {
+            float distBonus = (60.0f - distance) / 60.0f * 30.0f;
+            priority += distBonus;
+        }
+    }
+    else
+    {
+        // Normal targets: standard distance bonus up to 40y
+        if (distance < 40.0f)
+        {
+            float distBonus = (40.0f - distance) / 40.0f * 50.0f;
+            priority += distBonus;
+        }
+    }
+
+    // Peel priority (attacking our healer or FC)
+    Group* group = botAI->GetBot()->GetGroup();
+    if (group)
+    {
+        for (GroupReference* ref = group->GetFirstMember(); ref; ref = ref->next())
+        {
+            Player* member = ref->GetSource();
+            if (!member)
+                continue;
+
+            // Attacking our healer
+            if (IsHealer(member) && target->GetVictim() == member)
+                priority += 100.0f;
+
+            // Attacking our FC
+            if (IsFlagCarrier(member) && target->GetVictim() == member)
+                priority += 150.0f;
+        }
+    }
+
+    return priority;
+}
+
+bool FindTargetStrategy::IsFlagCarrier(Unit* unit)
+{
+    if (!unit || !unit->IsPlayer())
+        return false;
+    
+    Player* player = unit->ToPlayer();
+    
+    // Check for flag carrier auras
+    // Warsong Gulch flags
+    if (player->HasAura(23333) || player->HasAura(23335)) // WSG Horde/Alliance flag
+        return true;
+    
+    // Eye of the Storm flag
+    if (player->HasAura(34976)) // Netherstorm flag
+        return true;
+    
+    return false;
+}
+
+bool FindTargetStrategy::IsHealer(Unit* unit)
+{
+    if (!unit || !unit->IsPlayer())
+        return false;
+    
+    Player* player = unit->ToPlayer();
+    return botAI->IsHeal(player);
+}
+
+bool FindTargetStrategy::IsLowHealthPriority(Unit* unit)
+{
+    if (!unit || !unit->IsPlayer())
+        return false;
+    
+    Player* player = unit->ToPlayer();
+    
+    // Low HP threshold: 30% for quick kill priority
+    return player->GetHealthPct() < 30;
 }
 
 WorldPosition LastLongMoveValue::Calculate()

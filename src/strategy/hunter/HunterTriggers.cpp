@@ -168,3 +168,73 @@ bool VolleyChannelCheckTrigger::IsActive()
     // Not channeling Volley
     return false;
 }
+
+// Aspect of the Cheetah PvP - Use for flag carrier mobility when not in combat
+bool AspectOfCheetahPvPTrigger::IsActive()
+{
+    // Must have Aspect of the Cheetah spell (5118)
+    if (!bot->HasSpell(5118))
+        return false;
+    
+    // Works in battlegrounds and arenas
+    if (!bot->InBattleground() && !bot->InArena())
+        return false;
+    
+    // Already has Cheetah aspect
+    if (botAI->HasAura("aspect of the cheetah", bot))
+        return false;
+    
+    // Already has Pack aspect
+    if (botAI->HasAura("aspect of the pack", bot))
+        return false;
+    
+    // Don't use in combat (daze risk)
+    if (bot->IsInCombat())
+        return false;
+    
+    // Use Cheetah if we're a flag carrier and out of combat
+    if (bot->HasAura(23333) || bot->HasAura(23335) || bot->HasAura(34976))
+        return true;
+    
+    return false;
+}
+
+// Concussive Shot PvP - Slow fleeing flag carriers and high-priority targets
+bool ConcussiveShotPvPTrigger::IsActive()
+{
+    // Must have Concussive Shot spell (5116)
+    if (!bot->HasSpell(5116) || bot->HasSpellCooldown(5116))
+        return false;
+    
+    // Works in battlegrounds, arenas, AND world PvP
+    Unit* target = bot->GetSelectedUnit();
+    if (!target || !target->IsPlayer())
+        return false;
+    
+    // Check if in PvP scenario
+    if (!bot->InBattleground() && !bot->InArena() && !bot->IsInCombat())
+        return false;
+    
+    Player* enemy = target->ToPlayer();
+    float dist = bot->GetDistance(enemy);
+    
+    // Range check (~35 yards)
+    if (dist > 35.0f || dist < 5.0f)
+        return false;
+    
+    // Already slowed by Concussive Shot
+    if (enemy->HasAura(5116))
+        return false;
+    
+    // Priority 1: Flag carrier moving
+    bool isFlagCarrier = enemy->HasAura(23333) || enemy->HasAura(23335) || enemy->HasAura(34976);
+    if (isFlagCarrier && enemy->isMoving())
+        return true;
+    
+    // Priority 2: Target fleeing at distance > 15y
+    bool isFleeing = enemy->isMoving() && !bot->IsWithinMeleeRange(enemy);
+    if (isFleeing && dist > 15.0f)
+        return true;
+    
+    return false;
+}

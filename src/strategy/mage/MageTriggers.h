@@ -341,4 +341,20 @@ public:
         : TwoTriggers(botAI, "enemy too close for spell", "no firestarter strategy") {}
 };
 
+// PvP-specific Blink trigger for flag carrier escape and repositioning
+class BlinkPvPTrigger : public Trigger
+{
+public:
+    BlinkPvPTrigger(PlayerbotAI* botAI) : Trigger(botAI, "blink pvp") {}
+    bool IsActive() override;
+};
+
+// Frost Nova PvP trigger for close-range enemies
+class FrostNovaPvPTrigger : public Trigger
+{
+public:
+    FrostNovaPvPTrigger(PlayerbotAI* botAI) : Trigger(botAI, "frost nova pvp") {}
+    bool IsActive() override;
+};
+
 #endif

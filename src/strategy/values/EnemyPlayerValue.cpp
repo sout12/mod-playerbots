@@ -159,11 +159,11 @@ Unit* EnemyPlayerValue::Calculate()
 float EnemyPlayerValue::GetMaxAttackDistance()
 {
     if (!bot->GetBattleground())
-        return 60.0f;
+        return 80.0f;  // Increased for better tactical awareness (was 60)
 
     Battleground* bg = bot->GetBattleground();
     if (!bg)
-        return 40.0f;
+        return 80.0f;  // Consistent with non-BG range
 
     BattlegroundTypeId bgType = bg->GetBgTypeID();
     if (bgType == BATTLEGROUND_RB)
@@ -172,8 +172,13 @@ float EnemyPlayerValue::GetMaxAttackDistance()
     if (bgType == BATTLEGROUND_IC)
     {
         if (botAI->IsInVehicle(false, true))
-            return 120.0f;
+            return 120.0f;  // Vehicles need even more range
     }
 
-    return 40.0f;
+    // Increased from 40 to 80 yards
+    // This matches player vision and enables:
+    // - Seeing enemies at capture points before engaging
+    // - Better tactical decisions (backup, outnumbered situations)
+    // - Defending captured nodes (won't run away from nearby threats)
+    return 80.0f;
 }

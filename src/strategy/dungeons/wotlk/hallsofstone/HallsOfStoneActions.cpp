@@ -51,3 +51,27 @@ bool AvoidLightningRingAction::Execute(Event event)
 
     return false;
 }
+
+bool AvoidTribunalFireBeamAction::Execute(Event event)
+{
+    // Quickly move away from fire beam AOE during Tribunal of Ages
+    // Fire beams are stationary but cover large areas
+    
+    // If we have the debuff, we're standing in fire - move immediately
+    if (bot->HasAura(DEBUFF_SEARING_GAZE))
+    {
+        // Move perpendicular to current position to exit beam quickly
+        float currentAngle = bot->GetOrientation();
+        float moveAngle = currentAngle + (urand(0, 1) ? M_PI / 2 : -M_PI / 2);
+        
+        float moveDistance = 8.0f;  // Move 8 yards to exit beam
+        float x = bot->GetPositionX() + cos(moveAngle) * moveDistance;
+        float y = bot->GetPositionY() + sin(moveAngle) * moveDistance;
+        float z = bot->GetPositionZ();
+        
+        return MoveTo(bot->GetMapId(), x, y, z, false, false, false, false, 
+                      MovementPriority::MOVEMENT_COMBAT);
+    }
+    
+    return false;
+}

@@ -45,6 +45,7 @@ public:
     void CalculateSocketBonus(Player* player, ItemTemplate const* proto);
 
     void CalculateItemTypePenalty(ItemTemplate const* proto);
+    void ApplyStatAppropriateness(ItemTemplate const* proto);
 
     bool NotBestArmorType(uint32 item_subclass_armor);
 

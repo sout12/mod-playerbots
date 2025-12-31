@@ -1,0 +1,569 @@
+{
+  "class": "Rogue",
+  "version": "3.3.5a",
+  "roles": [
+    "melee_dps",
+    "flag_runner",
+    "interrupts",
+    "flag_hunter"
+  ],
+  "game_state": {
+    "early_game": {
+      "focus": "establish presence, contest objectives",
+      "priority": ["maintain_vision", "apply pressure", "maintain_positioning"]
+    },
+    "mid_game": {
+      "focus": "control key objectives, engage in team fights",
+      "priority": ["flag_carrier_hunting", "objective_control", "team_fight_support"]
+    },
+    "late_game": {
+      "focus": "secure win condition, defend lead",
+      "priority": ["hunt_flag_carrier", "defend_objectives", "close_out_game"]
+    }
+  },
+  "general_priority_list": [
+    "stealth_openers",
+    "stuns_and_control_on_healers_priority",
+    "vanish_to_reset_unclog_flag_escapes",
+    "maintain_distance_control",
+    "interrupt_casting",
+    "apply_damage_over_time",
+    "escape_mechanics"
+  ],
+  "spell_rules": {
+    "stealth_and_openers": [
+      {
+        "name": "Sap",
+        "when": "Pre-combat crowd control on non-elite targets",
+        "priority": "high",
+        "conditions": [
+          "target_out_of_combat == true",
+          "and not_in_party == true",
+          "or target_is_low_priority_healer == true",
+          "or tactical_advantage_available == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "low_priority_healer": 2.0,
+          "tactical_advantage": 1.8,
+          "pre_combat": 1.5,
+          "out_of_combat": 1.2
+        }
+      },
+      {
+        "name": "Cheap Shot",
+        "when": "Open from stealth to crowd control and burst",
+        "priority": "very_high",
+        "conditions": [
+          "self_is_stealthed == true",
+          "or target_is_vulnerable == true",
+          "or need_to_initiate_combat == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "vulnerable_target": 2.0,
+          "initiate_combat": 1.8,
+          "stealth_open": 1.5,
+          "burst_opportunity": 1.2
+        }
+      },
+      {
+        "name": "Garrote",
+        "when": "Silence and apply damage over time",
+        "priority": "high",
+        "conditions": [
+          "target_is_casting == true",
+          "or target_is_healer == true",
+          "or sustained_damage_opportunity == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "healer": 2.0,
+          "caster": 1.8,
+          "sustained_damage": 1.5,
+          "silence_opportunity": 1.2
+        }
+      },
+      {
+        "name": "Ambush",
+        "when": "High damage opener from stealth",
+        "priority": "high",
+        "conditions": [
+          "self_is_stealthed == true",
+          "or target_is_vulnerable == true",
+          "or need_high_damage_opener == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "stealth_advantage": 2.0,
+          "vulnerable_target": 1.8,
+          "high_damage_opener": 1.5
+        }
+      }
+    ],
+    "interrupts": [
+      {
+        "name": "Kick",
+        "when": "Interrupt heals and casts",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_casting == true",
+          "or target_is_healer_casting_emergency_heal == true",
+          "or target_is_casting_high_priority_spell == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "healer_casting": 2.0,
+          "emergency_heal": 1.8,
+          "high_priority_spell": 1.5,
+          "casting_interrupt": 1.2
+        }
+      },
+      {
+        "name": "Kidney Shot",
+        "when": "Stun to interrupt casting",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_casting_high_priority_spell == true",
+          "or target_is_flag_carrier_trying_to_escape == true",
+          "or need_to_control_target_immediately == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "high_priority_spell": 1.8,
+          "immediate_control": 1.5,
+          "casting_interrupt": 1.2
+        }
+      },
+      {
+        "name": "Gouge",
+        "when": "Stun and disable target",
+        "priority": "high",
+        "conditions": [
+          "target_is_caster_in_melee == true",
+          "or target_is_trying_to_escape == true",
+          "or need_to_control_target_immediately == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "caster_in_melee": 2.0,
+          "escape_prevention": 1.8,
+          "immediate_control": 1.5,
+          "disable_opportunity": 1.2
+        }
+      }
+    ],
+    "damage": [
+      {
+        "name": "Eviscerate",
+        "when": "Execute with combo points",
+        "priority": "high",
+        "conditions": [
+          "combo_points_ge_4 == true",
+          "or target_is_low_hp == true",
+          "or need_to_burst_target == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "combo_points_available": 2.0,
+          "low_hp_target": 1.8,
+          "burst_opportunity": 1.5,
+          "execute_phase": 1.2
+        }
+      },
+      {
+        "name": "Rupture",
+        "when": "Apply damage over time",
+        "priority": "high",
+        "conditions": [
+          "target_is_staying_in_combat == true",
+          "or sustained_damage_needed == true",
+          "or combo_points_available == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "sustained_combat": 2.0,
+          "sustained_damage": 1.8,
+          "combo_points_efficiency": 1.5,
+          "damage_over_time": 1.2
+        }
+      },
+      {
+        "name": "Slice and Dice",
+        "when": "Maintain damage over time",
+        "priority": "medium",
+        "conditions": [
+          "target_is_moving == true",
+          "or sustained_combat_engagement == true",
+          "or combo_points_available == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "moving_target": 2.0,
+          "sustained_combat": 1.8,
+          "combo_points_efficiency": 1.5,
+          "damage_over_time": 1.2
+        }
+      },
+      {
+        "name": "Backstab",
+        "when": "Melee damage from behind",
+        "priority": "high",
+        "conditions": [
+          "behind_target == true",
+          "or target_is_vulnerable == true",
+          "or need_to_apply_damage == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "behind_target": 2.0,
+          "vulnerable_target": 1.8,
+          "damage_opportunity": 1.5,
+          "melee_damage": 1.2
+        }
+      },
+      {
+        "name": "Sinister Strike",
+        "when": "Primary melee damage",
+        "priority": "high",
+        "conditions": [
+          "target_vulnerable == true",
+          "or damage_opportunity_available == true",
+          "or sustained_damage_needed == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "vulnerable_target": 2.0,
+          "damage_opportunity": 1.8,
+          "sustained_damage": 1.5
+        }
+      },
+      {
+        "name": "Hemorrhage",
+        "when": "Apply bleed damage and debuff",
+        "priority": "medium",
+        "conditions": [
+          "target_does_not_have_hemorrhage == true",
+          "or hemorrhage_expiring_soon == true",
+          "or sustained_bleed_damage_needed == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "no_hemorrhage": 2.0,
+          "expiring_soon": 1.8,
+          "sustained_damage": 1.5
+        }
+      }
+    ],
+    "defensive": [
+      {
+        "name": "Vanish",
+        "when": "Escape or setup second opener",
+        "priority": "high",
+        "conditions": [
+          "self_hp_percent <= 25 and not_flag_carrier == true",
+          "or need_to_reset == true and not_flag_carrier == true",
+          "or escape_necessity == true and not_flag_carrier == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "escape_necessity": 2.0,
+          "combat_reset": 1.8,
+          "survival": 1.5,
+          "repositioning": 1.2
+        },
+        "flag_mechanics": {
+          "drops_flag_when_used": true,
+          "avoid_when_flag_carrier": true,
+          "alternative_escapes": ["stealth_escape", "sprint", "blade_flurry_escape"]
+        }
+      },
+      {
+        "name": "Cloak of Shadows",
+        "when": "Remove harmful magic effects",
+        "priority": "high",
+        "conditions": [
+          "harmful_magic_effect_active == true",
+          "or incoming_magic_damage_expected == true",
+          "or dangerous_magic_debuff_present == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "dangerous_debuff": 2.0,
+          "magic_damage": 1.8,
+          "harmful_effect": 1.5,
+          "survival": 1.2
+        }
+      },
+      {
+        "name": "Evasion",
+        "when": "Avoid physical damage",
+        "priority": "high",
+        "conditions": [
+          "incoming_physical_damage_high == true",
+          "or self_hp_percent <= 30",
+          "or multiple_attackers_targeting == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "lethal_damage": 2.0,
+          "multiple_attackers": 1.8,
+          "high_damage": 1.5,
+          "survival": 1.2
+        }
+      },
+      {
+        "name": "Feint",
+        "when": "Reduce threat and incoming damage",
+        "priority": "medium",
+        "conditions": [
+          "high_threat_level == true",
+          "or incoming_damage_moderate == true",
+          "or need_to_reduce_aggro == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "high_threat": 2.0,
+          "damage_reduction": 1.8,
+          "aggro_control": 1.5,
+          "survival": 1.2
+        }
+      },
+      {
+        "name": "Redirect",
+        "when": "Redirect aggro to ally",
+        "priority": "high",
+        "conditions": [
+          "ally_is_tank_under_attack == true",
+          "or need_to_redirect_aggro == true",
+          "or tank_protection_necessary == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "tank_protection": 2.0,
+          "aggro_redirection": 1.8,
+          "team_support": 1.5
+        }
+      }
+    ],
+    "utility": [
+      {
+        "name": "Stealth",
+        "when": "Reposition or setup ambush",
+        "priority": "medium",
+        "conditions": [
+          "need_to_reposition == true",
+          "or ambush_opportunity_available == true",
+          "or escape_route_needed == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "repositioning": 2.0,
+          "ambush_opportunity": 1.8,
+          "escape_necessity": 1.5,
+          "utility": 1.2
+        }
+      },
+      {
+        "name": "Blind",
+        "when": "Disable target temporarily",
+        "priority": "high",
+        "conditions": [
+          "target_is_caster == true",
+          "or target_is_flag_carrier_trying_to_escape == true",
+          "or need_to_control_target_temporarily == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "caster": 1.8,
+          "temporary_control": 1.5,
+          "disable_opportunity": 1.2
+        }
+      },
+      {
+        "name": "Distract",
+        "when": "Create distraction for positioning",
+        "priority": "medium",
+        "conditions": [
+          "need_to_reposition == true",
+          "or tactical_advantage_opportunity == true",
+          "or escape_route_creation_needed == true"
+        ],
+        "target": "area",
+        "context_weights": {
+          "repositioning": 2.0,
+          "tactical_advantage": 1.8,
+          "escape_creation": 1.5
+        }
+      },
+      {
+        "name": "Sprint",
+        "when": "Increase movement speed",
+        "priority": "high",
+        "conditions": [
+          "need_to_escape == true",
+          "or pursuit_necessary == true",
+          "or positioning_adjustment_needed == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "escape_necessity": 2.0,
+          "pursuit": 1.8,
+          "positioning": 1.5
+        }
+      }
+    ]
+  },
+  "energy_and_combo_management": {
+    "use_eviscerate_if_combo_points_ge": 4,
+    "combo_point_efficiency": [
+      "prioritize_high_value_targets",
+      "maintain_damage_over_time",
+      "execute_at_optimal_times"
+    ],
+    "energy_pooling": [
+      "save_for_burst_opportunities",
+      "maintain_rotation_efficiency",
+      "pool_for_escape_mechanics"
+    ]
+  },
+  "battleground_overrides": {
+    "WSG": {
+      "objective_focus": "flag_hunting_and_running",
+      "behavior_mods": [
+        "prioritize_flag_carrier_hunting",
+        "assign_2_defenders_to_flagroom",
+        "use_stealth_to_approach_enemy_base",
+        "maintain_vision_of_enemy_base",
+        "apply_pressure_with_stealth_damage",
+        "use_vanish_to_escape_flag_carrier"
+      ],
+      "role_assignments": {
+        "flag_hunter": ["hunt_flag_carrier", "interrupt_escorts", "maintain_vision"],
+        "flag_runner": ["stealth_approach", "escape_mechanics", "maintain_speed"],
+        "midfield": ["control_tunnel", "intercept_resurrections", "maintain_vision"]
+      }
+    },
+    "AB": {
+      "objective_focus": "base_control_and_hunting",
+      "behavior_mods": [
+        "maintain_three_base_control_if_possible",
+        "leave_min_defenders_at_each_base(2)",
+        "rotate_to_reinforce_weak_base",
+        "use_stealth_for_base_captures",
+        "hunt_base_attackers",
+        "maintain_vision_control"
+      ],
+      "role_assignments": {
+        "base_defender": ["maintain_base_control", "kill_cappers", "apply_cc"],
+        "base_attacker": ["apply_pressure", "kill_defenders", "maintain_vision"],
+        "support": ["provide_vision", "hunt_attackers", "assist_in_fights"]
+      }
+    },
+    "AV": {
+      "objective_focus": "tower_control_and_hunting",
+      "behavior_mods": [
+        "focus_on_capturing_towers_and_killing_captains",
+        "escort_raid_groups_for_commander_assaults",
+        "use_stealth_to_control_NPC_guards",
+        "hunt_tower_attackers",
+        "maintain_tower_control"
+      ],
+      "role_assignments": {
+        "tower_attacker": ["capture_towers", "kill_NPC_guards", "maintain_vision"],
+        "commander_assassin": ["kill_commanders", "apply_damage", "maintain_escape"],
+        "escort": ["protect_assassins", "kill_NPC_defenders", "maintain_vision"]
+      }
+    },
+    "EOTS": {
+      "objective_focus": "flag_and_mid_control",
+      "behavior_mods": [
+        "control_mid_for_flag_safety",
+        "escort_flag_carrier_via_towers",
+        "use_stealth_in_mid_area",
+        "hunt_mid_attackers",
+        "maintain_flag_access_control"
+      ],
+      "role_assignments": {
+        "mid_controller": ["control_mid", "deny_flag_access", "hunt_attackers"],
+        "flag_protector": ["escort_carrier", "interrupt_escorts", "maintain_vision"],
+        "base_defender": ["defend_bases", "kill_cappers", "maintain_vision"]
+      }
+    },
+    "SOTA": {
+      "objective_focus": "vehicle_protection_and_hunting",
+      "behavior_mods": [
+        "protect_demolishers",
+        "clear_path_for_vehicle_push",
+        "use_stealth_to_protect_vehicles",
+        "hunt_vehicle_attackers",
+        "maintain_wall_breach_support"
+      ],
+      "role_assignments": {
+        "vehicle_protector": ["protect_vehicles", "hunt_attackers", "maintain_vision"],
+        "wall_destroyer": ["damage_walls", "maintain_vision", "hunt_defenders"],
+        "escort": ["clear_path", "kill_defenders", "maintain_vision"]
+      }
+    },
+    "IOC": {
+      "objective_focus": "workshop_and_gate_control",
+      "behavior_mods": [
+        "rush_workshop_priority",
+        "escort_siege_to_gate",
+        "if_towers_vulnerable -> docks_glaive_focus",
+        "use_stealth_for_workshop_control",
+        "hunt_workshop_attackers"
+      ],
+      "role_assignments": {
+        "workshop_capper": ["capture_workshop", "maintain_vision", "use_stealth"],
+        "gate_destroyer": ["damage_gate", "maintain_vision", "hunt_attackers"],
+        "escort": ["protect_siege", "kill_attackers", "maintain_vision"]
+      }
+    }
+  },
+  "adaptive_behavior": {
+    "team_size": {
+      "1": ["avoid_fights", "objective_control", "defensive_positioning"],
+      "2-3": ["engage_favorable_fights", "objective_support", "coordinated_pushes"],
+      "4+": ["aggressive_objective_control", "team_fights", "win_conditions"]
+    },
+    "enemy_composition": {
+      "high_healer_count": ["prioritize_healer_hunting", "interrupt_healing", "apply_pressure"],
+      "melee_heavy": ["use_vanish", "maintain_distance", "kite_effectively"],
+      "ranged_heavy": ["use_stealth", "control_area", "focus_fire"]
+    },
+    "game_state": {
+      "behind": ["defensive_positioning", "protect_objectives", "wait_for_mistakes"],
+      "ahead": ["aggressive_pushing", "maintain_pressure", "secure_win"],
+      "close": ["maximize_fights", "win_exchanges", "control_objectives"]
+    }
+  },
+  "tactical_positioning": {
+    "key_locations": {
+      "WSG_flag_room": {
+        "defensive_positions": ["flag_stand", "entrance", "behind_cover"],
+        "offensive_positions": ["approach", "escape_routes", "control_points"]
+      },
+      "AB_base_circles": {
+        "defensive_positions": ["inside_circle", "approach_angles", "escape_routes"],
+        "offensive_positions": ["approach", "flank_routes", "control_points"]
+      },
+      "AV_tower_approaches": {
+        "defensive_positions": ["tower_base", "approach_control", "escape_routes"],
+        "offensive_positions": ["approach_angles", "flank_routes", "control_points"]
+      }
+    }
+  },
+  "resource_management": {
+    "energy_efficiency": {
+      "spending_strategy": ["save_for_emergency", "spend_on_opportunity", "maintain_efficiency"],
+      "priority_targets": ["burst_damage", "sustained_damage", "utility_benefits"]
+    },
+    "combo_point_utilization": {
+      "rotation_priority": ["execute_opportunities", "damage_over_time", "utility_uses"],
+      "emergency_reserves": ["eviscerate_for_heal", "rupture_for_sustained", "garrote_for_silence"]
+    }
+  }
+}

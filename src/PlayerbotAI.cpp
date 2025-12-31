@@ -439,6 +439,34 @@ void PlayerbotAI::UpdateAIGroupMaster()
             }
         }
     }
+    // For RDF/LFG groups: if the group leader changes, silently update master without resetting strategies
+    // This prevents crashes during queue operations while allowing bots to respect the new dungeon guide
+    else if (IsRandomBot && group && master && master->GetGUID() != group->GetLeaderGUID())
+    {
+        Player* newMaster = FindNewMaster();
+        if (newMaster && newMaster != master)
+        {
+            master = newMaster;
+            botAI->SetMaster(newMaster);
+            // Don't call ResetStrategies() - it causes crashes during active operations
+            // The follow system already uses "dungeon guide" value which recalculates dynamically
+
+            if (!bot->InBattleground())
+            {
+                botAI->ChangeStrategy("+follow", BOT_STATE_NON_COMBAT);
+
+                if (botAI->GetMaster() == botAI->GetGroupLeader())
+                    botAI->TellMaster("Hello, I follow you!");
+                else
+                    botAI->TellMaster(!urand(0, 2) ? "Hello!" : "Hi!");
+            }
+            else
+            {
+                // we're in a battleground, stay with the pack and focus on objective
+                botAI->ChangeStrategy("-follow", BOT_STATE_NON_COMBAT);
+            }
+        }
+    }
 }
 
 void PlayerbotAI::UpdatePvPGearSwap(uint32 elapsed)
@@ -1545,6 +1573,16 @@ void PlayerbotAI::DoNextAction(bool min)
     }
 
     bool minimal = !AllowActivity();
+
+    if (!currentEngine)
+    {
+        ChangeEngine(BOT_STATE_NON_COMBAT);
+        if (!currentEngine)
+        {
+            SetNextCheckDelay(sPlayerbotAIConfig->errorDelay);
+            return;
+        }
+    }
 
     currentEngine->DoNextAction(nullptr, 0, (minimal || min));
 

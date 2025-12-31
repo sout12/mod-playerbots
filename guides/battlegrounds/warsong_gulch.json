@@ -1,0 +1,465 @@
+{
+  "battleground": "Warsong Gulch",
+  "version": "3.3.5a",
+  "game_state": {
+    "flag_capture_thresholds": {
+      "early_game": 0,
+      "mid_game": 1,
+      "win_condition": 3
+    },
+    "time_thresholds": {
+      "early_game": 0,
+      "mid_game": 300,
+      "late_game": 600,
+      "end_game": 900
+    }
+  },
+  "objective": "Capture the enemy flag three times before time expires.",
+  "flag_status": {
+    "enemy_flag": {
+      "home": "Capture for point",
+      "carried": "Kill carrier for return",
+      "dropped": "Return to base or pick up"
+    },
+    "ally_flag": {
+      "home": "Protect at all costs",
+      "carried": "Peel attackers off carrier",
+      "dropped": "Retrieve immediately"
+    }
+  },
+  "strategies": {
+    "early_game": {
+      "offense": [
+        "Send 2-3 strike team to retrieve enemy flag",
+        "Use speed buffs and CC to escape midfield",
+        "Focus fire midfield healers to open path",
+        "Scout enemy base for flag status"
+      ],
+      "defense": [
+        "Keep 2 defenders in flag room at all times",
+        "Peel attackers off FC using slows, roots, and stuns",
+        "Assign 1-2 midfield defenders to intercept",
+        "Maintain vision of enemy base"
+      ],
+      "mid_control": [
+        "Hold midfield with 2-3 players",
+        "Punish enemy players rezzing from graveyard",
+        "Control tunnel for vision and ganks",
+        "Deny enemy safe passage"
+      ]
+    },
+    "mid_game": {
+      "offense": [
+        "Coordinate larger strike teams (3-5 bots) for flag retrieval",
+        "Use stealth classes for ninja caps when opportunity arises",
+        "Apply pressure on multiple fronts",
+        "Force enemy to split defenses"
+      ],
+      "defense": [
+        "Maintain 2 defenders in flag room",
+        "Group up to counter-attack after flag capture",
+        "Use crowd control to disable FC escorts",
+        "Rotate defenders based on flag status"
+      ],
+      "mid_control": [
+        "Control midfield with 3-4 players",
+        "Punish enemy resurrections",
+        "Set up ganks for FC escorts",
+        "Maintain tunnel control"
+      ]
+    },
+    "late_game": {
+      "offense": [
+        "All-in for remaining flag captures",
+        "Use all available players for flag runs",
+        "Apply maximum pressure on enemy base",
+        "Risk everything for win condition"
+      ],
+      "defense": [
+        "All-in defense of flag room",
+        "Group up to eliminate FC and escorts",
+        "Use defensive cooldowns liberally",
+        "Deny any remaining captures"
+      ],
+      "if_ahead": [
+        "Play more defensively",
+        "Focus on preventing comebacks",
+        "Maintain flag security",
+        "Wait out clock when possible"
+      ],
+      "if_behind": [
+        "Take more risks",
+        "Aggressive flag stealing",
+        "Force fights for opportunities",
+        "Press for comebacks"
+      ]
+    }
+  },
+  "flag_carrier_rules": {
+    "preferred_classes": [
+      "Druid (Travel Form, Dash, Frenzied Regeneration) - Tier S",
+      "Paladin (Protection spec, Freedom, Bubble) - Tier S",
+      "Death Knight (Blood spec, high sustain, anti-slow) - Tier S",
+      "Shaman (Ghost Wolf, Grounding) - Tier A",
+      "Rogue (Sprint, Vanish, Evasion) - Tier A - Good for stealth caps but squishy carrier",
+      "Mage (Blink, Ice Block) - Tier B"
+    ],
+    "avoid_fighting": true,
+    "movement": [
+      "Use rooftops and tunnel jumps when possible",
+      "Avoid midfield fights unless protected",
+      "Take safest route to enemy base",
+      "Use defensive cooldowns proactively"
+    ],
+    "escape_routes": {
+      "from_ally_base": [
+        "Tunnel route",
+        "Main path",
+        "Rooftop route"
+      ],
+      "from_midfield": [
+        "Tunnel route",
+        "Main path",
+        "Behind rocks"
+      ],
+      "from_enemy_base": [
+        "Direct to ally base",
+        "Tunnel route",
+        "Rooftop route"
+      ]
+    },
+    "recommended_spells": {
+      "Druid": {
+        "movement": [
+          "Travel Form",
+          "Dash"
+        ],
+        "defensive": [
+          "Barkskin",
+          "Frenzied Regeneration",
+          "Thorns"
+        ],
+        "utility": [
+          "Hibernate",
+          "Entangling Roots"
+        ]
+      },
+      "Mage": {
+        "movement": [
+          "Blink",
+          "Slow Fall"
+        ],
+        "defensive": [
+          "Ice Block",
+          "Ice Barrier",
+          "Frost Nova"
+        ],
+        "utility": [
+          "Counterspell",
+          "Polymorph"
+        ]
+      },
+      "Shaman": {
+        "movement": [
+          "Ghost Wolf"
+        ],
+        "defensive": [
+          "Wind Shear",
+          "Earth Shield",
+          "Grounding Totem"
+        ],
+        "utility": [
+          "Purge",
+          "Wind Shear"
+        ]
+      },
+      "Rogue": {
+        "movement": [
+          "Sprint",
+          "Evasion"
+        ],
+        "defensive": [
+          "Vanish",
+          "Cloak of Shadows",
+          "Evasion"
+        ],
+        "utility": [
+          "Kidney Shot",
+          "Blind"
+        ]
+      },
+      "Paladin": {
+        "movement": [
+          "Blessing of Freedom"
+        ],
+        "defensive": [
+          "Divine Shield",
+          "Hand of Protection",
+          "Blessing of Protection"
+        ],
+        "utility": [
+          "Hammer of Justice",
+          "Repentance"
+        ]
+      }
+    }
+  },
+  "bot_behavior": {
+    "role_assignment": {
+      "flag_carrier": {
+        "requirements": [
+          "Mobile class",
+          "Escape abilities",
+          "High survivability"
+        ],
+        "priority": "Highest - protect carrier at all costs",
+        "behavior": [
+          "Avoid fights",
+          "Take safe routes",
+          "Use cooldowns"
+        ]
+      },
+      "escort": {
+        "requirements": [
+          "Combat effective",
+          "Protective",
+          "Coordinated"
+        ],
+        "priority": "High - support flag carrier",
+        "behavior": [
+          "Stay close to FC",
+          "Focus FC attackers",
+          "Clear path"
+        ]
+      },
+      "flag_defender": {
+        "requirements": [
+          "High CC",
+          "AoE",
+          "Survivability"
+        ],
+        "priority": "Highest - protect ally flag",
+        "behavior": [
+          "Stay in flag room",
+          "Kill attackers",
+          "Pick up dropped flag"
+        ]
+      },
+      "flag_hunter": {
+        "requirements": [
+          "High mobility",
+          "Damage",
+          "CC"
+        ],
+        "priority": "High - kill enemy flag carrier",
+        "behavior": [
+          "Track FC",
+          "Coordinate with team",
+          "Focus fire"
+        ]
+      },
+      "midfield_controller": {
+        "requirements": [
+          "Vision",
+          "CC",
+          "Mobility"
+        ],
+        "priority": "Medium - control midfield",
+        "behavior": [
+          "Punish resurrections",
+          "Gank stragglers",
+          "Maintain vision"
+        ]
+      }
+    },
+    "special": {
+      "speed_buff_logic": {
+        "activation": [
+          "When carrying flag",
+          "When chasing flag carrier",
+          "When escaping"
+        ],
+        "classes": [
+          "All classes with movement buffs"
+        ],
+        "priority": "High - movement speed is critical"
+      },
+      "escort_logic": {
+        "formation": "Triangle with healer in center",
+        "composition": [
+          "Tank in front",
+          "Healer center",
+          "DPS back"
+        ],
+        "behavior": [
+          "Protect carrier",
+          "Focus carrier attackers",
+          "Maintain formation"
+        ]
+      },
+      "engagement_logic": {
+        "priorities": [
+          "Kill enemy flag carrier",
+          "Protect ally flag carrier",
+          "Defend ally flag room",
+          "Attack enemy flag room",
+          "Control midfield"
+        ],
+        "team_size": {
+          "1": "Avoid fights, capture flag if safe",
+          "2": "Engage small groups, protect flag carrier",
+          "3+": "Aggressive engagement, control objectives"
+        }
+      }
+    },
+    "adaptive_behavior": {
+      "score_state": {
+        "0-0": "Balanced approach, secure first capture",
+        "1-0": "Aggressive if ahead, defensive if behind",
+        "2-1": "Critical phase, win next exchange",
+        "3-2": "Final capture, all-in positioning"
+      },
+      "flag_status": {
+        "ally_flag_secure": "Aggressive offense",
+        "ally_flag_threatened": "Return to defense",
+        "enemy_flag_carried": "Focus on killing carrier",
+        "enemy_flag_home": "Plan next capture",
+        "efc_stacks_high": "ALL_IN_OFFENSE - EFC has > 5 stacks, kill immediately",
+        "ally_fc_low_hp": "ALL_IN_DEFENSE - Peel immediately, prioritize CC over damage"
+      },
+      "time_awareness": {
+        "early": "Methodical positioning, setup",
+        "mid": "Aggressive exchanges, win fights",
+        "late": "Secure win condition or comeback",
+        "overtime_risk": "Prioritize flag possession over capping if stacks are high"
+      },
+      "smart_strategies": {
+        "switch_to_hard_offense": {
+          "trigger": "enemy_flag_carrier_stacks > 5",
+          "action": "Ignore all other objectives, focus EFC"
+        },
+        "emergency_peel": {
+          "trigger": "ally_flag_carrier_hp_percent < 50",
+          "action": "All nearby defenders use max CC on attackers"
+        }
+      }
+    },
+    "defensive_priorities": {
+      "flag_room": [
+        "Maintain 2 defenders at all times",
+        "Assign off-tank for additional protection",
+        "Use CC to disable attackers",
+        "Kill attackers quickly and efficiently"
+      ],
+      "midfield": [
+        "Punish enemy resurrections",
+        "Gank isolated players",
+        "Maintain tunnel control",
+        "Deny safe passage"
+      ],
+      "escape_routes": [
+        "Monitor ally FC escape routes",
+        "Set up intercept positions",
+        "Coordinate ganks on escorts"
+      ]
+    },
+    "offensive_priorities": {
+      "flag_capture": [
+        "Scout enemy base for defenders",
+        "Send appropriate team size",
+        "Use stealth for ninja caps when possible",
+        "Ensure safe escort back"
+      ],
+      "escort_protection": [
+        "Maintain 2-3 person escort",
+        "Focus fire on FC attackers",
+        "Use CC to disable interceptors",
+        "Clear path of enemies"
+      ],
+      "base_control": [
+        "Apply pressure on multiple fronts",
+        "Force enemy to split defenses",
+        "Coordinate with other teams",
+        "Maintain initiative"
+      ]
+    }
+  },
+  "tactical_positioning": {
+    "key_locations": {
+      "ally_flag_room": {
+        "importance": 100,
+        "control_priority": 100,
+        "defensive_positions": [
+          "Flag stand",
+          "Entrance",
+          "Behind rocks",
+          "High ground"
+        ],
+        "attack_routes": [
+          "Direct",
+          "Tunnel",
+          "Behind rocks"
+        ]
+      },
+      "enemy_flag_room": {
+        "importance": 100,
+        "control_priority": 95,
+        "defensive_positions": [
+          "Approach",
+          "Entrance",
+          "Flag stand",
+          "Escape routes"
+        ],
+        "attack_routes": [
+          "Direct",
+          "Tunnel",
+          "Behind rocks",
+          "Rooftop"
+        ]
+      },
+      "midfield": {
+        "importance": 80,
+        "control_priority": 85,
+        "defensive_positions": [
+          "Tunnel",
+          "Rocks",
+          "Approaches",
+          "Resurrection points"
+        ],
+        "attack_routes": [
+          "Direct",
+          "Tunnel",
+          "Flanking"
+        ]
+      },
+      "tunnel": {
+        "importance": 70,
+        "control_priority": 75,
+        "defensive_positions": [
+          "Entrances",
+          "Interior",
+          "High ground",
+          "Ambush points"
+        ],
+        "attack_routes": [
+          "Through tunnel",
+          "Above tunnel",
+          "Around tunnel"
+        ]
+      }
+    }
+  },
+  "resource_management": {
+    "time_awareness": {
+      "early_game": "Focus on positioning and preparation",
+      "mid_game": "Focus on flag exchanges and team fights",
+      "late_game": "Focus on securing win condition"
+    },
+    "flag_timing": {
+      "capture_timing": 10,
+      "return_timing": 15,
+      "escape_timing": 20,
+      "safe_route_timing": 25
+    }
+  }
+}

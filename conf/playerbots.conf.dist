@@ -166,6 +166,20 @@ AiPlayerbot.RandomBotGuildSizeMax = 15
 # Delete all randombot guilds if set to 1
 AiPlayerbot.DeleteRandomBotGuilds = 0
 
+# Enable/Disable PvP Guilds for randombots
+# If enabled, bots will form guilds with PvP-centric names and group together for PvP activities.
+# Default: 1 (enabled)
+AiPlayerbot.RandomBotPvPGuildsEnabled = 1
+
+# Chance that a PvP guild will form a premade group for BG/Arena queuing
+# Default: 50.0 (50%)
+AiPlayerbot.RandomBotPvPGuildPremadeChance = 65.0
+
+# Threshold of PvP rating (e.g., Arena Rating) for a guild to be considered an "Elite" PvP Guild
+# Elite guilds are named "Gladiator..." or "Vengeful..." and have higher premade formation priority.
+# Default: 2000
+AiPlayerbot.RandomBotEliteGuildThreshold = 2000
+
 # Randombots will invite players to groups/raids/guilds
 AiPlayerbot.RandomBotInvitePlayer = 0
 

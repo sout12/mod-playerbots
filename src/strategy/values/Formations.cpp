@@ -88,7 +88,17 @@ class MeleeFormation : public FollowFormation
 public:
     MeleeFormation(PlayerbotAI* botAI) : FollowFormation(botAI, "melee") {}
 
-    std::string const GetTargetName() override { return "group leader"; }
+    std::string const GetTargetName() override
+    {
+        // Priority is: Dungeon Guide (in LFG dungeons) > Group Leader
+        // Note: AI_VALUE recalculates dungeon guide fresh each time,
+        // so if the guide changes mid-dungeon, bots will automatically follow the new guide
+        ObjectGuid dungeonGuide = AI_VALUE(ObjectGuid, "dungeon guide");
+        if (dungeonGuide && !dungeonGuide.IsEmpty())
+            return "dungeon guide";
+        
+        return "group leader";
+    }
 };
 
 class QueueFormation : public FollowFormation
@@ -96,7 +106,15 @@ class QueueFormation : public FollowFormation
 public:
     QueueFormation(PlayerbotAI* botAI) : FollowFormation(botAI, "queue") {}
 
-    std::string const GetTargetName() override { return "line target"; }
+    std::string const GetTargetName() override
+    {
+        // Priority is: Dungeon Guide (in LFG dungeons) > Line Target
+        ObjectGuid dungeonGuide = AI_VALUE(ObjectGuid, "dungeon guide");
+        if (dungeonGuide && !dungeonGuide.IsEmpty())
+            return "dungeon guide";
+        
+        return "line target";
+    }
 };
 
 class NearFormation : public MoveAheadFormation

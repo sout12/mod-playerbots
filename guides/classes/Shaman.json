@@ -1,0 +1,700 @@
+{
+  "class": "Shaman",
+  "version": "3.3.5a",
+  "roles": [
+    "healer",
+    "melee_support",
+    "caster",
+    "objective_support"
+  ],
+  "game_state": {
+    "early_game": {
+      "focus": "establish presence, contest objectives",
+      "priority": ["maintain_vision", "apply pressure", "maintain_positioning"]
+    },
+    "mid_game": {
+      "focus": "control key objectives, engage in team fights",
+      "priority": ["flag_carrier_support", "objective_control", "team_fight_support"]
+    },
+    "late_game": {
+      "focus": "secure win condition, defend lead",
+      "priority": ["protect_flag_carrier", "defend_objectives", "close_out_game"]
+    }
+  },
+  "general_priority_list": [
+    "purgers_on_important_buffs",
+    "hex_on_healers",
+    "totems_for_area_control",
+    "ghost_wolf_speed_for_flag_running",
+    "maintain_ally_healing",
+    "elemental_damage_dealing",
+    "defensive_totems"
+  ],
+  "spell_rules": {
+    "crowd_control": [
+      {
+        "name": "Hex",
+        "when": "Lock down healer or caster",
+        "priority": "very_high",
+        "conditions": [
+          "is_healer(target) == true",
+          "or target_is_high_priority_caster == true",
+          "or target_is_flag_carrier_trying_to_escape == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "healer": 2.0,
+          "high_priority_caster": 1.8,
+          "flag_carrier": 1.5,
+          "priority_target": 1.2
+        }
+      },
+      {
+        "name": "Earthbind Totem",
+        "when": "Slow flag carrier or formations",
+        "priority": "high",
+        "conditions": [
+          "enemy_group_moving == true",
+          "or flag_carrier_approaching_escape_route == true",
+          "or need_to_control_area_movement == true"
+        ],
+        "target": "area",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "group_movement": 1.8,
+          "area_control": 1.5,
+          "movement_slow": 1.2
+        }
+      },
+      {
+        "name": "Wind Shear",
+        "when": "Interrupt casting",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_casting == true",
+          "or target_is_healer_casting_emergency_heal == true",
+          "or target_is_casting_high_priority_spell == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "healer_casting": 2.0,
+          "emergency_heal": 1.8,
+          "high_priority_spell": 1.5,
+          "casting_interrupt": 1.2
+        }
+      },
+      {
+        "name": "Frost Shock",
+        "when": "Slow melee attackers and interrupt casting",
+        "priority": "high",
+        "conditions": [
+          "melee_approaching == true",
+          "or target_is_casting_melee_range == true",
+          "or need_to_slow_pursuit == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "melee_control": 2.0,
+          "casting_interrupt": 1.8,
+          "pursuit_slow": 1.5
+        }
+      }
+    ],
+    "healing": [
+      {
+        "name": "Earth Shield",
+        "when": "Maintain ally protection",
+        "priority": "high",
+        "conditions": [
+          "ally_is_flag_carrier == true",
+          "or ally_is_key_player_in_combat == true",
+          "or ally_is_tank_or_high_priority == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "key_player": 1.8,
+          "tank": 1.5,
+          "high_priority": 1.2
+        }
+      },
+      {
+        "name": "Riptide",
+        "when": "Maintain healing over time",
+        "priority": "high",
+        "conditions": [
+          "ally_is_flag_carrier == true",
+          "or ally_is_in_sustained_combat == true",
+          "or ally_is_under_sustained_damage == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "sustained_combat": 1.8,
+          "sustained_damage": 1.5,
+          "healing_over_time": 1.2
+        }
+      },
+      {
+        "name": "Healing Wave",
+        "when": "Larger heal needed",
+        "priority": "high",
+        "conditions": [
+          "ally_hp_percent <= 40",
+          "or ally_is_flag_carrier_critical == true",
+          "or ally_is_key_player_critical == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "flag_carrier_critical": 2.0,
+          "key_player_critical": 1.8,
+          "large_damage": 1.5,
+          "emergency_heal": 1.2
+        }
+      },
+      {
+        "name": "Lesser Healing Wave",
+        "when": "Quick heal for medium damage",
+        "priority": "high",
+        "conditions": [
+          "ally_hp_percent <= 70",
+          "or ally_is_flag_carrier_and_damaged == true",
+          "or ally_is_under_moderate_damage == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "flag_carrier": 2.0,
+          "emergency_heal": 1.8,
+          "medium_damage": 1.5,
+          "quick_heal": 1.2
+        }
+      },
+      {
+        "name": "Chain Heal",
+        "when": "AoE heal needed across group",
+        "priority": "high",
+        "conditions": [
+          "multiple_allies_below_percent == 75",
+          "or team_in_combat_and_damaged == true",
+          "or ally_group_under_area_damage == true"
+        ],
+        "target": "ally_group",
+        "context_weights": {
+          "team_combat": 2.0,
+          "area_damage": 1.8,
+          "multiple_damaged": 1.5,
+          "aoe_healing": 1.2
+        }
+      },
+      {
+        "name": "Tidal Wave",
+        "when": "Maintain healing efficiency",
+        "priority": "high",
+        "conditions": [
+          "need_to_cast_healing_wave_often == true",
+          "or sustained_healing_phase == true",
+          "or healing_efficiency_needed == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "sustained_healing": 2.0,
+          "efficiency": 1.8,
+          "rotation_buff": 1.5,
+          "mana_efficiency": 1.2
+        }
+      },
+      {
+        "name": "Healing Rain",
+        "when": "AoE healing over time in area",
+        "priority": "high",
+        "conditions": [
+          "multiple_allies_damaged_in_area == true",
+          "or sustained_area_damage == true",
+          "or team_fight_aoe_healing_needed == true"
+        ],
+        "target": "area",
+        "context_weights": {
+          "team_fight": 2.0,
+          "sustained_damage": 1.8,
+          "aoe_healing": 1.5
+        }
+      },
+      {
+        "name": "Unleash Life",
+        "when": "Boost healing on target",
+        "priority": "medium",
+        "conditions": [
+          "target_has_earth_shield == true",
+          "or healing_boost_needed == true",
+          "or emergency_situation == true"
+        ],
+        "target": "ally",
+        "context_weights": {
+          "earth_shield_target": 2.0,
+          "healing_boost": 1.8,
+          "emergency": 1.5
+        }
+      }
+    ],
+    "damage": [
+      {
+        "name": "Lightning Bolt",
+        "when": "Ranged damage with clear cast",
+        "priority": "high",
+        "conditions": [
+          "target_is_vulnerable == true",
+          "or clear_cast_available == true",
+          "or need_to_apply_ranged_damage == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "vulnerable_target": 2.0,
+          "clear_cast": 1.8,
+          "ranged_damage": 1.5,
+          "damage_opportunity": 1.2
+        }
+      },
+      {
+        "name": "Chain Lightning",
+        "when": "AoE damage to multiple targets",
+        "priority": "medium",
+        "conditions": [
+          "multiple_enemies_grouped == true",
+          "or need_to_apply_aoe_damage == true",
+          "or sustained_aoe_damage_needed == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "multiple_targets": 2.0,
+          "aoe_damage": 1.8,
+          "sustained_damage": 1.5,
+          "damage_efficiency": 1.2
+        }
+      },
+      {
+        "name": "Earth Shock",
+        "when": "Interrupt casting or apply damage",
+        "priority": "high",
+        "conditions": [
+          "target_is_casting == true",
+          "or target_is_low_hp == true",
+          "or need_to_apply_instant_damage == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "casting_interrupt": 2.0,
+          "low_hp_target": 1.8,
+          "instant_damage": 1.5,
+          "damage_opportunity": 1.2
+        }
+      },
+      {
+        "name": "Flame Shock",
+        "when": "Apply damage over time",
+        "priority": "medium",
+        "conditions": [
+          "target_is_staying_in_combat == true",
+          "or sustained_damage_needed == true",
+          "or damage_over_time_opportunity == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "sustained_combat": 2.0,
+          "damage_over_time": 1.8,
+          "damage_opportunity": 1.5,
+          "debuff_application": 1.2
+        }
+      },
+      {
+        "name": "Lava Burst",
+        "when": "High damage with critical chance",
+        "priority": "high",
+        "conditions": [
+          "shocked_target_available == true",
+          "or need_high_damage_burst == true",
+          "or critical_damage_opportunity == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "shocked_target": 2.0,
+          "burst_damage": 1.8,
+          "critical_opportunity": 1.5
+        }
+      },
+      {
+        "name": "Lightning Shield",
+        "when": "Maintain damage shield",
+        "priority": "medium",
+        "conditions": [
+          "shield_expired == true",
+          "or damage_reflection_needed == true",
+          "or sustained_combat_engagement == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "shield_refresh": 1.8,
+          "damage_reflection": 1.5,
+          "sustained_combat": 1.2
+        }
+      }
+    ],
+    "enhancement": [
+      {
+        "name": "Lightning Shield",
+        "when": "Maintain damage shield",
+        "priority": "medium",
+        "conditions": [
+          "shield_expired == true",
+          "or damage_reflection_needed == true",
+          "or sustained_combat_engagement == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "shield_refresh": 1.8,
+          "damage_reflection": 1.5,
+          "sustained_combat": 1.2
+        }
+      },
+      {
+        "name": "Flame Shock",
+        "when": "Maintain damage over time",
+        "priority": "medium",
+        "conditions": [
+          "target_does_not_have_flame_shock == true",
+          "or flame_shock_expiring == true",
+          "or sustained_damage_needed == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "no_shock": 2.0,
+          "expiring_shock": 1.8,
+          "sustained_damage": 1.5
+        }
+      },
+      {
+        "name": "Frost Shock",
+        "when": "Slow melee and interrupt casting",
+        "priority": "high",
+        "conditions": [
+          "melee_approaching == true",
+          "or target_is_casting_melee_range == true",
+          "or need_to_slow_pursuit == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "melee_control": 2.0,
+          "casting_interrupt": 1.8,
+          "pursuit_slow": 1.5
+        }
+      }
+    ],
+    "utility": [
+      {
+        "name": "Purge",
+        "when": "Remove important enemy buffs",
+        "priority": "very_high",
+        "conditions": [
+          "enemy_has_magic_buff == true",
+          "and buff_is_combat_relevant == true",
+          "or buff_is_high_priority == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "high_priority_buff": 2.0,
+          "combat_relevant_buff": 1.8,
+          "magic_buff": 1.5,
+          "utility_buff": 1.2
+        }
+      },
+      {
+        "name": "Wind Shear",
+        "when": "Interrupt casting at range",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_casting == true",
+          "and in_range == true",
+          "or target_is_healer_casting == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "healer_casting": 2.0,
+          "casting_interrupt": 1.8,
+          "range_interrupt": 1.5,
+          "utility_interrupt": 1.2
+        }
+      },
+      {
+        "name": "Grounding Totem",
+        "when": "Intercept harmful spells",
+        "priority": "high",
+        "conditions": [
+          "area_has_harmful_spells == true",
+          "or ally_group_under_spell_damage == true",
+          "or need_to_protect_group == true"
+        ],
+        "target": "area",
+        "context_weights": {
+          "harmful_spells": 2.0,
+          "group_protection": 1.8,
+          "spell_intercept": 1.5,
+          "utility_totem": 1.2
+        }
+      },
+      {
+        "name": "Stoneskin Totem",
+        "when": "Reduce physical damage taken",
+        "priority": "medium",
+        "conditions": [
+          "team_facing_physical_damage == true",
+          "or sustained_physical_damage_expected == true",
+          "or physical_damage_reduction_needed == true"
+        ],
+        "target": "area",
+        "context_weights": {
+          "physical_damage": 2.0,
+          "sustained_damage": 1.8,
+          "damage_reduction": 1.5,
+          "defensive_totem": 1.2
+        }
+      },
+      {
+        "name": "Windfury Totem",
+        "when": "Increase melee damage",
+        "priority": "medium",
+        "conditions": [
+          "team_has_melee_dps == true",
+          "or sustained_combat_engagement == true",
+          "or melee_damage_buff_needed == true"
+        ],
+        "target": "area",
+        "context_weights": {
+          "melee_dps": 2.0,
+          "sustained_combat": 1.8,
+          "damage_buff": 1.5,
+          "offensive_totem": 1.2
+        }
+      },
+      {
+        "name": "Searing Totem",
+        "when": "Provide sustained damage",
+        "priority": "medium",
+        "conditions": [
+          "sustained_damage_needed == true",
+          "or totem_slot_available == true",
+          "or team_fight_engagement == true"
+        ],
+        "target": "area",
+        "context_weights": {
+          "sustained_damage": 1.8,
+          "totem_utilization": 1.5,
+          "team_fight": 1.2
+        }
+      },
+      {
+        "name": "Magma Totem",
+        "when": "AoE damage in area",
+        "priority": "medium",
+        "conditions": [
+          "multiple_enemies_in_area == true",
+          "or area_damage_needed == true",
+          "or sustained_aoe_damage == true"
+        ],
+        "target": "area",
+        "context_weights": {
+          "multiple_targets": 2.0,
+          "aoe_damage": 1.8,
+          "sustained_damage": 1.5
+        }
+      }
+    ],
+    "defensive": [
+      {
+        "name": "Astral Recall",
+        "when": "Escape dangerous situation",
+        "priority": "high",
+        "conditions": [
+          "self_hp_percent <= 20",
+          "or overwhelmed == true",
+          "or escape_necessity == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "escape_necessity": 2.0,
+          "overwhelmed": 1.8,
+          "survival": 1.5,
+          "emergency_escape": 1.2
+        }
+      },
+      {
+        "name": "Grounding Totem",
+        "when": "Protect against harmful spells",
+        "priority": "high",
+        "conditions": [
+          "enemy_casting_harmful_spell == true",
+          "or ally_group_under_spell_damage == true",
+          "or spell_intercept_opportunity == true"
+        ],
+        "target": "area",
+        "context_weights": {
+          "harmful_spell": 2.0,
+          "group_protection": 1.8,
+          "spell_intercept": 1.5,
+          "defensive_totem": 1.2
+        }
+      },
+      {
+        "name": "Wind Shear",
+        "when": "Interrupt dangerous casting",
+        "priority": "very_high",
+        "conditions": [
+          "target_casting_lethal_spell == true",
+          "or healer_casting_big_heal == true",
+          "or high_priority_interrupt == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "lethal_spell": 2.0,
+          "big_heal": 1.8,
+          "high_priority": 1.5
+        }
+      }
+    ]
+  },
+  "battleground_overrides": {
+    "WSG": {
+      "objective_focus": "flag_capture_defense",
+      "behavior_mods": [
+        "prioritize_flag_carrier_protection",
+        "assign_2_defenders_to_flagroom",
+        "use_hex_on_flag_carrier_escorts",
+        "maintain_vision_of_enemy_base",
+        "apply_pressure_with_elemental_damage",
+        "maintain_flag_carrier_healing"
+      ],
+      "role_assignments": {
+        "flag_defender": ["maintain_flag_room", "kill_attackers", "apply_cc"],
+        "escort": ["protect_flag_carrier", "maintain_healing", "apply_totems"],
+        "midfield": ["control_tunnel", "intercept_resurrections", "maintain_vision"]
+      }
+    },
+    "AB": {
+      "objective_focus": "base_control",
+      "behavior_mods": [
+        "maintain_three_base_control_if_possible",
+        "leave_min_defenders_at_each_base(2)",
+        "rotate_to_reinforce_weak_base",
+        "maintain_base_healing",
+        "apply_cc_to_base_attackers",
+        "maintain_vision_control"
+      ],
+      "role_assignments": {
+        "base_defender": ["maintain_base_control", "kill_cappers", "apply_cc"],
+        "base_attacker": ["apply_pressure", "kill_defenders", "maintain_healing"],
+        "support": ["provide_healing", "maintain_vision", "assist_in_fights"]
+      }
+    },
+    "AV": {
+      "objective_focus": "tower_and_commander_kills",
+      "behavior_mods": [
+        "focus_on_capturing_towers_and_killing_captains",
+        "escort_raid_groups_for_commander_assaults",
+        "maintain_NPC_target_healing",
+        "apply_cc_to_NPC_guards",
+        "maintain_tower_control"
+      ],
+      "role_assignments": {
+        "tower_attacker": ["capture_towers", "kill_NPC_guards", "maintain_healing"],
+        "commander_assassin": ["kill_commanders", "apply_cc", "maintain_escape"],
+        "escort": ["protect_assassins", "kill_NPC_defenders", "maintain_healing"]
+      }
+    },
+    "EOTS": {
+      "objective_focus": "flag_and_mid_control",
+      "behavior_mods": [
+        "control_mid_for_flag_safety",
+        "escort_flag_carrier_via_towers",
+        "maintain_mid_healing",
+        "apply_cc_to_mid_attackers",
+        "maintain_flag_access_control"
+      ],
+      "role_assignments": {
+        "mid_controller": ["control_mid", "deny_flag_access", "maintain_healing"],
+        "flag_protector": ["escort_carrier", "maintain_healing", "apply_cc"],
+        "base_defender": ["defend_bases", "kill_cappers", "maintain_healing"]
+      }
+    },
+    "SOTA": {
+      "objective_focus": "vehicle_protection_and_support",
+      "behavior_mods": [
+        "protect_demolishers",
+        "clear_path_for_vehicle_push",
+        "maintain_vehicle_healing",
+        "apply_cc_to_vehicle_attackers",
+        "maintain_wall_breach_support"
+      ],
+      "role_assignments": {
+        "vehicle_protector": ["protect_vehicles", "maintain_healing", "apply_cc"],
+        "wall_destroyer": ["damage_walls", "maintain_healing", "apply_cc"],
+        "escort": ["clear_path", "kill_defenders", "maintain_healing"]
+      }
+    },
+    "IOC": {
+      "objective_focus": "workshop_and_gate_destruction",
+      "behavior_mods": [
+        "rush_workshop_priority",
+        "escort_siege_to_gate",
+        "if_towers_vulnerable -> docks_glaive_focus",
+        "maintain_workshop_healing",
+        "apply_cc_to_workshop_attackers"
+      ],
+      "role_assignments": {
+        "workshop_capper": ["capture_workshop", "maintain_healing", "apply_cc"],
+        "gate_destroyer": ["damage_gate", "maintain_healing", "apply_cc"],
+        "escort": ["protect_siege", "kill_attackers", "maintain_healing"]
+      }
+    }
+  },
+  "adaptive_behavior": {
+    "team_size": {
+      "1": ["avoid_fights", "objective_control", "defensive_positioning"],
+      "2-3": ["engage_favorable_fights", "objective_support", "coordinated_pushes"],
+      "4+": ["aggressive_objective_control", "team_fights", "win_conditions"]
+    },
+    "enemy_composition": {
+      "high_healer_count": ["prioritize_healer_cc", "interrupt_healing", "apply_pressure"],
+      "melee_heavy": ["use_earthbind_totem", "maintain_distance", "kite_effectively"],
+      "ranged_heavy": ["use_hex", "control_area", "focus_fire"]
+    },
+    "game_state": {
+      "behind": ["defensive_positioning", "protect_objectives", "wait_for_mistakes"],
+      "ahead": ["aggressive_pushing", "maintain_pressure", "secure_win"],
+      "close": ["maximize_fights", "win_exchanges", "control_objectives"]
+    }
+  },
+  "tactical_positioning": {
+    "key_locations": {
+      "WSG_flag_room": {
+        "defensive_positions": ["flag_stand", "entrance", "behind_cover"],
+        "offensive_positions": ["approach", "escape_routes", "control_points"]
+      },
+      "AB_base_circles": {
+        "defensive_positions": ["inside_circle", "approach_angles", "escape_routes"],
+        "offensive_positions": ["approach", "flank_routes", "control_points"]
+      },
+      "AV_tower_approaches": {
+        "defensive_positions": ["tower_base", "approach_control", "escape_routes"],
+        "offensive_positions": ["approach_angles", "flank_routes", "control_points"]
+      }
+    }
+  },
+  "resource_management": {
+    "mana_efficiency": {
+      "spending_strategy": ["save_for_emergency", "spend_on_opportunity", "maintain_efficiency"],
+      "priority_targets": ["emergency_healing", "sustained_healing", "utility_benefits"]
+    },
+    "totem_utilization": {
+      "placement_strategy": ["defensive_totems_first", "offensive_totems_second", "utility_totems_as_needed"],
+      "priority_locations": ["base_circles", "chokepoints", "team_fight_areas"]
+    }
+  }
+}

@@ -497,4 +497,12 @@ public:
         : SetTotemTrigger(ai, "grounding totem", SPELL_GROUNDING_TOTEM_RANK_1, GROUNDING_TOTEM, TOTEM_BAR_SLOT_AIR) {}
 };
 
+// PvP-specific Ghost Wolf trigger for flag carrier mobility and speed
+class GhostWolfPvPTrigger : public Trigger
+{
+public:
+    GhostWolfPvPTrigger(PlayerbotAI* botAI) : Trigger(botAI, "ghost wolf pvp") {}
+    bool IsActive() override;
+};
+
 #endif

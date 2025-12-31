@@ -1,0 +1,122 @@
+{
+  "module": "Behavior_Profiles",
+  "version": "3.3.5a",
+  "description": "Personality model to diversify bot actions: Aggressive, Balanced, Defensive, Objective-Only.",
+  "profiles": {
+    "aggressive": {
+      "chase_distance": 40,
+      "commit_to_kill": true,
+      "objective_compliance": 0.7,
+      "risk_acceptance": 0.9,
+      "cooldown_usage_multiplier": 1.1,
+      "behavior_mods": {
+        "combat": ["engage_favorable_fights", "pursue_targets", "apply_pressure"],
+        "objectives": ["contest_objectives", "apply_pressure", "maintain_aggro"],
+        "movement": ["aggressive_positioning", "close_distance", "maintain_threat"]
+      },
+      "priority_targets": ["healers", "flag_carriers", "casters", "dps"],
+      "engage_conditions": ["advantageous_situations", "outnumbered_enemies", "high_dps_targets"]
+    },
+    "balanced": {
+      "chase_distance": 28,
+      "commit_to_kill": true,
+      "objective_compliance": 0.9,
+      "risk_acceptance": 0.6,
+      "cooldown_usage_multiplier": 1.0,
+      "behavior_mods": {
+        "combat": ["engage_favorable_fights", "maintain_positioning", "team_support"],
+        "objectives": ["maintain_objective_control", "team_support", "balanced_push"],
+        "movement": ["balanced_positioning", "maintain_formation", "team_coordination"]
+      },
+      "priority_targets": ["flag_carriers", "healers", "casters", "dps"],
+      "engage_conditions": ["balanced_situations", "team_support_available", "moderate_advantage"]
+    },
+    "defensive": {
+      "chase_distance": 18,
+      "commit_to_kill": false,
+      "objective_compliance": 0.95,
+      "risk_acceptance": 0.3,
+      "cooldown_usage_multiplier": 0.8,
+      "behavior_mods": {
+        "combat": ["avoid_unnecessary_fights", "maintain_survival", "protect_team"],
+        "objectives": ["defend_objectives", "maintain_control", "deny_enemy"],
+        "movement": ["defensive_positioning", "maintain_cover", "safe_retreat"]
+      },
+      "priority_targets": ["flag_carriers", "high_damage_dealers", "casters", "healers"],
+      "engage_conditions": ["defensive_positions", "team_support", "safe_engagement"]
+    },
+    "objective_only": {
+      "chase_distance": 10,
+      "commit_to_kill": false,
+      "objective_compliance": 1.0,
+      "risk_acceptance": 0.1,
+      "cooldown_usage_multiplier": 0.6,
+      "behavior_mods": {
+        "combat": ["avoid_fights", "escort_flag_carrier", "maintain_objective"],
+        "objectives": ["capture_objectives", "maintain_control", "escort_duty"],
+        "movement": ["objective_focused", "safe_routes", "minimize_risk"]
+      },
+      "priority_targets": ["flag_carriers", "objective_defenders", "escort_targets", "support_targets"],
+      "engage_conditions": ["objective_related", "safe_engagement", "team_support"]
+    }
+  },
+  "assignment_rules": [
+    "assign_profile_based_on_role_and_team_needs",
+    "if team_needs_objectives then bias_towards_objective_only_or_balanced",
+    "randomize_profiles_by_10_percent_to_avoid_predictability",
+    "assign_aggressive_for_flag_carriers",
+    "assign_defensive_for_flag_protectors",
+    "assign_balanced_for_general_support",
+    "assign_objective_only_for_strategic_objective_control"
+  ],
+  "adaptive_behavior": {
+    "team_size": {
+      "1": ["defensive_behavior", "avoid_fights", "objective_control"],
+      "2-3": ["balanced_behavior", "selective_engagement", "team_support"],
+      "4+": ["aggressive_behavior", "team_fights", "objective_pushes"]
+    },
+    "game_state": {
+      "behind": ["defensive_behavior", "protect_objectives", "wait_for_mistakes"],
+      "ahead": ["balanced_behavior", "maintain_pressure", "secure_win"],
+      "close": ["aggressive_behavior", "maximize_fights", "control_objectives"]
+    },
+    "enemy_composition": {
+      "high_healer_count": ["balanced_to_defensive", "prioritize_healer_control", "apply_pressure"],
+      "melee_heavy": ["defensive_behavior", "maintain_distance", "kite_effectively"],
+      "ranged_heavy": ["balanced_behavior", "use_cover", "focus_fire"]
+    }
+  },
+  "tactical_positioning": {
+    "aggressive": {
+      "positions": ["front_line", "flank_routes", "aggressive_approaches"],
+      "movement": ["pursue_targets", "close_distance", "maintain_threat"]
+    },
+    "balanced": {
+      "positions": ["mid_line", "support_positions", "balanced_approaches"],
+      "movement": ["maintain_formation", "team_coordination", "balanced_push"]
+    },
+    "defensive": {
+      "positions": ["defensive_positions", "cover_positions", "retreat_routes"],
+      "movement": ["maintain_cover", "safe_retreat", "defensive_positioning"]
+    },
+    "objective_only": {
+      "positions": ["objective_circles", "escort_positions", "safe_routes"],
+      "movement": ["objective_focused", "minimize_risk", "escort_duty"]
+    }
+  },
+  "resource_management": {
+    "cooldown_utilization": {
+      "aggressive": ["maximize_damage", "engage_opportunities", "pressure_application"],
+      "balanced": ["balanced_usage", "situational_awareness", "team_support"],
+      "defensive": ["survival_focused", "emergency_situations", "team_protection"],
+      "objective_only": ["minimal_usage", "emergency_only", "objective_support"]
+    }
+  },
+  "cpp_hooks": [
+    "BotProfileManager::AssignProfile()",
+    "BotProfileManager::ModifyAggression()",
+    "BotProfileManager::UpdateBehavior()",
+    "BotProfileManager::ApplyAdaptiveRules()",
+    "BotProfileManager::CheckTeamNeeds()"
+  ]
+}

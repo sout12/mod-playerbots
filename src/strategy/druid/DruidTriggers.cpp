@@ -61,3 +61,111 @@ bool HurricaneChannelCheckTrigger::IsActive()
     // Not channeling Hurricane
     return false;
 }
+
+// Travel Form PvP - Shift to Travel Form when flag carrier for speed boost
+bool TravelFormPvPTrigger::IsActive()
+{
+    // Must have Travel Form spell (783)
+    if (!bot->HasSpell(783))
+        return false;
+    
+    // Works in battlegrounds, arenas, AND world PvP
+    if (!bot->InBattleground() && !bot->InArena())
+        return false;
+    
+    // Already in travel form
+    if (botAI->HasAura("travel form", bot))
+        return false;
+    
+    // Shift to Travel Form if we're a flag carrier (WSG: 23333/23335, EotS: 34976)
+    bool isFlagCarrier = bot->HasAura(23333) || bot->HasAura(23335) || bot->HasAura(34976);
+    if (isFlagCarrier)
+    {
+        // Only shift if HP > 30% (otherwise stay caster to heal)
+        if (bot->GetHealthPct() > 30.0f)
+            return true;
+    }
+    
+    return false;
+}
+
+// Entangling Roots PvP - Root fleeing flag carriers
+bool EntanglingRootsPvPTrigger::IsActive()
+{
+    // Must have Entangling Roots spell
+    if (!bot->HasSpell(339))
+        return false;
+    
+    // Works in battlegrounds, arenas, AND world PvP
+    Unit* target = bot->GetSelectedUnit();
+    if (!target || !target->IsPlayer())
+        return false;
+    
+    // Check if in PvP scenario
+    if (!bot->InBattleground() && !bot->InArena() && !bot->IsInCombat())
+        return false;
+    
+    Player* enemy = target->ToPlayer();
+    float dist = bot->GetDistance(enemy);
+    
+    // Range check (~30 yards)
+    if (dist > 30.0f)
+        return false;
+    
+    // Already rooted
+    if (enemy->HasAuraType(SPELL_AURA_MOD_ROOT))
+        return false;
+    
+    // Priority 1: Flag carrier fleeing
+    bool isFlagCarrier = enemy->HasAura(23333) || enemy->HasAura(23335) || enemy->HasAura(34976);
+    if (isFlagCarrier && enemy->isMoving())
+        return true;
+    
+    // Priority 2: Any target fleeing at distance > 15y
+    bool isFleeing = enemy->isMoving() && dist > 15.0f;
+    if (isFleeing)
+        return true;
+    
+    return false;
+}
+
+// Dash PvP - Use Dash in cat form when flag carrier or chasing
+bool DashPvPTrigger::IsActive()
+{
+    // Must have Dash spell (1850) and be in cat form
+    if (!bot->HasSpell(1850) || bot->HasSpellCooldown(1850))
+        return false;
+    
+    if (!botAI->HasAura("cat form", bot))
+        return false;
+    
+    // Works in battlegrounds, arenas, AND world PvP
+    if (!bot->InBattleground() && !bot->InArena() && !bot->IsInCombat())
+        return false;
+    
+    // Already has Dash buff
+    if (botAI->HasAura("dash", bot))
+        return false;
+    
+    // Use Dash if we're a flag carrier
+    if (bot->HasAura(23333) || bot->HasAura(23335) || bot->HasAura(34976))
+        return true;
+    
+    // Use Dash if chasing a flag carrier
+    Unit* target = bot->GetSelectedUnit();
+    if (target && target->IsPlayer())
+    {
+        Player* enemy = target->ToPlayer();
+        bool isFlagCarrier = enemy->HasAura(23333) || enemy->HasAura(23335) || enemy->HasAura(34976);
+        float dist = bot->GetDistance(enemy);
+        
+        if (isFlagCarrier && enemy->isMoving() && dist > 15.0f)
+            return true;
+        
+        // Chase any fleeing enemy in combat
+        if (bot->IsInCombat() && enemy->isMoving() && dist > 20.0f && dist < 40.0f)
+            return true;
+    }
+    
+    return false;
+}

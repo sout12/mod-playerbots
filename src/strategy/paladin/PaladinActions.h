@@ -378,6 +378,21 @@ public:
 
 PROTECT_ACTION(CastBlessingOfProtectionProtectAction, "blessing of protection");
 
+class CastHandOfFreedomAction : public CastSpellAction
+{
+public:
+    CastHandOfFreedomAction(PlayerbotAI* botAI) : CastSpellAction(botAI, "hand of freedom") {}
+    Value<Unit*>* GetTargetValue() override;
+};
+
+class CastHandOfFreedomOnPartyAction : public BuffOnPartyAction
+{
+public:
+    CastHandOfFreedomOnPartyAction(PlayerbotAI* botAI) : BuffOnPartyAction(botAI, "hand of freedom") {}
+    std::string const getName() override { return "hand of freedom on party"; }
+    Value<Unit*>* GetTargetValue() override;
+};
+
 class CastDivinePleaAction : public CastBuffSpellAction
 {
 public:

@@ -76,3 +76,87 @@ bool DeathAndDecayCooldownTrigger::IsActive()
 
     return bot->GetSpellCooldownDelay(spellId) >= 2000;
 }
+
+// Death Grip PvP - Pull fleeing flag carriers, healers, or any fleeing player target
+bool DeathGripPvPTrigger::IsActive()
+{
+    // Must have Death Grip spell (49576)
+    if (!bot->HasSpell(49576) || bot->HasSpellCooldown(49576))
+        return false;
+    
+    // Works in battlegrounds, arenas, AND world PvP
+    Unit* target = bot->GetSelectedUnit();
+    if (!target || !target->IsPlayer())
+        return false;
+    
+    // Check if in PvP scenario
+    if (!bot->InBattleground() && !bot->InArena() && !bot->IsInCombat())
+        return false;
+    
+    Player* enemy = target->ToPlayer();
+    float dist = bot->GetDistance(enemy);
+    
+    // Death Grip range: 8-30 yards (can't use too close or too far)
+    if (dist < 8.0f || dist > 30.0f)
+        return false;
+    
+    // Check if target is fleeing (moving away and not in melee range)
+    bool isFleeing = enemy->isMoving() && !bot->IsWithinMeleeRange(enemy);
+    if (!isFleeing)
+        return false;
+    
+    // Priority 1: Flag carrier trying to escape (highest priority)
+    bool isFlagCarrier = enemy->HasAura(23333) || enemy->HasAura(23335) || enemy->HasAura(34976);
+    if (isFlagCarrier)
+        return true;
+    
+    // Priority 2: Healer fleeing
+    if (botAI->IsHeal(enemy))
+        return true;
+    
+    // Priority 3: Any fleeing target at distance > 20y
+    if (dist > 20.0f)
+        return true;
+    
+    return false;
+}
+
+// Chains of Ice PvP - Slow flag carriers and fleeing targets
+bool ChainsOfIcePvPTrigger::IsActive()
+{
+    // Must have Chains of Ice spell (45524)
+    if (!bot->HasSpell(45524) || bot->HasSpellCooldown(45524))
+        return false;
+    
+    // Works in battlegrounds, arenas, AND world PvP
+    Unit* target = bot->GetSelectedUnit();
+    if (!target || !target->IsPlayer())
+        return false;
+    
+    // Check if in PvP scenario
+    if (!bot->InBattleground() && !bot->InArena() && !bot->IsInCombat())
+        return false;
+    
+    Player* enemy = target->ToPlayer();
+    float dist = bot->GetDistance(enemy);
+    
+    // Chains of Ice range: ~30 yards
+    if (dist > 30.0f)
+        return false;
+    
+    // Already slowed by Chains of Ice
+    if (enemy->HasAura(45524))
+        return false;
+    
+    // Priority 1: Flag carrier moving away
+    bool isFlagCarrier = enemy->HasAura(23333) || enemy->HasAura(23335) || enemy->HasAura(34976);
+    if (isFlagCarrier && enemy->isMoving())
+        return true;
+    
+    // Priority 2: Target fleeing at distance > 10y
+    bool isFleeing = enemy->isMoving() && !bot->IsWithinMeleeRange(enemy);
+    if (isFleeing && dist > 10.0f)
+        return true;
+    
+    return false;
+}

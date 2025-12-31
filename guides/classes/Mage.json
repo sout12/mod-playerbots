@@ -1,0 +1,724 @@
+{
+  "class": "Mage",
+  "version": "3.3.5a",
+  "roles": [
+    "ranged_dps",
+    "cc",
+    "kiting",
+    "flag_defender"
+  ],
+  "game_state": {
+    "early_game": {
+      "focus": "establish presence, contest objectives",
+      "priority": [
+        "maintain_vision",
+        "apply pressure",
+        "maintain_positioning"
+      ]
+    },
+    "mid_game": {
+      "focus": "control key objectives, engage in team fights",
+      "priority": [
+        "flag_carrier_defense",
+        "objective_control",
+        "team_fight_support"
+      ]
+    },
+    "late_game": {
+      "focus": "secure win condition, defend lead",
+      "priority": [
+        "defend_flag_carrier",
+        "defend_objectives",
+        "close_out_game"
+      ]
+    }
+  },
+  "general_priority_list": [
+    "polymorph_dangerous_targets",
+    "counterspell_on_big_heals",
+    "iceblock_to_negate_burst",
+    "frost_nova_for_melee_control",
+    "maintain_distance_control",
+    "mana_efficiency",
+    "area_control_with_aoe"
+  ],
+  "spell_rules": {
+    "crowd_control": [
+      {
+        "name": "Polymorph",
+        "when": "CC a healer or key caster",
+        "priority": "very_high",
+        "conditions": [
+          "is_healer(target) == true",
+          "or target_is_priority == true",
+          "or target_is_flag_carrier_and_low_hp == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "healer": 2.0,
+          "flag_carrier": 1.8,
+          "priority_target": 1.5,
+          "caster": 1.2
+        }
+      },
+      {
+        "name": "Frost Nova",
+        "when": "Root nearby melee to setup kill or kite",
+        "priority": "high",
+        "conditions": [
+          "enemy_within_melee_range == true",
+          "or multiple_enemies_approaching == true",
+          "or need_to_escape_melee == true"
+        ],
+        "target": "area",
+        "context_weights": {
+          "escape_necessity": 2.0,
+          "multiple_enemies": 1.8,
+          "melee_control": 1.5
+        }
+      },
+      {
+        "name": "Cone of Cold",
+        "when": "AoE slow and damage",
+        "priority": "medium",
+        "conditions": [
+          "multiple_enemies_in_front == true",
+          "or need_to_slow_approaching_enemies == true",
+          "or sustained_combat_engagement == true"
+        ],
+        "target": "area",
+        "context_weights": {
+          "multiple_targets": 1.8,
+          "sustained_combat": 1.5,
+          "approach_control": 1.2
+        }
+      },
+      {
+        "name": "Freeze",
+        "when": "CC with Water Elemental",
+        "priority": "high",
+        "conditions": [
+          "water_elemental_active == true",
+          "or target_is_vulnerable == true",
+          "or cc_opportunity_available == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "water_elemental_active": 2.0,
+          "vulnerable_target": 1.8,
+          "cc_opportunity": 1.5
+        }
+      },
+      {
+        "name": "Deep Freeze",
+        "when": "CC a healer instantly or burst target",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_healer == true AND fingers_of_frost_stacks > 0",
+          "or target_is_frozen == true"
+        ],
+        "target": "enemy_healer"
+      }
+    ],
+    "interrupts": [
+      {
+        "name": "Counterspell",
+        "when": "Interrupt casting at range",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_casting == true and in_range == true",
+          "or target_is_healer_casting_emergency_heal == true",
+          "or target_is_casting_high_priority_spell == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "healer_casting": 2.0,
+          "emergency_heal": 1.8,
+          "high_priority_spell": 1.5
+        }
+      }
+    ],
+    "defensive": [
+      {
+        "name": "Ice Block",
+        "when": "Prevent lethal damage or remove debuff",
+        "priority": "very_high",
+        "conditions": [
+          "self_hp_percent <= 10",
+          "or dangerous_dot_active == true",
+          "or incoming_lethal_damage == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "lethal_damage": 2.0,
+          "dangerous_dot": 1.8,
+          "survival": 1.5
+        }
+      },
+      {
+        "name": "Ice Barrier",
+        "when": "Prevent burst damage",
+        "priority": "high",
+        "conditions": [
+          "self_hp_percent <= 40",
+          "or incoming_damage_estimate >= 1500",
+          "or enemy_has_bloodlust_active == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "high_damage": 1.8,
+          "bloodlust_active": 1.5,
+          "burst_protection": 1.2
+        }
+      },
+      {
+        "name": "Frost Nova",
+        "when": "Create distance and control melee",
+        "priority": "high",
+        "conditions": [
+          "melee_too_close == true",
+          "or multiple_melee_approaching == true",
+          "or need_to_escape == true"
+        ],
+        "target": "area",
+        "context_weights": {
+          "escape_necessity": 2.0,
+          "multiple_melee": 1.8,
+          "distance_control": 1.5
+        }
+      },
+      {
+        "name": "Mana Shield",
+        "when": "Convert mana to damage absorption",
+        "priority": "high",
+        "conditions": [
+          "self_hp_percent <= 30",
+          "or mana_pool_available == true",
+          "or damage_absorption_needed == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "low_hp": 2.0,
+          "mana_available": 1.8,
+          "damage_absorption": 1.5
+        }
+      },
+      {
+        "name": "Ice Armor",
+        "when": "Maintain defensive buff",
+        "priority": "medium",
+        "conditions": [
+          "buff_expired == true",
+          "or frost_resistance_needed == true",
+          "or sustained_combat_engagement == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "buff_refresh": 1.8,
+          "frost_resistance": 1.5,
+          "sustained_combat": 1.2
+        }
+      }
+    ],
+    "damage": [
+      {
+        "name": "Fire Blast",
+        "when": "Interrupt casting or apply damage",
+        "priority": "high",
+        "conditions": [
+          "target_is_casting == true",
+          "or target_is_low_hp == true",
+          "or need_to_apply_instant_damage == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "casting_interrupt": 2.0,
+          "low_hp_target": 1.8,
+          "instant_damage": 1.5
+        }
+      },
+      {
+        "name": "Pyroblast",
+        "when": "High damage during movement",
+        "priority": "high",
+        "conditions": [
+          "target_is_moving == true",
+          "or target_has_hot_streak == true",
+          "or need_to_burst_target == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "movement_damage": 2.0,
+          "hot_streak": 1.8,
+          "burst_opportunity": 1.5
+        }
+      },
+      {
+        "name": "Living Bomb",
+        "when": "AoE damage over time",
+        "priority": "medium",
+        "conditions": [
+          "multiple_enemies_grouped == true",
+          "or sustained_combat_engagement == true",
+          "or need_to_apply_aoe_damage == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "multiple_targets": 2.0,
+          "sustained_combat": 1.5,
+          "aoe_damage": 1.2
+        }
+      },
+      {
+        "name": "Scorch",
+        "when": "Apply damage and generate Fire damage",
+        "priority": "medium",
+        "conditions": [
+          "need_to_generate_fire_damage == true",
+          "or sustained_damage_needed == true",
+          "or damage_over_time_opportunity == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "fire_generation": 2.0,
+          "sustained_damage": 1.5,
+          "damage_opportunity": 1.2
+        }
+      },
+      {
+        "name": "Arcane Blast",
+        "when": "High damage with mana efficiency",
+        "priority": "high",
+        "conditions": [
+          "mana_efficiency_optimal == true",
+          "or high_damage_opportunity == true",
+          "or arcane_power_available == true"
+        ],
+        "target": "enemy",
+        "context_weights": {
+          "mana_efficiency": 2.0,
+          "high_damage": 1.8,
+          "arcane_power": 1.5
+        }
+      },
+      {
+        "name": "Blizzard",
+        "when": "AoE damage in area",
+        "priority": "medium",
+        "conditions": [
+          "multiple_enemies_in_area == true",
+          "or area_damage_needed == true",
+          "or sustained_aoe_damage == true"
+        ],
+        "target": "area",
+        "context_weights": {
+          "multiple_targets": 2.0,
+          "area_damage": 1.8,
+          "sustained_aoe": 1.5
+        }
+      }
+    ],
+    "utility": [
+      {
+        "name": "Spellsteal",
+        "when": "Steal high priority buffs",
+        "priority": "very_high",
+        "conditions": [
+          "target_has_buff(Blessing of Freedom) == true",
+          "or target_has_buff(Power Infusion) == true",
+          "or target_has_buff(Bloodlust) == true",
+          "or target_is_healer AND target_has_buff(Innervate) == true"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Blink",
+        "when": "Escape melee or reposition",
+        "priority": "high",
+        "conditions": [
+          "melee_too_close == true",
+          "or need_to_escape_dangerous_area == true",
+          "or positioning_adjustment_needed == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "escape_necessity": 2.0,
+          "positioning_adjustment": 1.5,
+          "melee_escape": 1.2
+        }
+      },
+      {
+        "name": "Slow Fall",
+        "when": "Control fall speed",
+        "priority": "medium",
+        "conditions": [
+          "falling_from_height == true",
+          "or need_to_land_safely == true",
+          "or battleground_mechanic_utility == true"
+        ],
+        "target": "self_or_ally",
+        "context_weights": {
+          "falling_damage": 2.0,
+          "safety_landing": 1.5,
+          "utility": 1.0
+        }
+      },
+      {
+        "name": "Invisibility",
+        "when": "Reset combat or escape",
+        "priority": "high",
+        "conditions": [
+          "overwhelmed == true and not_flag_carrier == true",
+          "or need_to_reset_combat == true and not_flag_carrier == true",
+          "or escape_necessity == true and not_flag_carrier == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "overwhelmed": 2.0,
+          "combat_reset": 1.8,
+          "escape_necessity": 1.5
+        },
+        "flag_mechanics": {
+          "drops_flag_when_used": true,
+          "avoid_when_flag_carrier": true,
+          "alternative_escapes": [
+            "blink_escape",
+            "frost_nova_kite",
+            "ice_block_defensive"
+          ]
+        }
+      },
+      {
+        "name": "Evocation",
+        "when": "Restore mana quickly",
+        "priority": "high",
+        "conditions": [
+          "mana_low == true",
+          "or need_mana_emergency == true",
+          "or sustained_combat_mana_needed == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "mana_emergency": 2.0,
+          "sustained_combat": 1.8,
+          "mana_restoration": 1.5
+        }
+      },
+      {
+        "name": "Mage Armor",
+        "when": "Maintain mana efficiency",
+        "priority": "medium",
+        "conditions": [
+          "mana_efficiency_needed == true",
+          "or armor_buff_expired == true",
+          "or sustained_combat_engagement == true"
+        ],
+        "target": "self",
+        "context_weights": {
+          "mana_efficiency": 2.0,
+          "buff_refresh": 1.5,
+          "sustained_combat": 1.2
+        }
+      }
+    ]
+  },
+  "mana_and_cooldown_logic": {
+    "use_evocation_if_mana_lt_percent": 25,
+    "mana_efficiency_strategies": [
+      "prioritize_high_dpi_spells",
+      "avoid_spam_casting",
+      "use_mana_gem_when_low",
+      "maintain_aoe_efficiency"
+    ],
+    "cooldown_rotation": [
+      "use_bloodlust_equivalent_when_available",
+      "coordinate_major_cooldowns",
+      "save_defensive_cooldowns_for_emergency"
+    ]
+  },
+  "battleground_overrides": {
+    "WSG": {
+      "objective_focus": "flag_capture_defense",
+      "behavior_mods": [
+        "prioritize_flag_carrier_defense",
+        "assign_2_defenders_to_flagroom",
+        "use_polymorph_on_flag_carrier_escorts",
+        "maintain_vision_of_enemy_base",
+        "apply_pressure_with_ranged_damage",
+        "use_ice_block_to_escape_flag_carrier"
+      ],
+      "role_assignments": {
+        "flag_defender": [
+          "maintain_flag_room",
+          "kill_attackers",
+          "apply_cc"
+        ],
+        "escort": [
+          "protect_flag_carrier",
+          "interrupt_escorts",
+          "maintain_distance"
+        ],
+        "midfield": [
+          "control_tunnel",
+          "intercept_resurrections",
+          "maintain_vision"
+        ]
+      }
+    },
+    "AB": {
+      "objective_focus": "base_control",
+      "behavior_mods": [
+        "maintain_three_base_control_if_possible",
+        "leave_min_defenders_at_each_base(2)",
+        "rotate_to_reinforce_weak_base",
+        "use_aoe_for_base_control",
+        "apply_damage_to_base_attackers",
+        "maintain_vision_control"
+      ],
+      "role_assignments": {
+        "base_defender": [
+          "maintain_base_control",
+          "kill_cappers",
+          "use_aoe"
+        ],
+        "base_attacker": [
+          "apply_pressure",
+          "kill_defenders",
+          "maintain_vision"
+        ],
+        "support": [
+          "provide_vision",
+          "apply_damage",
+          "assist_in_fights"
+        ]
+      }
+    },
+    "AV": {
+      "objective_focus": "tower_and_commander_kills",
+      "behavior_mods": [
+        "focus_on_capturing_towers_and_killing_captains",
+        "escort_raid_groups_for_commander_assaults",
+        "use_aoe_for_NPC_guards",
+        "apply_damage_to_tower_attackers",
+        "maintain_tower_control"
+      ],
+      "role_assignments": {
+        "tower_attacker": [
+          "capture_towers",
+          "kill_NPC_guards",
+          "maintain_vision"
+        ],
+        "commander_assassin": [
+          "kill_commanders",
+          "apply_damage",
+          "maintain_escape"
+        ],
+        "escort": [
+          "protect_assassins",
+          "kill_NPC_defenders",
+          "maintain_vision"
+        ]
+      }
+    },
+    "EOTS": {
+      "objective_focus": "flag_and_mid_control",
+      "behavior_mods": [
+        "control_mid_for_flag_safety",
+        "escort_flag_carrier_via_towers",
+        "use_aoe_in_mid_area",
+        "apply_damage_to_mid_attackers",
+        "maintain_flag_access_control"
+      ],
+      "role_assignments": {
+        "mid_controller": [
+          "control_mid",
+          "deny_flag_access",
+          "apply_damage"
+        ],
+        "flag_protector": [
+          "escort_carrier",
+          "interrupt_escorts",
+          "maintain_vision"
+        ],
+        "base_defender": [
+          "defend_bases",
+          "kill_cappers",
+          "maintain_vision"
+        ]
+      }
+    },
+    "SOTA": {
+      "objective_focus": "vehicle_protection_and_damage",
+      "behavior_mods": [
+        "protect_demolishers",
+        "clear_path_for_vehicle_push",
+        "use_aoe_to_protect_vehicles",
+        "apply_damage_to_vehicle_attackers",
+        "maintain_wall_breach_support"
+      ],
+      "role_assignments": {
+        "vehicle_protector": [
+          "protect_vehicles",
+          "apply_damage",
+          "maintain_vision"
+        ],
+        "wall_destroyer": [
+          "damage_walls",
+          "maintain_vision",
+          "apply_damage"
+        ],
+        "escort": [
+          "clear_path",
+          "kill_defenders",
+          "maintain_vision"
+        ]
+      }
+    },
+    "IOC": {
+      "objective_focus": "workshop_and_gate_destruction",
+      "behavior_mods": [
+        "rush_workshop_priority",
+        "escort_siege_to_gate",
+        "if_towers_vulnerable -> docks_glaive_focus",
+        "use_aoe_for_workshop_control",
+        "apply_damage_to_workshop_attackers"
+      ],
+      "role_assignments": {
+        "workshop_capper": [
+          "capture_workshop",
+          "maintain_vision",
+          "use_aoe"
+        ],
+        "gate_destroyer": [
+          "damage_gate",
+          "maintain_vision",
+          "apply_damage"
+        ],
+        "escort": [
+          "protect_siege",
+          "kill_attackers",
+          "maintain_vision"
+        ]
+      }
+    }
+  },
+  "adaptive_behavior": {
+    "team_size": {
+      "1": [
+        "avoid_fights",
+        "objective_control",
+        "defensive_positioning"
+      ],
+      "2-3": [
+        "engage_favorable_fights",
+        "objective_support",
+        "coordinated_pushes"
+      ],
+      "4+": [
+        "aggressive_objective_control",
+        "team_fights",
+        "win_conditions"
+      ]
+    },
+    "enemy_composition": {
+      "high_healer_count": [
+        "prioritize_healer_cc",
+        "interrupt_healing",
+        "apply_pressure"
+      ],
+      "melee_heavy": [
+        "use_frost_nova",
+        "maintain_distance",
+        "kite_effectively"
+      ],
+      "ranged_heavy": [
+        "use_polymorph",
+        "control_area",
+        "focus_fire"
+      ]
+    },
+    "game_state": {
+      "behind": [
+        "defensive_positioning",
+        "protect_objectives",
+        "wait_for_mistakes"
+      ],
+      "ahead": [
+        "aggressive_pushing",
+        "maintain_pressure",
+        "secure_win"
+      ],
+      "close": [
+        "maximize_fights",
+        "win_exchanges",
+        "control_objectives"
+      ]
+    }
+  },
+  "tactical_positioning": {
+    "key_locations": {
+      "WSG_flag_room": {
+        "defensive_positions": [
+          "flag_stand",
+          "entrance",
+          "behind_cover"
+        ],
+        "offensive_positions": [
+          "approach",
+          "escape_routes",
+          "control_points"
+        ]
+      },
+      "AB_base_circles": {
+        "defensive_positions": [
+          "inside_circle",
+          "approach_angles",
+          "escape_routes"
+        ],
+        "offensive_positions": [
+          "approach",
+          "flank_routes",
+          "control_points"
+        ]
+      },
+      "AV_tower_approaches": {
+        "defensive_positions": [
+          "tower_base",
+          "approach_control",
+          "escape_routes"
+        ],
+        "offensive_positions": [
+          "approach_angles",
+          "flank_routes",
+          "control_points"
+        ]
+      }
+    }
+  },
+  "resource_management": {
+    "mana_efficiency": {
+      "spending_strategy": [
+        "save_for_emergency",
+        "spend_on_opportunity",
+        "maintain_efficiency"
+      ],
+      "priority_targets": [
+        "emergency_healing",
+        "sustained_damage",
+        "utility_benefits"
+      ]
+    },
+    "cooldown_utilization": {
+      "rotation_priority": [
+        "defensive_needs",
+        "offensive_opportunities",
+        "utility_uses"
+      ],
+      "emergency_reserves": [
+        "ice_block",
+        "invisibility",
+        "evocation"
+      ]
+    }
+  }
+}

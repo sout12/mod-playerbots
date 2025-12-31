@@ -1,0 +1,99 @@
+{
+  "module": "Enemy_Prediction",
+  "version": "3.3.5a",
+  "description": "Predict enemy cooldowns, fakecasts, movement, and burst windows.",
+  "parameters": {
+    "cooldown_memory_window_s": 45,
+    "fakecast_detection_threshold": 3,
+    "blink_expectation_ms": 2000,
+    "cast_prediction_accuracy": 0.85,
+    "movement_prediction_window_s": 2,
+    "burst_window_prediction_s": 5
+  },
+  "prediction_rules": {
+    "cooldown_tracking": {
+      "description": "Track enemy cooldown usage to anticipate burst windows.",
+      "rules": [
+        "record_use(enemy_id, ability_name, timestamp)",
+        "estimate_cooldown_remaining = ability_base_cd - (now - last_used)",
+        "if ability_name in ['Bloodlust','Heroism','Ice Block','Deterrence','Divine Shield','Hand of Protection','Lay on Hands','Tricks of the Trade','Pain Suppression','Guardian Spirit','Divine Hymn','Innervate','Berserker Rage','Enrage','Last Stand','Shield Wall','Icebound Fortitude','Vampiric Blood','Shadow Dance','Shadowstep','Evasion','Vanish','Cloak of Shadows','Tricks of the Trade','Misdirection','Feign Death','Bestial Wrath','Intimidation','Divine Favor','Avenging Wrath','Lay on Hands','Nature's Swiftness','Nature's Guardian','Earth Shield','Power Word: Shield','Pain Suppression','Guardian Spirit','Divine Hymn','Inner Focus','Focus Magic','Mana Shield','Ice Barrier','Frost Nova','Cone of Cold','Blizzard','Evocation','Arcane Power','Presence of Mind','Pyroblast','Living Bomb','Ignite','Combustion','Hot Streak','Missile Barrage','Brain Freeze','Icy Veins','Cold Snap','Ice Block','Summon Water Elemental','Water Shield','Earth Shock','Flame Shock','Frost Shock','Chain Lightning','Lightning Bolt','Healing Wave','Lesser Healing Wave','Riptide','Earth Shield','Chain Heal','Earthquake','Thunderstorm','Wind Shear','Hex','Purge','Wind Shear','Grounding Totem','Astral Recall','Shamanistic Rage','Feral Spirit','Barkskin','Survival Instincts','Frenzied Regeneration','Berserk','Enrage','Recklessness','Shield Wall','Last Stand','Spell Reflect','Retaliation','Divine Shield','Hand of Protection','Hand of Sacrifice','Divine Protection','Avenging Wrath','Holy Shield','Consecration','Exorcism','Holy Wrath','Hammer of Justice','Repentance','Turn Evil','Divine Illumination','Divine Favor','Inner Focus','Power Word: Shield','Pain Suppression','Guardian Spirit','Divine Hymn','Circle of Healing','Prayer of Mending','Prayer of Healing','Flash Heal','Greater Heal','Heal','Renew','Holy Fire','Smite','Mind Blast','Psychic Scream','Silence','Dispersion','Fade','Mind Control','Shadowform','Shadow Word: Death','Mind Flay','Vampiric Embrace','Vampiric Touch','Devouring Plague','Shadow Word: Pain','Vampiric Touch','Curse of Agony','Corruption','Immolate','Conflagrate','Soul Fire','Shadow Bolt','Drain Life','Drain Soul','Fear','Howl of Terror','Death Coil','Unstable Affliction','Soul Swap','Soulburn','Life Tap','Healthstone','Dark Pact','Soulshatter','Spell Lock','Banish','Seduction','Sacrifice','Suffering','Torment','Consuming Shadows','Metamorphosis','Inferno','Incinerate','Chaos Bolt','Immolation Aura','Fel Armor','Demonic Circle: Summon','Demonic Circle: Teleport','Demonic Empowerment','Demonic Knowledge','Demonic Tactics','Metamorphosis','Soulshatter','Soul Link','Unending Resolve','Nether Ward','Dreadsteed','Summon Felguard','Summon Imp','Summon Succubus','Summon Voidwalker','Summon Felhunter','Grimoire of Service','Grimoire of Sacrifice','Grimoire of Supremacy','Grimoire of Command','Grimoire of Relocation','Grimoire of Teleport','Grimoire of Ritual','Grimoire of Affliction','Grimoire of Destruction','Grimoire of Demonology','Grimoire of Curses','Grimoire of Hexes','Grimoire of Affliction','Grimoire of Destruction','Grimoire of Demonology','Grimoire of Curses','Grimoire of Hexes'] and used_recently < 20s then mark_enemy_in_burst_state = true"
+      ]
+    },
+    "fakecast_detection": {
+      "description": "Detect repeated short casts to bait interrupts.",
+      "rules": [
+        "if target_casts_count_within(5s) > fakecast_detection_threshold then suppress_interrupt_until_confirmed_long_cast",
+        "use_long_cast_required_to_interrupt_flag=True",
+        "track_casting_patterns_for_each_enemy",
+        "analyze_casting_timing_and_frequency",
+        "identify_common_fakecast_patterns",
+        "adjust_interrupt_behavior_based_on_pattern_recognition"
+      ]
+    },
+    "movement_prediction": {
+      "description": "Predict pathing for intercepts and kiting",
+      "rules": [
+        "use_last_3_positions_to_compute_velocity_vector",
+        "project_position = current_pos + velocity_vector * (prediction_window_ms/1000)",
+        "if projected_position crosses chokepoint then plan_cutoff",
+        "analyze_movement_patterns_for_each_enemy",
+        "predict_escape_routes_based_on_enemy_behavior",
+        "calculate_optimal_intercept_points",
+        "adjust_for_terrain_and_obstacles"
+      ]
+    },
+    "burst_window_prediction": {
+      "description": "Predict when enemies will use burst cooldowns",
+      "rules": [
+        "analyze_enemy_combat_patterns",
+        "predict_burst_usage_based_on_situation",
+        "prepare_defensive_cooldowns_in_advance",
+        "coordinate_team_defensive_cooldowns"
+      ]
+    }
+  },
+  "prediction_accuracy": {
+    "high_confidence": 0.9,
+    "medium_confidence": 0.7,
+    "low_confidence": 0.5,
+    "adjust_behavior_based_on_confidence": true
+  },
+  "adaptive_behavior": {
+    "team_size": {
+      "1": ["defensive_prediction", "avoid_predictive_risks", "safe_engagement"],
+      "2-3": ["moderate_prediction", "selective_predictive_engagement", "team_support"],
+      "4+": ["aggressive_prediction", "predictive_team_fights", "maximize_advantages"]
+    },
+    "enemy_composition": {
+      "high_healer_count": ["predict_healing_patterns", "interrupt_timing", "apply_pressure"],
+      "melee_heavy": ["predict_charge_usage", "avoid_melee_traps", "kite_effectively"],
+      "ranged_heavy": ["predict_burst_windows", "use_cover", "focus_fire_timing"]
+    },
+    "game_state": {
+      "behind": ["defensive_prediction", "avoid_risky_predictions", "protect_objectives"],
+      "ahead": ["aggressive_prediction", "maintain_pressure", "predictive_advantages"],
+      "close": ["maximize_predictions", "win_exchanges", "control_outcomes"]
+    }
+  },
+  "tactical_positioning": {
+    "prediction_based": {
+      "intercept_points": ["chokepoints", "escape_routes", "objective_approaches"],
+      "avoidance_positions": ["safe_zones", "cover_positions", "escape_paths"],
+      "control_positions": ["vision_control", "area_control", "team_support"]
+    }
+  },
+  "resource_management": {
+    "prediction_efficiency": {
+      "spending_strategy": ["save_for_high_confidence", "spend_on_opportunity", "maintain_efficiency"],
+      "priority_targets": ["high_confidence_predictions", "situational_opportunities", "team_support"]
+    }
+  },
+  "cpp_hooks": [
+    "EnemyPredictor::RecordAbilityUse()",
+    "EnemyPredictor::IsFakecast()",
+    "EnemyPredictor::PredictPosition()",
+    "EnemyPredictor::PredictCooldowns()",
+    "EnemyPredictor::UpdatePredictionAccuracy()",
+    "EnemyPredictor::AnalyzeEnemyPatterns()"
+  ]
+}

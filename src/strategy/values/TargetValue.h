@@ -23,6 +23,12 @@ public:
     virtual void CheckAttacker(Unit* attacker, ThreatMgr* threatMgr) = 0;
     void GetPlayerCount(Unit* creature, uint32* tankCount, uint32* dpsCount);
     bool IsHighPriority(Unit* attacker);
+    
+    // PvP Priority System
+    float CalculatePvPPriority(Unit* attacker);
+    bool IsFlagCarrier(Unit* unit);
+    bool IsHealer(Unit* unit);
+    bool IsLowHealthPriority(Unit* unit);
 
 protected:
     Unit* result;

@@ -1,0 +1,155 @@
+{
+  "module": "Team_Coordination",
+  "version": "3.3.5a",
+  "description": "Focus fire, role assignments, cooldown coordination, objective calls, and communication primitives.",
+  "parameters": {
+    "callout_frequency_ms": 1200,
+    "min_group_for_push": 6,
+    "escort_min_for_vehicle": 4,
+    "focus_fire_target_refresh": 2000,
+    "team_coordination_range": 40,
+    "priority_target_refresh": 1500
+  },
+  "behaviors": {
+    "focus_fire": {
+      "description": "Assign highest priority enemy target for the team.",
+      "selection_logic": [
+        "choose_target = highest_score(is_healer * 3 + is_flag_carrier * 5 + is_glaive_driver*4 + dps_value)",
+        "announce_target_via_shortcall(announce_target)"
+      ],
+      "duty_assignments": [
+        {
+          "role": "tank",
+          "task": "bodyblock/peel_for_healer"
+        },
+        {
+          "role": "healer",
+          "task": "stay_midline_and_heal_focus"
+        },
+        {
+          "role": "melee",
+          "task": "lockdown_focus_target_with_cc_and_damage"
+        },
+        {
+          "role": "ranged",
+          "task": "damage_from_distance_and_control"
+        }
+      ],
+      "advanced_focus_fire": [
+        "coordinate_damage_spikes",
+        "apply_interrupts_efficiently",
+        "control_escape_attempts",
+        "maximize_cc_efficiency"
+      ]
+    },
+    "objective_push": {
+      "description": "When to commit and when to abort objective pushes",
+      "rules": [
+        "only_push_if team_count_near_objective >= min_group_for_push",
+        "if enemy_count_near_objective >= team_count_then abort_push_and_harass_supply_lines",
+        "coordinate_cd_stack = request_major_cds_from_nearby (bloodlust/heroism, trinkets)"
+      ],
+      "advanced_push_logic": [
+        "analyze_enemy_positions_before_pushing",
+        "coordinate_push_timing_with_team",
+        "maintain_push_efficiency",
+        "abort_push_if_unfavorable_situation"
+      ]
+    },
+    "comms_and_priority_calls": {
+      "format": "SHORTCALL:TARGET:<target_id>||PUSH:<objective_id>||RETREAT",
+      "logic": "Use short efficient calls suitable for low-bandwidth bot comms",
+      "advanced_comms": [
+        "coordinate_role_assignments",
+        "share_enemy_position_info",
+        "request_assistance",
+        "announce_objective_status"
+      ]
+    },
+    "role_coordination": {
+      "description": "Coordinate roles for optimal team performance",
+      "rules": [
+        "assign_tank_to_control_objective_area",
+        "assign_healers_to_support_objective_takers",
+        "assign_dps_to_damage_objective_defenders",
+        "assign_ranged_to_control_distance_and_vision"
+      ],
+      "advanced_role_coordination": [
+        "dynamically_adjust_roles_based_on_situation",
+        "coordinate_role_swaps_when_needed",
+        "maintain_role_efficiency",
+        "adapt_roles_to_enemy_composition"
+      ]
+    },
+    "cooldown_coordination": {
+      "description": "Coordinate cooldown usage for maximum effectiveness",
+      "rules": [
+        "request_major_cds_for_team_fights",
+        "coordinate_defensive_cds_for_emergency_situations",
+        "stack_offensive_cds_for_objective_pushes",
+        "avoid_cooldown_waste_through_coordination"
+      ],
+      "advanced_cd_coordination": [
+        "predict_optimal_cd_timing",
+        "coordinate_with_other_teams",
+        "maximize_cd_efficiency",
+        "avoid_cd_overlap"
+      ]
+    }
+  },
+  "team_composition": {
+    "balanced_team": {
+      "requirements": ["1-2_tanks", "2-3_healers", "4-5_dps"],
+      "roles": ["flag_carrier", "escort", "objective_defender", "vision_control"],
+      "coordination": ["maintain_balance", "support_weak_areas", "coordinate_pushes"]
+    },
+    "offensive_team": {
+      "requirements": ["0-1_tank", "1-2_healers", "7-8_dps"],
+      "roles": ["flag_hunter", "objective_attacker", "damage_dealer", "vision_control"],
+      "coordination": ["aggressive_pushing", "maximize_damage", "coordinate_burst"]
+    },
+    "defensive_team": {
+      "requirements": ["2-3_tanks", "2-3_healers", "3-4_dps"],
+      "roles": ["flag_defender", "objective_defender", "peel_duty", "vision_control"],
+      "coordination": ["defensive_positioning", "protect_objectives", "coordinate_protection"]
+    }
+  },
+  "adaptive_behavior": {
+    "team_size": {
+      "1": ["independent_action", "avoid_fights", "objective_control"],
+      "2-3": ["coordinated_action", "selective_engagement", "team_support"],
+      "4+": ["team_fights", "objective_pushes", "maximize_coordination"]
+    },
+    "enemy_composition": {
+      "high_healer_count": ["coordinated_healer_hunting", "interrupt_timing", "apply_pressure"],
+      "melee_heavy": ["coordinated_peel", "defensive_positioning", "kite_effectively"],
+      "ranged_heavy": ["coordinated_suppression", "use_cover", "focus_fire"]
+    },
+    "game_state": {
+      "behind": ["defensive_coordination", "protect_objectives", "wait_for_mistakes"],
+      "ahead": ["aggressive_coordination", "maintain_pressure", "secure_win"],
+      "close": ["maximize_coordination", "win_exchanges", "control_objectives"]
+    }
+  },
+  "tactical_positioning": {
+    "team_formations": {
+      "escort_formation": ["healer_centered", "melee_flanks", "ranged_rear"],
+      "objective_formation": ["tank_front", "healers_mid", "dps_sides"],
+      "defense_formation": ["tanks_front", "healers_safe", "dps_support"]
+    }
+  },
+  "resource_management": {
+    "team_efficiency": {
+      "spending_strategy": ["save_for_team_fights", "spend_on_objective_pushes", "maintain_efficiency"],
+      "priority_targets": ["team_fights", "objective_pushes", "emergency_situations"]
+    }
+  },
+  "cpp_hooks": [
+    "TeamCoordinator::SelectFocusTarget()",
+    "TeamCoordinator::RequestCds()",
+    "TeamCoordinator::AnnounceCallout()",
+    "TeamCoordinator::CoordinateRoles()",
+    "TeamCoordinator::UpdateTeamComposition()",
+    "TeamCoordinator::AnalyzeEnemyFormation()"
+  ]
+}

@@ -294,12 +294,27 @@ bool LfgTeleportAction::Execute(Event event)
         p >> out;
     }
 
+    // ALWAYS auto-accept teleport INTO dungeons (out = false)
+    // This ensures bots automatically teleport when RDF queue pops
+    // Only manual control for teleporting OUT of dungeons (out = true)
+    if (!out)
+    {
+        bot->ClearUnitState(UNIT_STATE_ALL_STATE);
+        
+        WorldPacket* packet = new WorldPacket(CMSG_LFG_TELEPORT);
+        *packet << out;
+        bot->GetSession()->QueuePacket(packet);
+        
+        LOG_INFO("playerbots", "Bot {} auto-accepting dungeon teleport (RDF)", bot->GetName());
+        return true;
+    }
+
+    // For teleporting OUT, send the packet but let user control if needed
     bot->ClearUnitState(UNIT_STATE_ALL_STATE);
 
     WorldPacket* packet = new WorldPacket(CMSG_LFG_TELEPORT);
     *packet << out;
     bot->GetSession()->QueuePacket(packet);
-    // sLFGMgr->TeleportPlayer(bot, out);
 
     return true;
 }

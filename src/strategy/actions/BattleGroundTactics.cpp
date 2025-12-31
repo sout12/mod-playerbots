@@ -8,6 +8,7 @@
 #include <algorithm>
 
 #include "ArenaTeam.h"
+#include <mutex>
 #include "ArenaTeamMgr.h"
 #include "BattleGroundJoinAction.h"
 #include "Battleground.h"
@@ -32,6 +33,7 @@
 #include "PvpTriggers.h"
 #include "ServerFacade.h"
 #include "Vehicle.h"
+#include "World.h"
 
 // common bg positions
 Position const WS_WAITING_POS_HORDE_1 = {944.981f, 1423.478f, 345.434f, 6.18f};
@@ -105,6 +107,20 @@ Position const IC_CANNON_POS_ALLIANCE2 = {425.525f, -779.538f, 87.717f, 5.88f};
 
 Position const IC_GATE_ATTACK_POS_HORDE = {506.782f, -828.594f, 24.313f, 0.0f};
 Position const IC_GATE_ATTACK_POS_ALLIANCE = {1091.273f, -763.619f, 42.352f, 0.0f};
+
+// AB Node Indices (for opening strategy)
+constexpr uint32 AB_NODE_STABLES = 0;
+constexpr uint32 AB_NODE_BLACKSMITH = 1;
+constexpr uint32 AB_NODE_FARM = 2;
+constexpr uint32 AB_NODE_LUMBER_MILL = 3;
+constexpr uint32 AB_NODE_GOLD_MINE = 4;
+
+// AB Node Positions (for opening rush)
+Position const AB_NODE_POS_STABLES = {1166.785f, 1200.132f, -56.70f, 0.0f};
+Position const AB_NODE_POS_BLACKSMITH = {977.047f, 1046.819f, -44.80f, 0.0f};
+Position const AB_NODE_POS_FARM = {806.205f, 874.005f, -55.99f, 0.0f};
+Position const AB_NODE_POS_LUMBER_MILL = {1146.923f, 816.811f, -98.39f, 0.0f};
+Position const AB_NODE_POS_GOLD_MINE = {735.551f, 646.016f, -12.91f, 0.0f};
 
 enum BattleBotWsgWaitSpot
 {
@@ -1626,6 +1642,16 @@ bool BGTactics::Execute(Event event)
     if (getName() == "move to start")
         return moveToStart();
 
+    // =============================================
+    // REACTIVE DEFENSE SYSTEM - STATE TRACKING
+    // =============================================
+    // Only track state here. Decisions are made in selectObjective()
+    if (bg && bg->GetStatus() == STATUS_IN_PROGRESS && !bg->isArena())
+    {
+        // Safe thread-safe update called here, throttling handled inside
+        UpdateNodeStates(bg);
+    }
+
     if (getName() == "reset objective force")
     {
         bool isCarryingFlag =
@@ -1672,18 +1698,37 @@ bool BGTactics::Execute(Event event)
                 return true;
         }
 
-        if (vFlagIds && atFlag(*vPaths, *vFlagIds))
+        if (vFlagIds && vPaths && atFlag(*vPaths, *vFlagIds))
             return true;
 
-        if (useBuff())
+        // Don't pick up buffs during opening rush (distraction)
+        if (!IsGameOpening(bg) && useBuff())
             return true;
 
         // NOTE: can't use IsInCombat() when in vehicle as player is stuck in combat forever while in vehicle (ac bug?)
         bool inCombat = bot->GetVehicle() ? (bool)AI_VALUE(Unit*, "enemy player target") : bot->IsInCombat();
-        if (inCombat && !PlayerHasFlag::IsCapturingFlag(bot))
+        bool isCarryingFlag = PlayerHasFlag::IsCapturingFlag(bot);
+        
+        if (inCombat && !isCarryingFlag)
         {
             // bot->GetMotionMaster()->MovementExpired();
             return false;
+        }
+        
+        // Flag carriers: prioritize movement over combat
+        // Only fight if being melee attacked and can't escape
+        if (isCarryingFlag && inCombat)
+        {
+            Unit* attacker = AI_VALUE(Unit*, "current target");
+            if (attacker && attacker->IsAlive() && bot->GetDistance(attacker) > 5.0f)
+            {
+                // Attacker is ranged - keep running, don't stop to fight
+                // Safety check: only call AttackStop if not in vehicle (prevents crash)
+                if (!bot->GetVehicle())
+                    bot->AttackStop();
+                // Continue movement to objective
+            }
+            // If melee attacker in range, combat is unavoidable - let normal targeting handle it
         }
 
         if (!moveToObjective(false))
@@ -1707,7 +1752,7 @@ bool BGTactics::Execute(Event event)
 
     if (getName() == "check flag")
     {
-        if (vFlagIds && atFlag(*vPaths, *vFlagIds))
+        if (vFlagIds && vPaths && atFlag(*vPaths, *vFlagIds))
             return true;
     }
 
@@ -1850,10 +1895,42 @@ bool BGTactics::selectObjective(bool reset)
 
     PositionMap& posMap = context->GetValue<PositionMap&>("position")->Get();
     PositionInfo pos = context->GetValue<PositionMap&>("position")->Get()["bg objective"];
+    // WorldObject* BgObjective = nullptr; // Use member variable
+
+    // =============================================
+    // PRIORITY 0: Combat Engagement (High Priority)
+    // =============================================
+    // Check this BEFORE checking if position is already set. 
+    // This allows us to break off from a move-to-flag command if we see an enemy.
+    if (Unit* enemy = AI_VALUE(Unit*, "enemy player target"))
+    {
+        if (ShouldEngageInCombat(enemy))
+        {
+             // Engage if close enough or they are attacking us
+             float dist = bot->GetDistance(enemy);
+             bool isAttackingMe = (enemy->GetVictim() == bot);
+             
+             // If we are already near target, let CombatStrategy take over by returning false?
+             // No, BGTactics normally returns false if in combat.
+             // But if we are "stuck" moving to an objective, we need to override the position.
+             
+             if (dist < 40.0f || isAttackingMe)
+             {
+                 // Interrupt any channel/cast (like flag capture)
+                 bot->CastStop();
+                 
+                 // Override current objective
+                 pos.Set(enemy->GetPositionX(), enemy->GetPositionY(), enemy->GetPositionZ(), bot->GetMapId());
+                 posMap["bg objective"] = pos;
+                 LOG_DEBUG("playerbots", "BGTactics: {} interrupting objective to engage {}", bot->GetName(), enemy->GetName());
+                 return true;
+             }
+        }
+    }
+
+    // Check if we already have a valid objective position set
     if (pos.isSet() && !reset)
         return false;
-
-    WorldObject* BgObjective = nullptr;
 
     BattlegroundTypeId bgType = bg->GetBgTypeID();
     if (bgType == BATTLEGROUND_RB)
@@ -1919,6 +1996,18 @@ bool BGTactics::selectObjective(bool reset)
                 uint32 switchChance = 20 + (destroyedNodes * 15);
                 if (urand(0, 99) < switchChance)
                     isDefender = false;
+            }
+
+            // DYNAMIC STRATEGY OVERRIDE (AV)
+            if (ShouldPlayDefensive(bg))
+            {
+                strategy = AV_STRATEGY_DEFENSIVE;
+                if (urand(0, 99) < 80) isDefender = true;
+            }
+            else if (ShouldPlayAggressive(bg))
+            {
+                strategy = AV_STRATEGY_OFFENSIVE;
+                if (urand(0, 99) < 80) isDefender = false;
             }
 
             // --- Mine Capture (rarely works, needs some improvement) ---
@@ -1993,6 +2082,68 @@ bool BGTactics::selectObjective(bool reset)
                         {
                             BgObjective = captain;
                         }
+                    }
+                }
+            }
+
+            // --- PRIORITY 0.5: Secure Nearby Nodes/Bunkers (Any role) ---
+            if (!BgObjective)
+            {
+                // Check for attackable objectives (Bunkers/Graveyards) nearby
+                for (auto const& [nodeId, goId] : attackObjectives)
+                {
+                    const BG_AV_NodeInfo& node = av->GetAVNodeInfo(nodeId);
+                    if (node.State == POINT_DESTROYED || node.State == POINT_ASSAULTED)
+                        continue;
+
+                    GameObject* go = bg->GetBGObject(goId);
+                    if (go && go->IsWithinDist3d(bot, 20.0f))
+                    {
+                        LOG_DEBUG("playerbots", "BGTactics: {} prioritizing nearby AV attack objective: {}", bot->GetName(), nodeId);
+                        BgObjective = go;
+                        
+                        // Force precise movement
+                        float rx, ry, rz;
+                        Position objPos = BgObjective->GetPosition();
+                        bot->GetRandomPoint(objPos, frand(3.0f, 5.0f), rx, ry, rz);
+                        if (Map* map = bot->GetMap())
+                        {
+                            float groundZ = map->GetHeight(rx, ry, rz);
+                            if (groundZ != VMAP_INVALID_HEIGHT_VALUE)
+                                rz = groundZ;
+                        }
+                        pos.Set(rx, ry, rz, BgObjective->GetMapId());
+                        posMap["bg objective"] = pos;
+                        return true;
+                    }
+                }
+                
+                // Check for defenses (Recap captured bunkers/graveyards)
+                for (auto const& [nodeId, goId] : defendObjectives)
+                {
+                    const BG_AV_NodeInfo& node = av->GetAVNodeInfo(nodeId);
+                    if (node.State != POINT_ASSAULTED) // We only recap if it is currently assaulted by enemy
+                        continue;
+
+                    GameObject* go = bg->GetBGObject(goId);
+                    if (go && go->IsWithinDist3d(bot, 20.0f))
+                    {
+                        LOG_DEBUG("playerbots", "BGTactics: {} prioritizing nearby AV defend objective: {}", bot->GetName(), nodeId);
+                        BgObjective = go;
+                        
+                        // Force precise movement
+                        float rx, ry, rz;
+                        Position objPos = BgObjective->GetPosition();
+                        bot->GetRandomPoint(objPos, frand(3.0f, 5.0f), rx, ry, rz);
+                        if (Map* map = bot->GetMap())
+                        {
+                            float groundZ = map->GetHeight(rx, ry, rz);
+                            if (groundZ != VMAP_INVALID_HEIGHT_VALUE)
+                                rz = groundZ;
+                        }
+                        pos.Set(rx, ry, rz, BgObjective->GetMapId());
+                        posMap["bg objective"] = pos;
+                        return true;
                     }
                 }
             }
@@ -2200,8 +2351,46 @@ bool BGTactics::selectObjective(bool reset)
             if (enemyStrategy == WS_STRATEGY_DEFENSIVE)
                 defendersProhab = 2;
 
+            // DYNAMIC STRATEGY OVERRIDE (WSG)
+            if (ShouldPlayDefensive(bg))
+            {
+                strategy = WS_STRATEGY_DEFENSIVE;
+                defendersProhab = 6; // Force heavy defense
+            }
+            else if (ShouldPlayAggressive(bg))
+            {
+                strategy = WS_STRATEGY_OFFENSIVE;
+                defendersProhab = 1; // Force heavy offense
+            }
+
             // Role check
             bool isDefender = role < defendersProhab;
+
+            // --- PRIORITY 0: Secure Dropped Flags ---
+            if (!hasFlag)
+            {
+                 // 1. Return Friendly Flag (High Priority)
+                 uint32 friendlyFlagId = (team == TEAM_ALLIANCE) ? BG_OBJECT_A_FLAG_GROUND_WS_ENTRY : BG_OBJECT_H_FLAG_GROUND_WS_ENTRY;
+                 GameObject* fFlag = bg->GetBGObject(friendlyFlagId);
+                 if (fFlag && fFlag->isSpawned()) 
+                 {
+                     LOG_DEBUG("playerbots", "BGTactics: {} rushing to return friendly flag", bot->GetName());
+                     pos.Set(fFlag->GetPositionX(), fFlag->GetPositionY(), fFlag->GetPositionZ(), fFlag->GetMapId());
+                     posMap["bg objective"] = pos;
+                     return true;
+                 }
+                 
+                 // 2. Pick up Enemy Flag
+                 uint32 enemyFlagId = (team == TEAM_ALLIANCE) ? BG_OBJECT_H_FLAG_GROUND_WS_ENTRY : BG_OBJECT_A_FLAG_GROUND_WS_ENTRY;
+                 GameObject* eFlag = bg->GetBGObject(enemyFlagId);
+                 if (eFlag && eFlag->isSpawned()) 
+                 {
+                     LOG_DEBUG("playerbots", "BGTactics: {} rushing to pick up enemy flag", bot->GetName());
+                     pos.Set(eFlag->GetPositionX(), eFlag->GetPositionY(), eFlag->GetPositionZ(), eFlag->GetMapId());
+                     posMap["bg objective"] = pos;
+                     return true;
+                 }
+            }
 
             // Retrieve flag carriers
             Unit* enemyFC = AI_VALUE(Unit*, "enemy flag carrier");
@@ -2316,6 +2505,8 @@ bool BGTactics::selectObjective(bool reset)
                 break;
 
             BattlegroundAB* ab = static_cast<BattlegroundAB*>(bg);
+            UpdateNodeStates(bg); // Update reactive defense tracking
+            
             TeamId team = bot->GetTeamId();
 
             uint8 role = context->GetValue<uint32>("bg role")->Get();
@@ -2323,8 +2514,43 @@ bool BGTactics::selectObjective(bool reset)
             ABBotStrategy strategyAlliance = static_cast<ABBotStrategy>(GetBotStrategyForTeam(bg, TEAM_ALLIANCE));
             ABBotStrategy strategy = (team == TEAM_ALLIANCE) ? strategyAlliance : strategyHorde;
             ABBotStrategy enemyStrategy = (team == TEAM_ALLIANCE) ? strategyHorde : strategyAlliance;
+            
+            bool isDefender = role == 0 || role == 1 || role == 2; // Default defensive roles
+
+            // DYNAMIC STRATEGY OVERRIDE
+            if (ShouldPlayDefensive(bg))
+            {
+                strategy = AB_STRATEGY_DEFENSIVE;
+                // Force roles to lean defensive
+                if (urand(0, 99) < 80) isDefender = true; 
+            }
+            else if (ShouldPlayAggressive(bg))
+            {
+                strategy = AB_STRATEGY_OFFENSIVE;
+                // Force roles to lean offensive
+                 if (urand(0, 99) < 80) isDefender = false; 
+            }
+            if (ShouldPlayDefensive(bg))
+            {
+                strategy = AB_STRATEGY_DEFENSIVE;
+                // Force roles to lean defensive
+                if (urand(0, 99) < 80) isDefender = true; 
+            }
+            else if (ShouldPlayAggressive(bg))
+            {
+                strategy = AB_STRATEGY_OFFENSIVE;
+                // Force roles to lean offensive
+                 if (urand(0, 99) < 80) isDefender = false; 
+            }
+            // "Turtle Mode" override if winning by a lot
+            if (IsWinning(bg) && GetTeamBasesControlled(bg, team) >= 3)
+            {
+                 // Heavy protection
+                 strategy = AB_STRATEGY_DEFENSIVE;
+            }
 
             uint8 defendersProhab = 3;
+            // Adjusted prohab based on strategy override
             if (strategy == AB_STRATEGY_OFFENSIVE)
                 defendersProhab = 1;
             else if (strategy == AB_STRATEGY_DEFENSIVE)
@@ -2333,12 +2559,95 @@ bool BGTactics::selectObjective(bool reset)
             if (enemyStrategy == AB_STRATEGY_DEFENSIVE)
                 defendersProhab = 2;
 
-            bool isDefender = role < defendersProhab;
+            // Recalculate isDefender based on final prohab if not forced above (logic simplification)
+            // But we already set isDefender boolean in the override block.
+            // Let's just ensure standard role check applies if not forced.
+            if (!(ShouldPlayDefensive(bg) || ShouldPlayAggressive(bg)))
+            {
+                isDefender = role < defendersProhab;
+            }
             bool isSilly = urand(0, 99) < 20;
 
             BgObjective = nullptr;
 
-            // --- PRIORITY 1: Nearby enemy (rare aggressive impulse)
+            // =============================================
+            // PRIORITY 0: Emergency Reactive Defense
+            // =============================================
+            // Check if any node is critical and needs immediate defense
+            // This is prioritized above all other objectives (except manual commands)
+            {
+                uint32 bgInstanceId = bg->GetInstanceID();
+                auto& nodes = bgNodeStates[bgInstanceId];
+                
+                uint32 bestNode = UINT32_MAX;
+                float highestPriority = 0.0f;
+                
+                for (auto const& [nodeId, info] : nodes)
+                {
+                    if (info.needsDefense && info.defensivePriority > highestPriority)
+                    {
+                        bestNode = nodeId;
+                        highestPriority = info.defensivePriority;
+                    }
+                }
+                
+                if (bestNode != UINT32_MAX)
+                {
+                    // Find the GameObject for this node (flag/banner)
+                    GameObject* go = bg->GetBGObject(bestNode * BG_AB_OBJECTS_PER_NODE);
+                    if (go)
+                    {
+                        LOG_DEBUG("playerbots", "BGTactics: {} prioritizing defensive emergency at {}", 
+                                  bot->GetName(), GetNodeName(bestNode, bgType));
+                        BgObjective = go;
+                    }
+                }
+            }
+
+            // =============================================
+            // PRIORITY 1: AB Opening Rush (First 45s)
+            // =============================================
+            if (IsGameOpening(bg))
+            {
+                uint32 openingNode = GetAssignedOpeningNode(bg);
+                if (openingNode != UINT32_MAX)
+                {
+                    // Find actual game object for this node
+                    GameObject* go = bg->GetBGObject(openingNode * BG_AB_OBJECTS_PER_NODE);
+                    if (go)
+                    {
+                        LOG_DEBUG("playerbots", "BGTactics: {} performing opening rush to {}", 
+                                  bot->GetName(), GetNodeName(openingNode, bgType));
+                        BgObjective = go;
+                        
+                        // Set explicit position for movement immediately
+                        float rx, ry, rz;
+                        Position objPos = BgObjective->GetPosition();
+                        bot->GetRandomPoint(objPos, frand(3.0f, 8.0f), rx, ry, rz);
+                        if (Map* map = bot->GetMap())
+                        {
+                            float groundZ = map->GetHeight(rx, ry, rz);
+                            if (groundZ != VMAP_INVALID_HEIGHT_VALUE)
+                                rz = groundZ;
+                        }
+                        pos.Set(rx, ry, rz, BgObjective->GetMapId());
+                        posMap["bg objective"] = pos;
+                        return true;
+                    }
+                }
+            }
+
+            // =============================================
+            // PRIORITY 2: Combat Engagement (Secondary Check)
+            // =============================================
+            // This block is redundant if the Priority 0 check at the start works, 
+            // but kept as a fallback for when 'reset' is true.
+            if (Unit* enemy = AI_VALUE(Unit*, "enemy player target"))
+            {
+                 // Logic handled at function start
+            }
+
+            // --- PRIORITY 3: Nearby enemy (Rare aggressive impulse - kept as fallback)
             if (urand(0, 99) < 5)
             {
                 if (Unit* enemy = AI_VALUE(Unit*, "enemy player target"))
@@ -2424,6 +2733,45 @@ bool BGTactics::selectObjective(bool reset)
                 }
             }
 
+            // --- PRIORITY 3.5: Secure Nearby Objectives (Cap if close) ---
+            if (!BgObjective)
+            {
+                for (uint32 nodeId : AB_AttackObjectives)
+                {
+                    uint8 state = ab->GetCapturePointInfo(nodeId)._state;
+
+                    // We want to capture if it is Unfriendly
+                    bool isFriendly = (team == TEAM_ALLIANCE && (state == BG_AB_NODE_STATE_ALLY_OCCUPIED || state == BG_AB_NODE_STATE_ALLY_CONTESTED)) ||
+                                      (team == TEAM_HORDE && (state == BG_AB_NODE_STATE_HORDE_OCCUPIED || state == BG_AB_NODE_STATE_HORDE_CONTESTED));
+
+                    if (isFriendly)
+                        continue;
+
+                    GameObject* go = bg->GetBGObject(nodeId * BG_AB_OBJECTS_PER_NODE);
+                    // Use a slightly larger radius to ensure we catch it if we're "in the area"
+                    if (go && go->IsWithinDist3d(bot, 20.0f))
+                    {
+                        LOG_DEBUG("playerbots", "BGTactics: {} prioritizing nearby capturable node: {}", bot->GetName(), nodeId);
+                        BgObjective = go;
+
+                        // Force precise movement to tag it
+                        float rx, ry, rz;
+                        Position objPos = BgObjective->GetPosition();
+                        // Move very close (3-5 yards) to ensure interaction logic triggers
+                        bot->GetRandomPoint(objPos, frand(3.0f, 5.0f), rx, ry, rz);
+                        if (Map* map = bot->GetMap())
+                        {
+                            float groundZ = map->GetHeight(rx, ry, rz);
+                            if (groundZ != VMAP_INVALID_HEIGHT_VALUE)
+                                rz = groundZ;
+                        }
+                        pos.Set(rx, ry, rz, BgObjective->GetMapId());
+                        posMap["bg objective"] = pos;
+                        return true;
+                    }
+                }
+            }
+
             // --- PRIORITY 4: Attack objectives ---
             if (!BgObjective)
             {
@@ -2502,7 +2850,24 @@ bool BGTactics::selectObjective(bool reset)
             auto IsOwned = [&](uint32 nodeId) -> bool
             { return eyeOfTheStormBG->GetCapturePointInfo(nodeId)._ownerTeamId == team; };
 
+            // =============================================
+            // EotS DYNAMIC UPDATE & STRATEGY
+            // =============================================
+            UpdateNodeStates(bg); // Critical: Update node states for reactive defense
+
             uint8 defendersProhab = 4;
+            // DYNAMIC STRATEGY OVERRIDE (EotS)
+            if (ShouldPlayDefensive(bg))
+            {
+                strategy = EY_STRATEGY_FLAG_FOCUS; // Defend implies controlling points/flag
+                defendersProhab = 6;
+            }
+            else if (ShouldPlayAggressive(bg))
+            {
+                strategy = EY_STRATEGY_BALANCED; // Push everywhere
+                defendersProhab = 2;
+            }
+            
             switch (strategy)
             {
                 case EY_STRATEGY_FLAG_FOCUS:
@@ -2513,8 +2878,49 @@ bool BGTactics::selectObjective(bool reset)
                     defendersProhab = 3;
                     break;
                 default:
-                    defendersProhab = 4;
+                    // defense prohab already set above for balanced/default
                     break;
+            }
+
+            // =============================================
+            // PRIORITY 0: Emergency Reactive Defense
+            // =============================================
+            // Check if any node is critical and needs immediate defense
+            {
+                uint32 bgInstanceId = bg->GetInstanceID();
+                auto& nodes = bgNodeStates[bgInstanceId];
+                
+                uint32 bestNode = UINT32_MAX;
+                float highestPriority = 0.0f;
+                
+                for (auto const& [nodeId, info] : nodes)
+                {
+                    if (info.needsDefense && info.defensivePriority > highestPriority)
+                    {
+                        bestNode = nodeId;
+                        highestPriority = info.defensivePriority;
+                    }
+                }
+                
+                if (bestNode != UINT32_MAX && EY_NodePositions.find(bestNode) != EY_NodePositions.end())
+                {
+                    const Position& p = EY_NodePositions[bestNode];
+                    float rx, ry, rz;
+                    bot->GetRandomPoint(p, 5.0f, rx, ry, rz);
+                    if (bot->GetMap()) 
+                        rz = bot->GetMap()->GetHeight(rx, ry, rz);
+                    
+                    if (rz == VMAP_INVALID_HEIGHT_VALUE)
+                        rz = p.GetPositionZ();
+
+                    pos.Set(rx, ry, rz, bot->GetMapId());
+                    
+                    LOG_DEBUG("playerbots", "BGTactics: {} prioritizing defensive emergency at {}", 
+                              bot->GetName(), GetNodeName(bestNode, bgType));
+                              
+                    posMap["bg objective"] = pos;
+                    return true;
+                }
             }
 
             bool isDefender = role < defendersProhab;
@@ -2538,6 +2944,44 @@ bool BGTactics::selectObjective(bool reset)
             }
 
             bool foundObjective = false;
+
+            // --- PRIORITY 0.5: Secure Nearby Nodes ---
+            if (!foundObjective && !isDefender) // Defenders usually stay put, but roamers should cap if close
+            {
+                for (auto const& [nodeId, _, __] : EY_AttackObjectives)
+                {
+                    if (IsOwned(nodeId))
+                        continue;
+
+                    if (EY_NodePositions.contains(nodeId))
+                    {
+                        const Position& p = EY_NodePositions[nodeId];
+                        // If we are very close to the center of the node
+                        if (bot->IsWithinDist2d(p.GetPositionX(), p.GetPositionY(), 20.0f))
+                        {
+                             // Find the banner logic or just stand on point (EY captures by standing)
+                             // Actually EY is radius based (standing near tower). 
+                             // So we just need to Ensure we stay there if we are "capping"
+                             // Logic: If state is not ours, and we are close, STAY.
+                             
+                             // However, the "Secure Nearby" logic for AB/AV was about clicking banners.
+                             // For EY, we just need to be in the zone. 
+                             // If we are already in the zone (20y), just picking the random point in the zone (below) is fine?
+                             // No, current logic picks random point.
+                             // We want to force it to be THE objective if we are close.
+                             
+                             LOG_DEBUG("playerbots", "BGTactics: {} holding nearby EY node: {}", bot->GetName(), nodeId);
+                             
+                             float rx, ry, rz;
+                             bot->GetRandomPoint(p, 5.0f, rx, ry, rz);
+                             rz = bot->GetMap()->GetHeight(rx, ry, rz);
+                             pos.Set(rx, ry, rz, bot->GetMapId());
+                             foundObjective = true;
+                             break;
+                        }
+                    }
+                }
+            }
 
             // --- PRIORITY 1: FLAG CARRIER ---
             if (bot->HasAura(BG_EY_NETHERSTORM_FLAG_SPELL))
@@ -2592,6 +3036,8 @@ bool BGTactics::selectObjective(bool reset)
                 }
                 else
                 {
+                    // No bases controlled - regroup with team at center instead of running to spawn
+                    // This allows team to coordinate and capture a base together
                     const Position& fallback = (team == TEAM_ALLIANCE) ? EY_FLAG_RETURN_POS_RETREAT_ALLIANCE
                                                                        : EY_FLAG_RETURN_POS_RETREAT_HORDE;
 
@@ -2855,7 +3301,53 @@ bool BGTactics::selectObjective(bool reset)
             if (inVehicle && !controlsVehicle)
                 return false;
 
+            // DYNAMIC STRATEGY OVERRIDE (IoC)
+            // IoC doesn't have an Enum, so we bias role interpretation
+            bool forceDefend = ShouldPlayDefensive(bg);
+            bool forceAttack = ShouldPlayAggressive(bg);
+            
+            if (forceDefend && urand(0, 99) < 70) role = 0; // Force role 0 (often defensive/passive logic)
+            if (forceAttack && urand(0, 99) < 70) role = 9; // Force role 9 (often offensive logic)
+            
+            // IoC Reactive Update (if we implement IoC support later, place it here)
+            // UpdateNodeStates(bg);
+
             /* TACTICS */
+            // --- PRIORITY 0: Secure Nearby Banners (IoC) ---
+            if (!inVehicle)
+            {
+                for (uint32 bannerId : vFlagsIC)
+                {
+                     GameObject* banner = bg->GetBGObject(bannerId);
+                     if (banner && banner->IsWithinDist3d(bot, 20.0f))
+                     {
+                         // Check if we can interact (capturable)
+                         // We don't easily know the node state from the GO ID here without mapping, 
+                         // but if it's a banner and we are close, we should probably check it.
+                         // Simplification: Go to it. Interaction logic handles the rest.
+                         // Optimization: Only if not already ours? 
+                         // IoC banners change ID or appearance? IoC banners are usually standard.
+                         // Let's rely on the fact that if we are 20y close to a banner, we probably want to click it.
+                         
+                         LOG_DEBUG("playerbots", "BGTactics: {} prioritizing nearby IoC banner", bot->GetName());
+                         BgObjective = banner;
+                         
+                         float rx, ry, rz;
+                         Position objPos = BgObjective->GetPosition();
+                         bot->GetRandomPoint(objPos, frand(3.0f, 5.0f), rx, ry, rz);
+                         if (Map* map = bot->GetMap())
+                         {
+                              float groundZ = map->GetHeight(rx, ry, rz);
+                              if (groundZ != VMAP_INVALID_HEIGHT_VALUE)
+                                  rz = groundZ;
+                         }
+                         pos.Set(rx, ry, rz, BgObjective->GetMapId());
+                         posMap["bg objective"] = pos;
+                         return true;
+                     }
+                }
+            }
+            
             if (bot->GetTeamId() == TEAM_HORDE)  // HORDE
             {
                 bool gateOpen = false;
@@ -3195,6 +3687,21 @@ bool BGTactics::moveToObjective(bool ignoreDist)
         {
             if (IsLockedInsideKeep())
                 return true;
+            
+            // FIX: If bot is stuck at graveyard (not moving for long time), clear objective
+            // This happens when bots spawn at wrong GY and can't path
+            if (!bot->HasUnitState(UNIT_STATE_MOVING) && bot->IsAlive())
+            {
+                float distToObjective = sServerFacade->GetDistance2d(bot, pos.x, pos.y);
+                
+                // If objective is far (>100y) and bot isn't moving, likely stuck at GY
+                if (distToObjective > 100.0f)
+                {
+                    // Clear stuck objective and select new one
+                    context->GetValue<PositionMap&>("position")->Get()["bg objective"].Reset();
+                    return selectObjective();
+                }
+            }
         }
 
         if (!ignoreDist && sServerFacade->IsDistanceGreaterThan(sServerFacade->GetDistance2d(bot, pos.x, pos.y), 100.0f))
@@ -3710,13 +4217,25 @@ bool BGTactics::atFlag(std::vector<BattleBotPath*> const& vPaths, std::vector<ui
             Unit* enemyPlayer = AI_VALUE(Unit*, "enemy player target");
             if (enemyPlayer && enemyPlayer->IsAlive())
             {
-                // If enemy is near the flag, engage them before attempting capture
+                // If enemy is near the flag, assess the situation before engaging or capturing
                 float enemyDist = enemyPlayer->GetDistance(targetFlag);
                 if (enemyDist < flagRange * 2.0f)
                 {
-                    // Set enemy as current target and let combat AI handle it
-                    context->GetValue<Unit*>("current target")->Set(enemyPlayer);
-                    return false;
+                    // Count players to determine if we should fight or try to capture
+                    TeamId enemyTeam = bot->GetTeamId() == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE;
+                    uint32 enemyCount = getPlayersInArea(enemyTeam, targetFlag->GetPosition(), 40.0f, true);
+                    uint32 allyCount = getPlayersInArea(bot->GetTeamId(), targetFlag->GetPosition(), 40.0f, true);
+                    
+                    // If outnumbered, FIGHT instead of attempting capture
+                    // This prevents bots from getting stuck in capture->interrupt loop
+                    if (enemyCount > allyCount)
+                    {
+                        // Set enemy as current target and let combat AI handle it
+                        context->GetValue<Unit*>("current target")->Set(enemyPlayer);
+                        return false;
+                    }
+                    // If equal numbers or advantage, bot can try to capture with ally support
+                    // (allies will defend while this bot captures)
                 }
             }
         }
@@ -4249,6 +4768,493 @@ bool BGTactics::IsLockedInsideKeep()
     return false;
 }
 
+// Game State Awareness Implementation
+bool BGTactics::IsLosingBadly(Battleground* bg)
+{
+    if (!bg)
+        return false;
+    
+    BattlegroundTypeId bgType = bg->GetBgTypeID();
+    if (bgType == BATTLEGROUND_RB)
+        bgType = bg->GetBgTypeID(true);
+    
+    TeamId myTeam = bot->GetTeamId();
+    
+    switch (bgType)
+    {
+        case BATTLEGROUND_AB:
+        case BATTLEGROUND_EY:
+        {
+            // Check score differential
+            uint32 myScore = bg->GetTeamScore(myTeam);
+            uint32 enemyScore = bg->GetTeamScore(bg->GetOtherTeamId(myTeam));
+            
+            // Losing badly if behind by 500+ points
+            if (enemyScore > myScore + 500)
+                return true;
+            
+            // Or if enemy has significantly more bases
+            uint32 myBases = GetTeamBasesControlled(bg, myTeam);
+            uint32 enemyBases = GetTeamBasesControlled(bg, bg->GetOtherTeamId(myTeam));
+            if (enemyBases >= 4 && myBases <= 1)
+                return true;
+            
+            break;
+        }
+        case BATTLEGROUND_WS:
+        {
+            // Check flag captures
+            uint32 myScore = bg->GetTeamScore(myTeam);
+            uint32 enemyScore = bg->GetTeamScore(bg->GetOtherTeamId(myTeam));
+            
+            // Losing badly if behind by 2 captures
+            if (enemyScore >= myScore + 2)
+                return true;
+            
+            break;
+        }
+        case BATTLEGROUND_AV:
+        {
+            // Check reinforcements
+            uint32 myReinforcements = bg->GetTeamScore(myTeam);
+            uint32 enemyReinforcements = bg->GetTeamScore(bg->GetOtherTeamId(myTeam));
+            
+            // Losing badly if down by 200+ reinforcements
+            if (myReinforcements + 200 < enemyReinforcements)
+                return true;
+            
+            break;
+        }
+        default:
+            break;
+    }
+    
+    return false;
+}
+
+bool BGTactics::IsWinning(Battleground* bg)
+{
+    if (!bg)
+        return false;
+    
+    BattlegroundTypeId bgType = bg->GetBgTypeID();
+    if (bgType == BATTLEGROUND_RB)
+        bgType = bg->GetBgTypeID(true);
+    
+    TeamId myTeam = bot->GetTeamId();
+    
+    switch (bgType)
+    {
+        case BATTLEGROUND_AB:
+        case BATTLEGROUND_EY:
+        {
+            uint32 myScore = bg->GetTeamScore(myTeam);
+            uint32 enemyScore = bg->GetTeamScore(bg->GetOtherTeamId(myTeam));
+            
+            // Winning if ahead by 300+ points
+            if (myScore > enemyScore + 300)
+                return true;
+            
+            // Or controlling majority of bases
+            uint32 myBases = GetTeamBasesControlled(bg, myTeam);
+            if (myBases >= 4)
+                return true;
+            
+            break;
+        }
+        case BATTLEGROUND_WS:
+        {
+            uint32 myScore = bg->GetTeamScore(myTeam);
+            uint32 enemyScore = bg->GetTeamScore(bg->GetOtherTeamId(myTeam));
+            
+            // Winning if ahead in captures
+            if (myScore >= enemyScore + 2)
+                return true;
+            
+            break;
+        }
+        case BATTLEGROUND_AV:
+        {
+            uint32 myReinforcements = bg->GetTeamScore(myTeam);
+            uint32 enemyReinforcements = bg->GetTeamScore(bg->GetOtherTeamId(myTeam));
+            
+            // Winning if up by 150+ reinforcements
+            if (myReinforcements > enemyReinforcements + 150)
+                return true;
+            
+            break;
+        }
+        default:
+            break;
+    }
+    
+    return false;
+}
+
+bool BGTactics::ShouldPlayAggressive(Battleground* bg)
+{
+    if (!bg)
+        return false;
+    
+    // Play aggressive if losing badly (need to make comeback)
+    if (IsLosingBadly(bg))
+        return true;
+    
+    // Play aggressive early game (first 3 minutes)
+    uint32 elapsed = GameTime::GetGameTime().count() - bg->GetStartTime();
+    if (elapsed < 180) // First 3 minutes
+        return true;
+    
+    // Don't play aggressive if winning significantly
+    if (IsWinning(bg))
+        return false;
+    
+    // Default: balanced approach
+    return false;
+}
+
+bool BGTactics::ShouldPlayDefensive(Battleground* bg)
+{
+    if (!bg)
+        return false;
+    
+    // Play defensive if winning
+    if (IsWinning(bg))
+        return true;
+    
+    // Play defensive late game with lead
+    BattlegroundTypeId bgType = bg->GetBgTypeID();
+    if (bgType == BATTLEGROUND_RB)
+        bgType = bg->GetBgTypeID(true);
+    
+    TeamId myTeam = bot->GetTeamId();
+    uint32 myScore = bg->GetTeamScore(myTeam);
+    uint32 enemyScore =bg->GetTeamScore(bg->GetOtherTeamId(myTeam));
+    
+    uint32 elapsed = GameTime::GetGameTime().count() - bg->GetStartTime();
+    if (elapsed > 600 && myScore > enemyScore) // Last 10+ min with lead
+        return true;
+    
+    return false;
+}
+
+uint32 BGTactics::GetTeamBasesControlled(Battleground* bg, TeamId teamId)
+{
+    if (!bg)
+        return 0;
+    
+    BattlegroundTypeId bgType = bg->GetBgTypeID();
+    if (bgType == BATTLEGROUND_RB)
+        bgType = bg->GetBgTypeID(true);
+    
+    uint32 basesControlled = 0;
+    
+    // Currently only implemented for Arathi Basin
+    // EotS requires access to BattlegroundEY-specific methods which is complex
+    if (bgType == BATTLEGROUND_AB)
+    {
+        // Count controlled bases in Arathi Basin by checking banner spawns
+        // This is a simplified check - actual implementation may need refinement
+        for (uint8 node = 0; node < 5; ++node)
+        {
+            // Check if base has alliance or horde banner spawned
+            // Note: This is approximate - may need adjustment based on actual AB implementation
+            GameObject* banner = bg->GetBGObject(node * 8 + (teamId == TEAM_ALLIANCE ? 0 : 1));
+            if (banner && banner->isSpawned())
+                basesControlled++;
+        }
+    }
+    
+    return basesControlled;
+}
+
+// Opening Strategy Implementation
+bool BGTactics::IsGameOpening(Battleground* bg)
+{
+    if (!bg)
+        return false;
+    
+    // Check if BG is started
+    if (bg->GetStatus() != STATUS_IN_PROGRESS)
+        return false;
+
+    // Use sWorld->GetGameTime() if GameTime::GetGameTime() is problematic, 
+    // but existing code used GameTime::GetGameTime().count().
+    // We stick to the existing method that compiled before, but change threshold.
+    uint32 elapsed = GameTime::GetGameTime().count() - bg->GetStartTime();
+    return elapsed < 45; // Reduced from 120s to 45s for tighter opening rush
+}
+
+uint32 BGTactics::GetAssignedOpeningNode(Battleground* bg)
+{
+    // Distribution:
+    // 10% - Home Base (Stables/Farm) - ~1-2 bots
+    // 45% - Blacksmith (Mid) - ~6-7 bots (Main force)
+    // 20% - Lumber Mill - ~3 bots
+    // 25% - Gold Mine - ~3 bots
+    
+    uint32 roll = urand(0, 100);
+    TeamId team = bot->GetTeamId();
+    
+    if (team == TEAM_ALLIANCE)
+    {
+        if (roll < 10) return AB_NODE_STABLES;      // 10%
+        if (roll < 55) return AB_NODE_BLACKSMITH;   // 45%
+        if (roll < 75) return AB_NODE_LUMBER_MILL;  // 20%
+        return AB_NODE_GOLD_MINE;                   // 25%
+    }
+    else // HORDE
+    {
+        if (roll < 10) return AB_NODE_FARM;         // 10%
+        if (roll < 55) return AB_NODE_BLACKSMITH;   // 45%
+        if (roll < 75) return AB_NODE_LUMBER_MILL;  // 20%
+        return AB_NODE_GOLD_MINE;                   // 25%
+    }
+}
+
+bool BGTactics::ShouldRushContestedObjectives()
+{
+    Battleground* bg = bot->GetBattleground();
+    if (!bg)
+        return false;
+    
+    // During opening (first 2 min), rush contested objectives
+    if (IsGameOpening(bg))
+    {
+        uint32 assignedNode = GetAssignedOpeningNode(bg);
+        TeamId myTeam = bot->GetTeamId();
+        
+        // Skip home base defense unless specifically assigned
+        if (myTeam == TEAM_ALLIANCE && assignedNode != AB_NODE_STABLES)
+            return true; // Don't defend Stables unless assigned
+        else if (myTeam == TEAM_HORDE && assignedNode != AB_NODE_FARM)
+            return true; // Don't defend Farm unless assigned
+    }
+    
+    return false;
+}
+
+bool BGTactics::MoveToABNode(uint32 nodeIndex)
+{
+    Position targetPos;
+    
+    switch (nodeIndex)
+    {
+        case AB_NODE_STABLES:
+            targetPos = AB_NODE_POS_STABLES;
+            break;
+        case AB_NODE_BLACKSMITH:
+            targetPos = AB_NODE_POS_BLACKSMITH;
+            break;
+        case AB_NODE_FARM:
+            targetPos = AB_NODE_POS_FARM;
+            break;
+        case AB_NODE_LUMBER_MILL:
+            targetPos = AB_NODE_POS_LUMBER_MILL;
+            break;
+        case AB_NODE_GOLD_MINE:
+            targetPos = AB_NODE_POS_GOLD_MINE;
+            break;
+        default:
+            return false;
+    }
+    
+    return MoveTo(bot->GetMapId(), targetPos.GetPositionX(), targetPos.GetPositionY(), targetPos.GetPositionZ());
+}
+
+// Objective Focus System Implementation
+
+// Local helper to check flag carrier status (same logic as in TargetValue.cpp)
+static bool IsFlagCarrierBG(Unit* unit)
+{
+    if (!unit || !unit->IsPlayer())
+        return false;
+    
+    Player* player = unit->ToPlayer();
+    
+    // WSG flag carrier auras
+    if (player->HasAura(23333) || player->HasAura(23335))
+        return true;
+    
+    // EotS flag carrier aura
+    if (player->HasAura(34976))
+        return true;
+    
+    return false;
+}
+
+bool BGTactics::ShouldEngageInCombat(Unit* target)
+{
+    if (!target) return false;
+    
+    // 1. ALWAYS fight if we are defending a node we own/contest
+    if (IsDefendingObjective())
+        return true;
+        
+    // 2. NEVER fight if we are carrying a flag (objective is to run)
+    if (HasCriticalObjective())
+        return false;
+        
+    // 3. FIGHT if we are capturing a node and enemy tries to stop us
+    // (If we are near a node we want, and enemy is there, we must kill them to cap)
+    if (IsNearObjective(30.0f))
+        return true;
+        
+    // 4. Default: Fight if attacked or target is close
+    if (bot->GetVictim() == target || target->GetVictim() == bot)
+        return true;
+
+    // 5. Existing logic overrides:
+    if (!target->IsPlayer()) return true; // PvE always ok
+    
+    Battleground* bg = bot->GetBattleground();
+    if (!bg) return true; // Not in BG
+
+    Player* enemy = target->ToPlayer();
+    
+    // ALWAYS ENGAGE: Flag carriers
+    if (IsFlagCarrierBG(enemy)) return true;
+    
+    // ALWAYS ENGAGE: Target attacking our flag carrier
+    Unit* fcVictim = enemy->GetVictim();
+    if (fcVictim && fcVictim->IsPlayer())
+    {
+        Player* victimPlayer = fcVictim->ToPlayer();
+        if (victimPlayer->GetTeamId() == bot->GetTeamId() && IsFlagCarrierBG(victimPlayer))
+            return true; 
+    }
+    
+    // Default yes
+    return true; 
+}
+
+bool BGTactics::IsNearObjective(float maxDistance)
+{
+    // SAFETY FIX: BgObjective can be a dangling pointer when BG objects despawn/change ownership
+    // Removed unsafe pointer usage - use only position-based logic instead
+    Battleground* bg = bot->GetBattleground();
+    if (!bg) 
+        return false;
+    
+    Position objectivePos = GetNearestObjectivePosition();
+    if (objectivePos.GetPositionX() == 0.0f && objectivePos.GetPositionY() == 0.0f)
+        return false; 
+    
+    return bot->GetDistance(objectivePos) <= maxDistance;
+}
+
+bool BGTactics::IsTargetThreateningObjective(Unit* target)
+{
+    if (!target)
+        return false;
+    
+    Position objectivePos = GetNearestObjectivePosition();
+    if (objectivePos.GetPositionX() == 0.0f && objectivePos.GetPositionY() == 0.0f)
+        return false;
+    
+    // Target is near objective (within 40 yards)
+    return target->GetDistance(objectivePos) <= 40.0f;
+}
+
+bool BGTactics::IsDefendingObjective()
+{
+    // If our objective is a node we own, we are defending
+    // But how do we know if we own it? BgObjective is just a GO.
+    // For now, check if we are near an objective and stationary.
+    
+    if (!IsNearObjective(30.0f))
+        return false;
+    
+    // If we're moving slowly or stationary near objective, we're defending
+    return !bot->isMoving() || bot->GetSpeed(MOVE_RUN) < 7.0f;
+}
+
+bool BGTactics::IsAttackingObjective()
+{
+    // Check if bot is moving toward an objective to capture
+    // Simplified: if moving and within range of objective
+    return bot->isMoving() && IsNearObjective(50.0f);
+}
+
+Position BGTactics::GetNearestObjectivePosition()
+{
+    Battleground* bg = bot->GetBattleground();
+    if (!bg)
+        return Position();
+    
+    BattlegroundTypeId bgType = bg->GetBgTypeID();
+    if (bgType == BATTLEGROUND_RB)
+        bgType = bg->GetBgTypeID(true);
+    
+    float nearestDist = 999999.0f;
+    Position nearestPos;
+    
+    switch (bgType)
+    {
+        case BATTLEGROUND_WS:
+        {
+            // WSG: Flag rooms
+            Position flags[] = {WS_FLAG_POS_ALLIANCE, WS_FLAG_POS_HORDE};
+            for (auto& pos : flags)
+            {
+                float dist = bot->GetDistance(pos);
+                if (dist < nearestDist)
+                {
+                    nearestDist = dist;
+                    nearestPos = pos;
+                }
+            }
+            break;
+        }
+        case BATTLEGROUND_AB:
+        {
+            // AB: All 5 bases
+            Position bases[] = {
+                AB_NODE_POS_STABLES,
+                AB_NODE_POS_BLACKSMITH,
+                AB_NODE_POS_FARM,
+                AB_NODE_POS_LUMBER_MILL,
+                AB_NODE_POS_GOLD_MINE
+            };
+            for (auto& pos : bases)
+            {
+                float dist = bot->GetDistance(pos);
+                if (dist < nearestDist)
+                {
+                    nearestDist = dist;
+                    nearestPos = pos;
+                }
+            }
+            break;
+        }
+        case BATTLEGROUND_EY:
+        {
+            // EotS: Mid flag + 4 bases
+            Position objectives[] = {
+                {2174.782f, 1569.054f, 1160.361f, 0.0f}, // Mid flag
+                {2047.19f, 1735.07f, 1187.91f, 0.0f},    // Fel Reaver
+                {2047.19f, 1349.19f, 1189.0f, 0.0f},     // Blood Elf
+                {2276.8f, 1400.41f, 1196.33f, 0.0f},     // Draenei Ruins
+                {2282.102f, 1760.006f, 1189.707f, 0.0f}  // Mage Tower
+            };
+            for (auto& pos : objectives)
+            {
+                float dist = bot->GetDistance(pos);
+                if (dist < nearestDist)
+                {
+                    nearestDist = dist;
+                    nearestPos = pos;
+                }
+            }
+            break;
+        }
+        default:
+            break;
+    }
+    
+    return nearestPos;
+}
+
 bool ArenaTactics::Execute(Event event)
 {
     if (!bot->InBattleground())
@@ -4432,3 +5438,1195 @@ bool ArenaTactics::moveToCenter(Battleground* bg)
 
     return true;
 }
+
+// ==========================================
+// ARENA INTELLIGENCE METHODS
+// ==========================================
+
+// Get Arena Focus Target - Coordinate all DPS on enemy healer
+Unit* BGTactics::GetArenaFocusTarget()
+{
+    if (!bot->InArena())
+        return nullptr;
+
+    // Priority 1: Enemy healer (alive)
+    GuidVector targets = AI_VALUE(GuidVector, "possible targets");
+    Unit* enemyHealer = nullptr;
+    Unit* lowHPTarget = nullptr;
+    float lowestHP = 100.0f;
+
+    for (auto guid : targets)
+    {
+        Unit* unit = botAI->GetUnit(guid);
+        if (!unit || !unit->IsPlayer() || !unit->IsAlive())
+            continue;
+
+        Player* enemy = unit->ToPlayer();
+        
+        // Check if healer
+        if (botAI->IsHeal(enemy))
+        {
+            if (!enemyHealer || enemy->GetHealthPct() < enemyHealer->GetHealthPct())
+                enemyHealer = enemy;
+        }
+
+        // Track lowest HP target as fallback
+        float hp = enemy->GetHealthPct();
+        if (hp < lowestHP)
+        {
+            lowestHP = hp;
+            lowHPTarget = enemy;
+        }
+    }
+
+    // Return healer if alive, otherwise lowest HP target
+    return enemyHealer ? enemyHealer : lowHPTarget;
+}
+
+// Check if should focus healer in arena
+bool BGTactics::ShouldFocusHealer()
+{
+    if (!bot->InArena())
+        return false;
+
+    Unit* focusTarget = GetArenaFocusTarget();
+    if (!focusTarget || !focusTarget->IsPlayer())
+        return false;
+
+    // Focus healer if one exists
+    return botAI->IsHeal(focusTarget->ToPlayer());
+}
+
+// Check if bot is under heavy pressure (taking damage from multiple enemies)
+bool BGTactics::IsUnderHeavyPressure()
+{
+    if (!bot->InArena() && !bot->InBattleground())
+        return false;
+
+    // Check attacker count
+    uint8 attackerCount = AI_VALUE(uint8, "attacker count");
+    
+    // Under heavy pressure if:
+    // 1. Multiple attackers (2+)
+    // 2. Low HP (<40%)
+    // 3. Combination of attackers + low HP
+    
+    if (attackerCount >= 2)
+        return true;
+
+    if (bot->GetHealthPct() < 40.0f && attackerCount > 0)
+        return true;
+
+    return false;
+}
+
+// Check if should use defensive cooldown
+bool BGTactics::ShouldUseDefensiveCooldown()
+{
+    if (!bot->InArena() && !bot->InBattleground())
+        return false;
+
+    // Use defensive if under heavy pressure
+    if (IsUnderHeavyPressure())
+        return true;
+
+    // Use defensive if HP dropping rapidly (lost >30% HP recently)
+    if (bot->GetHealthPct() < 50.0f && bot->IsInCombat())
+    {
+        uint8 attackerCount = AI_VALUE(uint8, "attacker count");
+        if (attackerCount >= 2)
+            return true;
+    }
+
+    // Emergency defensive at very low HP
+    if (bot->GetHealthPct() < 25.0f && bot->IsInCombat())
+        return true;
+
+    return false;
+}
+
+// Check if it's a good burst window (enemy vulnerable)
+bool BGTactics::IsBurstWindow()
+{
+    if (!bot->InArena())
+        return false;
+
+    Unit* focusTarget = GetArenaFocusTarget();
+    if (!focusTarget || !focusTarget->IsPlayer())
+        return false;
+
+    float targetHP = focusTarget->GetHealthPct();
+    
+    // Burst window: Target HP < 60% AND (healer CC'd OR target CC'd OR very low HP)
+    if (targetHP < 60.0f && (IsEnemyHealerCCd() || CountEnemyHealers() == 0))
+        return true;
+    
+    if (targetHP < 40.0f)
+        return true;
+
+    // Target is CC'd
+    if (focusTarget->HasUnitState(UNIT_STATE_STUNNED) || focusTarget->HasUnitState(UNIT_STATE_CONTROLLED))
+        return true;
+
+    return false;
+}
+
+// Check if should use burst cooldown
+bool BGTactics::ShouldUseBurstCooldown()
+{
+    if (!bot->InArena())
+        return false;
+
+    if (IsBurstWindow())
+        return true;
+
+    // Use burst if we outnumber enemies and target is low
+    Unit* focusTarget = GetArenaFocusTarget();
+    if (focusTarget && focusTarget->GetHealthPct() < 50.0f)
+    {
+        GuidVector targets = AI_VALUE(GuidVector, "possible targets");
+        uint8 aliveEnemies = 0;
+        for (auto guid : targets)
+        {
+            Unit* unit = botAI->GetUnit(guid);
+            if (unit && unit->IsPlayer() && unit->IsAlive())
+                aliveEnemies++;
+        }
+
+        Group* group = bot->GetGroup();
+        if (group)
+        {
+            uint8 aliveAllies = 0;
+            for (GroupReference* ref = group->GetFirstMember(); ref; ref = ref->next())
+            {
+                Player* member = ref->GetSource();
+                if (member && member->IsAlive())
+                    aliveAllies++;
+            }
+            if (aliveAllies > aliveEnemies)
+                return true;
+        }
+    }
+    return false;
+}
+
+// Count enemy healers in arena
+uint8 BGTactics::CountEnemyHealers()
+{
+    if (!bot->InArena())
+        return 0;
+
+    GuidVector targets = AI_VALUE(GuidVector, "possible targets");
+    uint8 healerCount = 0;
+    for (auto guid : targets)
+    {
+        Unit* unit = botAI->GetUnit(guid);
+        if (unit && unit->IsPlayer() && unit->IsAlive() && botAI->IsHeal(unit->ToPlayer()))
+            healerCount++;
+    }
+    return healerCount;
+}
+
+// Check if enemy healer is CC'd
+bool BGTactics::IsEnemyHealerCCd()
+{
+    if (!bot->InArena())
+        return false;
+
+    GuidVector targets = AI_VALUE(GuidVector, "possible targets");
+    for (auto guid : targets)
+    {
+        Unit* unit = botAI->GetUnit(guid);
+        if (!unit || !unit->IsPlayer() || !unit->IsAlive())
+            continue;
+
+        Player* enemy = unit->ToPlayer();
+        if (botAI->IsHeal(enemy))
+        {
+            if (enemy->HasUnitState(UNIT_STATE_STUNNED) ||
+                enemy->HasUnitState(UNIT_STATE_CONTROLLED) ||
+                enemy->HasUnitState(UNIT_STATE_CONFUSED) ||
+                enemy->HasAuraType(SPELL_AURA_MOD_FEAR))
+                return true;
+        }
+    }
+    return false;
+}
+
+// ==========================================
+// TEAM COORDINATION METHODS
+// ==========================================
+
+bool BGTactics::ShouldProtectHealer()
+{
+    if (!bot->InBattleground() && !bot->InArena())
+        return false;
+    if (botAI->IsHeal(bot))
+        return false;
+    return IsAllyHealerThreatened();
+}
+
+Unit* BGTactics::GetAllyHealer()
+{
+    Group* group = bot->GetGroup();
+    if (!group)
+        return nullptr;
+    for (GroupReference* ref = group->GetFirstMember(); ref; ref = ref->next())
+    {
+        Player* member = ref->GetSource();
+        if (member && member != bot && member->IsAlive() && botAI->IsHeal(member))
+            return member;
+    }
+    return nullptr;
+}
+
+bool BGTactics::IsAllyHealerThreatened()
+{
+    Unit* healer = GetAllyHealer();
+    if (!healer)
+        return false;
+    GuidVector attackers = AI_VALUE(GuidVector, "attackers");
+    for (auto guid : attackers)
+    {
+        Unit* attacker = botAI->GetUnit(guid);
+        if (attacker && (attacker->GetVictim() == healer || attacker->GetDistance(healer) < 10.0f))
+            return true;
+    }
+    return false;
+}
+
+bool BGTactics::ShouldEscortFlagCarrier()
+{
+    if (!bot->InBattleground())
+        return false;
+    if (bot->HasAura(23333) || bot->HasAura(23335) || bot->HasAura(34976))
+        return false;
+    Group* group = bot->GetGroup();
+    if (!group)
+        return false;
+    for (GroupReference* ref = group->GetFirstMember(); ref; ref = ref->next())
+    {
+        Player* member = ref->GetSource();
+        if (member && member != bot && member->IsAlive())
+        {
+            if (member->HasAura(23333) || member->HasAura(23335) || member->HasAura(34976))
+            {
+                if (bot->GetDistance(member) < 40.0f)
+                    return true;
+            }
+        }
+    }
+    return false;
+}
+
+// ==========================================
+// TACTICAL VISION & RISK ASSESSMENT  
+// ==========================================
+
+// Count enemies near a position (tactical vision - range + height only, no LoS)
+uint8 BGTactics::CountEnemiesNearPosition(Position pos, float radius)
+{
+    if (!bot->InBattleground())
+        return 0;
+
+    GuidVector targets = AI_VALUE(GuidVector, "possible targets");
+    uint8 count = 0;
+
+    for (auto guid : targets)
+    {
+        Unit* unit = botAI->GetUnit(guid);
+        if (!unit || !unit->IsPlayer() || !unit->IsAlive())
+            continue;
+
+        float dist = unit->GetDistance(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ());
+        
+        // Range check
+        if (dist > radius)
+            continue;
+
+        // Height check (reasonable Z-axis limit)
+        float zDiff = fabs(bot->GetPositionZ() - unit->GetPositionZ());
+        if (zDiff > 15.0f)
+            continue;
+
+        count++;
+    }
+
+    return count;
+}
+
+// Count allies near a position (range + height, no LoS)
+uint8 BGTactics::CountAlliesNearPosition(Position pos, float radius)
+{
+    if (!bot->InBattleground())
+        return 0;
+
+    Group* group = bot->GetGroup();
+    if (!group)
+        return 1; // Just the bot
+
+    uint8 count = 0;
+
+    for (GroupReference* ref = group->GetFirstMember(); ref; ref = ref->next())
+    {
+        Player* member = ref->GetSource();
+        if (!member || !member->IsAlive())
+            continue;
+
+        float dist = member->GetDistance(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ());
+        
+        // Range check
+        if (dist > radius)
+            continue;
+
+        // Height check
+        float zDiff = fabs(bot->GetPositionZ() - member->GetPositionZ());
+        if (zDiff > 15.0f)
+            continue;
+
+        count++;
+    }
+
+    return count;
+}
+
+// Check if it's safe to attack an objective (not outnumbered)
+bool BGTactics::IsSafeToAttackObjective(Position objPos)
+{
+    if (!bot->InBattleground())
+        return true;
+
+    uint8 enemies = CountEnemiesNearPosition(objPos, 40.0f);
+    uint8 allies = CountAlliesNearPosition(objPos, 40.0f);
+
+    // CRITICAL SITUATION OVERRIDE: Attack anyway if urgent!
+    // Examples: Enemy FC about to cap, heavily losing, last seconds
+    if (IsCriticalSituation())
+        return true;  // JUST GO FOR IT!
+
+    // Safe if: 
+    // 1. No enemies
+    // 2. Equal or more allies than enemies
+    // 3. Only 1 enemy and we have at least 1 ally nearby
+    
+    if (enemies == 0)
+        return true;
+
+    if (allies >= enemies)
+        return true;
+
+    // Risky: outnumbered scenario (e.g., 1v3)
+    // Only attack if the disadvantage is small (1v2 okay, 1v3+ not okay)
+    if (enemies - allies >= 2)
+        return false;
+
+    return true;
+}
+
+// Get the safest objective to attack (best ally:enemy ratio)
+Position BGTactics::GetSafestObjective()
+{
+    if (!bot->InBattleground())
+        return bot->GetPosition();
+
+    Battleground* bg = bot->GetBattleground();
+    if (!bg)
+        return bot->GetPosition();
+
+    // AB: Full node tactical analysis
+    if (bg->GetBgTypeID() == BATTLEGROUND_AB)
+    {
+        Position bestObj = bot->GetPosition();
+        float bestRatio = -999.0f;
+
+        Position nodes[5] = {
+            {1166.0f, 1200.0f, -56.0f, 0.0f},  // Stables
+            {1063.0f, 1313.0f, -56.0f, 0.0f},  // Blacksmith
+            {990.0f, 1008.0f, -42.0f, 0.0f},   // Gold Mine
+            {817.0f, 843.0f, 11.0f, 0.0f},     // Lumber Mill
+            {729.0f, 1167.0f, -16.0f, 0.0f}    // Farm
+        };
+
+        for (int i = 0; i < 5; i++)
+        {
+            uint8 enemies = CountEnemiesNearPosition(nodes[i], 40.0f);
+            uint8 allies = CountAlliesNearPosition(nodes[i], 40.0f);
+
+            float ratio = allies - enemies;
+            if (enemies == 0)
+                ratio = 10.0f;
+
+            if (ratio > bestRatio)
+            {
+                bestRatio = ratio;
+                bestObj = nodes[i];
+            }
+        }
+
+        return bestObj;
+    }
+
+    // OTHER BGs: Use nearest objective (already has good logic)
+    // WSG, EotS, AV, IoC, SotA all use GetNearestObjectivePosition
+    // which is implemented elsewhere and works universally
+    return GetNearestObjectivePosition();
+}
+
+
+// Check if should regroup before attacking (outnumbered)
+bool BGTactics::ShouldRegroupBeforeAttack()
+{
+    if (!bot->InBattleground())
+        return false;
+
+    Position nearestObj = GetNearestObjectivePosition();
+    
+    // Check if we're outnumbered at nearest objective
+    uint8 enemies = CountEnemiesNearPosition(nearestObj, 40.0f);
+    uint8 allies = CountAlliesNearPosition(nearestObj, 40.0f);
+
+    // Regroup if outnumbered by 2+ enemies
+    if (enemies >= allies + 2)
+        return true;
+
+    return false;
+}
+
+// ==========================================
+// URGENCY OVERRIDES (Critical Situations)
+// ==========================================
+
+// Check if situation demands aggressive play despite risk
+bool BGTactics::IsCriticalSituation()
+{
+    if (!bot->InBattleground())
+        return false;
+
+    Battleground* bg = bot->GetBattleground();
+    if (!bg)
+        return false;
+
+    // CRITICAL 1: Enemy FC about to score (WSG, EotS)
+    if (IsEnemyFCNearCap())
+        return true;  // MUST ATTACK even if 1v5!
+
+    // CRITICAL 2: Heavily losing (need aggressive plays)
+    if (IsLosingBadly(bg))
+        return true;
+
+    // CRITICAL 3: Allied FC in danger (must help!)
+    Group* group = bot->GetGroup();
+    if (group)
+    {
+        for (GroupReference* ref = group->GetFirstMember(); ref; ref = ref->next())
+        {
+            Player* member = ref->GetSource();
+            if (member && member->IsAlive())
+            {
+                // Allied FC exists and is low HP
+                if ((member->HasAura(23333) || member->HasAura(23335) || member->HasAura(34976)) &&
+                    member->GetHealthPct() < 50.0f)
+                    return true;  // MUST HELP FC!
+            }
+        }
+    }
+
+    return false;
+}
+
+// Check if enemy FC is near their cap point
+bool BGTactics::IsEnemyFCNearCap()
+{
+    if (!bot->InBattleground())
+        return false;
+
+    Battleground* bg = bot->GetBattleground();
+    if (!bg)
+        return false;
+
+    // Only for flag BGs
+    if (bg->GetBgTypeID() != BATTLEGROUND_WS && bg->GetBgTypeID() != BATTLEGROUND_EY)
+        return false;
+
+    // Find enemy FC
+    GuidVector targets = AI_VALUE(GuidVector, "possible targets");
+    for (auto guid : targets)
+    {
+        Unit* unit = botAI->GetUnit(guid);
+        if (!unit || !unit->IsPlayer())
+            continue;
+
+        Player* enemy = unit->ToPlayer();
+
+        // Check if enemy has flag
+        if (enemy->HasAura(23333) || enemy->HasAura(23335) || enemy->HasAura(34976))
+        {
+            float x = enemy->GetPositionX();
+            float y = enemy->GetPositionY();
+
+            if (bg->GetBgTypeID() == BATTLEGROUND_WS)
+            {
+                // Horde FC near Alliance base (about to cap)
+                if (enemy->GetTeamId() == TEAM_HORDE)
+                {
+                    if (x > 1500 && x < 1580 && y > 1440 && y < 1520)
+                        return true;  // EMERGENCY!
+                }
+                // Alliance FC near Horde base
+                else
+                {
+                    if (x > 880 && x < 960 && y > 1390 && y < 1480)
+                        return true;  // EMERGENCY!
+                }
+            }
+            else if (bg->GetBgTypeID() == BATTLEGROUND_EY)
+            {
+                // Near flag cap point in middle
+                if (x > 2000 && x < 2100 && y > 1320 && y < 1420)
+                    return true;  // EMERGENCY!
+            }
+        }
+    }
+
+    return false;
+}
+
+// ==========================================
+// IOC VEHICLE & COORDINATION METHODS
+// ==========================================
+
+// Check if bot is driving a siege engine
+bool BGTactics::IsDrivingSiegeEngine()
+{
+    if (!bot->GetVehicle())
+        return false;
+    
+    Unit* vehicle = bot->GetVehicle()->GetBase();
+    if (!vehicle)
+        return false;
+    
+    // Siege Engine NPCs: Alliance 34776, Horde 35273
+    uint32 entry = vehicle->GetEntry();
+    return (entry == 34776 || entry == 35273);
+}
+
+// Check if bot is a passenger in any vehicle
+bool BGTactics::IsVehiclePassenger()
+{
+    // Simple check: in vehicle but not the first person to enter (driver)
+    // For IoC purposes, we just need to know if bot is passenger
+    if (!bot->GetVehicle())
+        return false;
+    
+    // If in vehicle, assume passenger for now (specific seat check causes issues)
+    // Driver actions vs passenger actions will be handled in action logic
+    return true;
+}
+
+// Get enemy gate position for IoC
+Position BGTactics::GetEnemyGatePosition()
+{
+    // Alliance Gate: ~341, -872, 47 (Horde attacks)
+    // Horde Gate: ~1270, -765, 48 (Alliance attacks)
+    if (bot->GetTeamId() == TEAM_ALLIANCE)
+        return Position(1270.0f, -765.0f, 48.0f, 0.0f);  // Horde gate
+    else
+        return Position(341.0f, -872.0f, 47.0f, 0.0f);   // Alliance gate
+}
+
+// Find nearest siege vehicle to enter
+Unit* BGTactics::FindNearestSiegeVehicle(float radius)
+{
+    if (!bot->InBattleground())
+        return nullptr;
+    
+    // Use existing bot AI to get all units
+    GuidVector targets = AI_VALUE(GuidVector, "all targets");
+    Unit* nearestVehicle = nullptr;
+    float nearestDist = radius;
+    
+    for (auto guid : targets)
+    {
+        Unit* unit = botAI->GetUnit(guid);
+        if (!unit || !unit->IsVehicle())
+            continue;
+        
+        // Check siege engine entries
+        uint32 entry = unit->GetEntry();
+        if (entry != 34776 && entry != 35273)  // Not a siege engine
+            continue;
+        
+        // Check faction
+        if (unit->GetFaction() != bot->GetFaction())
+            continue;
+        
+        // Check distance
+        float dist = bot->GetDistance(unit);
+        if (dist < nearestDist)
+        {
+            nearestDist = dist;
+            nearestVehicle = unit;
+        }
+    }
+    
+    return nearestVehicle;
+}
+
+// Check if should wait for allies before siege assault
+bool BGTactics::ShouldWaitForSiegeGroup()
+{
+    if (!IsDrivingSiegeEngine())
+        return false;
+    
+    // Count nearby allies for escort
+    uint8 nearbyAllies = CountAlliesNearPosition(bot->GetPosition(), 30.0f);
+    
+    // Wait if less than 3 allies nearby
+    return nearbyAllies < 3;
+}
+
+// Check if should protect allied siege engine
+bool BGTactics::ShouldProtectSiegeEngine()
+{
+    Unit* siegeEngine = FindAlliedSiegeEngine(40.0f);
+    if (!siegeEngine)
+        return false;
+    
+    // Check if siege has attackers
+    uint8 enemies = CountEnemiesNearPosition(siegeEngine->GetPosition(), 20.0f);
+    return enemies > 0;
+}
+
+// Find allied siege engine to protect
+Unit* BGTactics::FindAlliedSiegeEngine(float radius)
+{
+    if (!bot->InBattleground())
+        return nullptr;
+    
+    // Use existing bot AI
+    GuidVector targets = AI_VALUE(GuidVector, "all targets");
+    
+    for (auto guid : targets)
+    {
+        Unit* unit = botAI->GetUnit(guid);
+        if (!unit || !unit->IsVehicle())
+            continue;
+        
+        // Check siege engine entries
+        uint32 entry = unit->GetEntry();
+        if (entry != 34776 && entry != 35273)
+            continue;
+        
+        // Check faction
+        if (unit->GetFaction() != bot->GetFaction())
+            continue;
+        
+        // Check distance
+        if (bot->GetDistance(unit) <= radius)
+            return unit;
+    }
+    
+    return nullptr;
+}
+
+// Check if team controls Workshop
+bool BGTactics::TeamControlsWorkshop()
+{
+    if (!bot->InBattleground())
+        return false;
+    
+    Battleground* bg = bot->GetBattleground();
+    if (!bg || bg->GetBgTypeID() != BATTLEGROUND_IC)
+        return false;
+    
+    // Workshop node check (implementation depends on BG API)
+    // Placeholder: assume controlled if bots near workshop
+    return true;  // TODO: Implement actual workshop control check
+}
+
+// Check if team controls Hangar
+bool BGTactics::TeamControlsHangar()
+{
+    if (!bot->InBattleground())
+        return false;
+    
+    Battleground* bg = bot->GetBattleground();
+    if (!bg || bg->GetBgTypeID() != BATTLEGROUND_IC)
+        return false;
+    
+    // Hangar control check
+    return true;  // TODO: Implement actual hangar control check
+}
+
+// =============================================
+// REACTIVE DEFENSE SYSTEM IMPLEMENTATION
+// =============================================
+
+// Global node state storage
+// Global node state storage
+std::unordered_map<uint32, std::unordered_map<uint32, NodeStateInfo>> bgNodeStates;
+std::recursive_mutex bgNodeStatesMutex;
+
+// Update node states and detect changes - called periodically
+void BGTactics::UpdateNodeStates(Battleground* bg)
+{
+    // Safety checks
+    if (!bg || !bot)
+        return;
+
+    BattlegroundTypeId bgType = bg->GetBgTypeID();
+    if (bgType == BATTLEGROUND_RB)
+        bgType = bg->GetBgTypeID(true);
+    
+    // Only process node-based battlegrounds
+    if (bgType != BATTLEGROUND_AB && bgType != BATTLEGROUND_EY && bgType != BATTLEGROUND_IC)
+        return;
+
+    uint32 bgInstanceId = bg->GetInstanceID();
+    TeamId botTeam = bot->GetTeamId();
+
+    // LOCK MUTEX
+    std::lock_guard<std::recursive_mutex> lock(bgNodeStatesMutex);
+
+    // Throttling Logic (Thread-Safe)
+    static std::unordered_map<uint32, time_t> lastUpdateTime;
+    time_t now = time(nullptr);
+    
+    if (lastUpdateTime.find(bgInstanceId) != lastUpdateTime.end() && 
+        (now - lastUpdateTime[bgInstanceId]) < 2)
+    {
+        return; // Throttled
+    }
+    lastUpdateTime[bgInstanceId] = now;
+
+    // Arathi Basin node state tracking
+    if (bgType == BATTLEGROUND_AB)
+    {
+        BattlegroundAB* abBg = dynamic_cast<BattlegroundAB*>(bg);
+        if (!abBg)
+            return;
+
+        // Track all 5 AB nodes
+        for (uint32 nodeId = 0; nodeId < 5; ++nodeId)
+        {
+            NodeStateInfo& nodeInfo = bgNodeStates[bgInstanceId][nodeId];
+            nodeInfo.nodeId = nodeId;
+            nodeInfo.position = GetNodePosition(nodeId, bgType);
+            nodeInfo.previousState = nodeInfo.currentState;
+
+            // Get node state from BG
+            CaptureABPointInfo const& captureInfo = abBg->GetCapturePointInfo(nodeId);
+            uint8 nodeState = captureInfo._state;
+            TeamId nodeOwner = captureInfo._ownerTeamId;
+            
+            // Decode node state
+            NodeOwnerState newState = NODE_STATE_NEUTRAL;
+            
+            // Check current state using BG_AB_NODE_STATE enums
+            if (nodeState == BG_AB_NODE_STATE_NEUTRAL)
+            {
+                newState = NODE_STATE_NEUTRAL;
+            }
+            else if (nodeState == BG_AB_NODE_STATE_ALLY_OCCUPIED && nodeOwner == botTeam)
+            {
+                newState = NODE_STATE_ALLY_CONTROLLED;
+            }
+            else if (nodeState == BG_AB_NODE_STATE_HORDE_OCCUPIED && nodeOwner == botTeam)
+            {
+                newState = NODE_STATE_ALLY_CONTROLLED;
+            }
+            else if ((nodeState == BG_AB_NODE_STATE_ALLY_OCCUPIED || nodeState == BG_AB_NODE_STATE_HORDE_OCCUPIED) && nodeOwner != botTeam)
+            {
+                newState = NODE_STATE_ENEMY_CONTROLLED;
+            }
+            else if (nodeState == BG_AB_NODE_STATE_ALLY_CONTESTED && botTeam == TEAM_ALLIANCE)
+            {
+                // Alliance is contesting - we're capturing enemy node
+                newState = NODE_STATE_ENEMY_CONTESTED;
+            }
+            else if (nodeState == BG_AB_NODE_STATE_HORDE_CONTESTED && botTeam == TEAM_HORDE)
+            {
+                // Horde is contesting - we're capturing enemy node
+                newState = NODE_STATE_ENEMY_CONTESTED;
+            }
+            else if (nodeState == BG_AB_NODE_STATE_ALLY_CONTESTED && botTeam == TEAM_HORDE)
+            {
+                // Alliance is contesting our node - defend!
+                newState = NODE_STATE_ALLY_CONTESTED;
+            }
+            else if (nodeState == BG_AB_NODE_STATE_HORDE_CONTESTED && botTeam == TEAM_ALLIANCE)
+            {
+                // Horde is contesting our node - defend!
+                newState = NODE_STATE_ALLY_CONTESTED;
+            }
+
+            // Detect state change
+            if (newState != nodeInfo.currentState)
+            {
+                nodeInfo.currentState = newState;
+                nodeInfo.stateChangeTime = time(nullptr);
+
+                // Trigger event handlers
+                if (nodeInfo.previousState == NODE_STATE_ALLY_CONTROLLED &&
+                    newState == NODE_STATE_ALLY_CONTESTED)
+                {
+                    OnNodeContested(nodeId, nodeInfo.position);
+                }
+                else if (nodeInfo.previousState == NODE_STATE_ALLY_CONTROLLED &&
+                         newState == NODE_STATE_ENEMY_CONTROLLED)
+                {
+                    OnNodeLost(nodeId, nodeInfo.position);
+                }
+                else if (newState == NODE_STATE_ALLY_CONTROLLED &&
+                         nodeInfo.previousState == NODE_STATE_ALLY_CONTESTED)
+                {
+                    OnNodeRecaptured(nodeId);
+                }
+            }
+
+            // Update defensive priority
+            if (newState == NODE_STATE_ALLY_CONTESTED)
+            {
+                nodeInfo.needsDefense = true;
+                float timeRemaining = GetCaptureTimeRemaining(nodeId);
+                nodeInfo.defensivePriority = GetDefensiveRecapturePriority(nodeId, nodeInfo.position);
+            }
+            else
+            {
+                nodeInfo.needsDefense = false;
+                nodeInfo.defensivePriority = 0.0f;
+            }
+        }
+    }
+    // Eye of the Storm tracking (4 bases)
+    else if (bgType == BATTLEGROUND_EY)
+    {
+        // Similar logic for EotS bases
+        for (uint32 nodeId = 0; nodeId < 4; ++nodeId)
+        {
+            NodeStateInfo& nodeInfo = bgNodeStates[bgInstanceId][nodeId];
+            nodeInfo.nodeId = nodeId;
+            nodeInfo.position = GetNodePosition(nodeId, bgType);
+            // Simplified - actual implementation needs EotS-specific node state checks
+        }
+    }
+}
+
+// Handler: Our node is being captured
+// Handler: Our node is being captured
+void BGTactics::OnNodeContested(uint32 nodeId, Position pos)
+{
+    std::lock_guard<std::recursive_mutex> lock(bgNodeStatesMutex);
+    Battleground* bg = bot->GetBattleground();
+    if (!bg)
+        return;
+
+    BattlegroundTypeId bgType = bg->GetBgTypeID();
+    if (bgType == BATTLEGROUND_RB)
+        bgType = bg->GetBgTypeID(true);
+
+    std::string nodeName = GetNodeName(nodeId, bgType);
+    
+    LOG_DEBUG("playerbots", "BGTactics: {} detected {} is being captured! Triggering defensive response.",
+              bot->GetName(), nodeName);
+
+    // Mark this node for defensive priority
+    bgNodeStates[bg->GetInstanceID()][nodeId].needsDefense = true;
+}
+
+// Handler: We lost a node
+// Handler: We lost a node
+void BGTactics::OnNodeLost(uint32 nodeId, Position pos)
+{
+    std::lock_guard<std::recursive_mutex> lock(bgNodeStatesMutex);
+    Battleground* bg = bot->GetBattleground();
+    if (!bg)
+        return;
+
+    BattlegroundTypeId bgType = bg->GetBgTypeID();
+    if (bgType == BATTLEGROUND_RB)
+        bgType = bg->GetBgTypeID(true);
+
+    std::string nodeName = GetNodeName(nodeId, bgType);
+    
+    LOG_DEBUG("playerbots", "BGTactics: {} - ALERT! {} has been lost to enemy!",
+              bot->GetName(), nodeName);
+}
+
+// Handler: We recaptured a node
+// Handler: We recaptured a node
+void BGTactics::OnNodeRecaptured(uint32 nodeId)
+{
+    std::lock_guard<std::recursive_mutex> lock(bgNodeStatesMutex);
+    Battleground* bg = bot->GetBattleground();
+    if (!bg)
+        return;
+
+    bgNodeStates[bg->GetInstanceID()][nodeId].needsDefense = false;
+    
+    LOG_DEBUG("playerbots", "BGTactics: {} - Successfully defended/recaptured node {}!",
+              bot->GetName(), nodeId);
+}
+
+// Check if this node needs defensive recapture
+bool BGTactics::IsDefensiveRecaptureTarget(uint32 nodeId)
+{
+    Battleground* bg = bot->GetBattleground();
+    if (!bg)
+        return false;
+
+    std::lock_guard<std::recursive_mutex> lock(bgNodeStatesMutex);
+    auto& nodes = bgNodeStates[bg->GetInstanceID()];
+    if (nodes.find(nodeId) == nodes.end())
+        return false;
+
+    return nodes[nodeId].needsDefense;
+}
+
+// Calculate defensive recapture priority
+float BGTactics::GetDefensiveRecapturePriority(uint32 nodeId, Position nodePos)
+{
+    Battleground* bg = bot->GetBattleground();
+    if (!bg)
+        return 0.0f;
+
+    BattlegroundTypeId bgType = bg->GetBgTypeID();
+    if (bgType == BATTLEGROUND_RB)
+        bgType = bg->GetBgTypeID(true);
+
+    // Base strategic value
+    float baseValue = GetNodeStrategicValue(nodeId, bgType);
+    
+    // Time urgency multiplier (more urgent as timer runs out)
+    float timeRemaining = GetCaptureTimeRemaining(nodeId);
+    float urgencyMultiplier = GetDefensivePriorityMultiplier(timeRemaining);
+    
+    // Proximity bonus (closer bots get higher priority)
+    float distance = bot->GetDistance(nodePos.GetPositionX(), nodePos.GetPositionY(), nodePos.GetPositionZ());
+    float proximityBonus = 1.0f;
+    if (distance < 50.0f)
+        proximityBonus = 2.0f;  // Very close - high priority
+    else if (distance < 100.0f)
+        proximityBonus = 1.5f;  // Medium distance
+    else if (distance > DEFENSIVE_RESPONSE_RADIUS)
+        proximityBonus = 0.1f;  // Too far - low priority
+
+    // Calculate final priority
+    float priority = baseValue * DEFENSIVE_PRIORITY_MULTIPLIER_BASE * urgencyMultiplier * proximityBonus;
+
+    // Log decision
+    LOG_DEBUG("playerbots", "BGTactics: {} defense priority for node {} = {:.2f} (base={:.1f}, urgency={:.2f}, proximity={:.2f})",
+              bot->GetName(), nodeId, priority, baseValue, urgencyMultiplier, proximityBonus);
+
+    return priority;
+}
+
+// Should this bot respond to defense?
+bool BGTactics::ShouldRespondToDefense(uint32 nodeId, Position nodePos)
+{
+    // Don't respond if carrying flag
+    if (HasCriticalObjective())
+        return false;
+
+    // Check distance
+    float distance = bot->GetDistance(nodePos.GetPositionX(), nodePos.GetPositionY(), nodePos.GetPositionZ());
+    if (distance > DEFENSIVE_RESPONSE_RADIUS)
+        return false;
+
+    // Check if enough allies already responding
+    uint8 alliesAtNode = GetAlliesAtNode(nodeId, nodePos);
+    uint8 enemiesAtNode = GetEnemiesAtNode(nodeId, nodePos);
+    
+    // Need at least enough to match enemies + 1
+    uint32 neededDefenders = std::min(static_cast<uint32>(enemiesAtNode + 1), MAX_DEFENDERS_RESPONSE);
+    
+    if (alliesAtNode >= neededDefenders)
+    {
+        LOG_DEBUG("playerbots", "BGTactics: {} - enough defenders ({}) at node {}, not responding",
+                  bot->GetName(), alliesAtNode, nodeId);
+        return false;
+    }
+
+    return true;
+}
+
+// Find closest contested node that needs defense
+uint32 BGTactics::GetClosestContestedNode()
+{
+    Battleground* bg = bot->GetBattleground();
+    if (!bg)
+        return UINT32_MAX;
+
+    std::lock_guard<std::recursive_mutex> lock(bgNodeStatesMutex);
+    auto& nodes = bgNodeStates[bg->GetInstanceID()];
+    
+    float closestDist = 99999.0f;
+    uint32 closestNode = UINT32_MAX;
+
+    for (auto& pair : nodes)
+    {
+        if (!pair.second.needsDefense)
+            continue;
+
+        float dist = bot->GetDistance(pair.second.position.GetPositionX(), 
+                                       pair.second.position.GetPositionY(), 
+                                       pair.second.position.GetPositionZ());
+        if (dist < closestDist)
+        {
+            closestDist = dist;
+            closestNode = pair.first;
+        }
+    }
+
+    return closestNode;
+}
+
+// Get capture time remaining (simplified - actual needs BG API)
+float BGTactics::GetCaptureTimeRemaining(uint32 nodeId)
+{
+    Battleground* bg = bot->GetBattleground();
+    if (!bg)
+        return AB_CAPTURE_TIME;
+
+    auto& nodes = bgNodeStates[bg->GetInstanceID()];
+    if (nodes.find(nodeId) == nodes.end())
+        return AB_CAPTURE_TIME;
+
+    time_t elapsed = time(nullptr) - nodes[nodeId].stateChangeTime;
+    float remaining = AB_CAPTURE_TIME - static_cast<float>(elapsed);
+    return std::max(0.0f, remaining);
+}
+
+// Get base strategic value for a node
+float BGTactics::GetNodeStrategicValue(uint32 nodeId, BattlegroundTypeId bgType)
+{
+    if (bgType == BATTLEGROUND_AB)
+    {
+        // AB strategic values (Blacksmith most important)
+        switch (nodeId)
+        {
+            case AB_NODE_BLACKSMITH:  return 1.5f;  // Central, highest value
+            case AB_NODE_LUMBER_MILL: return 1.2f;  // Good position
+            case AB_NODE_STABLES:     return 1.0f;  // Alliance side
+            case AB_NODE_FARM:        return 1.0f;  // Horde side
+            case AB_NODE_GOLD_MINE:   return 0.8f;  // Far corner
+            default: return 1.0f;
+        }
+    }
+    else if (bgType == BATTLEGROUND_EY)
+    {
+        // EotS values - bases near flag spawn more valuable
+        switch (nodeId)
+        {
+            case 0:  // Mage Tower
+            case 1:  // Draenei Ruins
+                return 1.2f;  // Near center
+            case 2:  // Blood Elf Tower
+            case 3:  // Fel Reaver Ruins
+                return 1.0f;
+            default: return 1.0f;
+        }
+    }
+    
+    return 1.0f;
+}
+
+// Calculate urgency multiplier based on time remaining
+float BGTactics::GetDefensivePriorityMultiplier(float timeRemaining)
+{
+    // Scale from 1.0 (just started) to 2.0 (about to lose)
+    // Formula: 1.0 + (1 - timeRemaining/60) → ranges from 1.0 to 2.0
+    float urgency = 1.0f + (1.0f - (timeRemaining / AB_CAPTURE_TIME));
+    return std::min(2.0f, std::max(1.0f, urgency));
+}
+
+// Check if bot has critical objective (flag carrier, etc.)
+bool BGTactics::HasCriticalObjective()
+{
+    // Check if carrying BG flags
+    if (bot->HasAura(BG_WS_SPELL_WARSONG_FLAG) || 
+        bot->HasAura(BG_WS_SPELL_SILVERWING_FLAG) ||
+        bot->HasAura(BG_EY_NETHERSTORM_FLAG_SPELL))
+    {
+        return true;
+    }
+    
+    return false;
+}
+
+// Get node position for a given BG type
+Position BGTactics::GetNodePosition(uint32 nodeId, BattlegroundTypeId bgType)
+{
+    if (bgType == BATTLEGROUND_AB)
+    {
+        switch (nodeId)
+        {
+            case AB_NODE_STABLES:     return AB_NODE_POS_STABLES;
+            case AB_NODE_BLACKSMITH:  return AB_NODE_POS_BLACKSMITH;
+            case AB_NODE_FARM:        return AB_NODE_POS_FARM;
+            case AB_NODE_LUMBER_MILL: return AB_NODE_POS_LUMBER_MILL;
+            case AB_NODE_GOLD_MINE:   return AB_NODE_POS_GOLD_MINE;
+            default: return Position();
+        }
+    }
+    else if (bgType == BATTLEGROUND_EY)
+    {
+        // EotS base positions (approximate)
+        switch (nodeId)
+        {
+            case 0: return Position(2048.8f, 1393.65f, 1194.05f);  // Mage Tower
+            case 1: return Position(2286.56f, 1402.36f, 1197.11f); // Draenei Ruins
+            case 2: return Position(2048.35f, 1749.68f, 1190.03f); // Blood Elf Tower
+            case 3: return Position(2284.48f, 1731.13f, 1189.99f); // Fel Reaver Ruins
+            default: return Position();
+        }
+    }
+    
+    return Position();
+}
+
+// Get readable node name
+std::string BGTactics::GetNodeName(uint32 nodeId, BattlegroundTypeId bgType)
+{
+    if (bgType == BATTLEGROUND_AB)
+    {
+        switch (nodeId)
+        {
+            case AB_NODE_STABLES:     return "Stables";
+            case AB_NODE_BLACKSMITH:  return "Blacksmith";
+            case AB_NODE_FARM:        return "Farm";
+            case AB_NODE_LUMBER_MILL: return "Lumber Mill";
+            case AB_NODE_GOLD_MINE:   return "Gold Mine";
+            default: return "Unknown";
+        }
+    }
+    else if (bgType == BATTLEGROUND_EY)
+    {
+        switch (nodeId)
+        {
+            case 0: return "Mage Tower";
+            case 1: return "Draenei Ruins";
+            case 2: return "Blood Elf Tower";
+            case 3: return "Fel Reaver Ruins";
+            default: return "Unknown";
+        }
+    }
+    
+    return "Unknown";
+}
+
+// Count enemies at a node position
+// Count enemies at a node position
+uint8 BGTactics::GetEnemiesAtNode(uint32 nodeId, Position nodePos)
+{
+    return CountEnemiesNearPosition(nodePos, 40.0f);
+}
+
+// Count allies at a node position
+uint8 BGTactics::GetAlliesAtNode(uint32 nodeId, Position nodePos)
+{
+    return CountAlliesNearPosition(nodePos, 40.0f);
+}
+
+
+

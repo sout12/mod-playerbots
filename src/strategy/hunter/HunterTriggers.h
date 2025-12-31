@@ -260,4 +260,20 @@ protected:
     static const std::set<uint32> VOLLEY_SPELL_IDS;
 };
 
+// PvP-specific Aspect of the Cheetah trigger for flag carrier mobility
+class AspectOfCheetahPvPTrigger : public Trigger
+{
+public:
+    AspectOfCheetahPvPTrigger(PlayerbotAI* botAI) : Trigger(botAI, "aspect of the cheetah pvp") {}
+    bool IsActive() override;
+};
+
+// PvP-specific Concussive Shot trigger for slowing fleeing flag carriers
+class ConcussiveShotPvPTrigger : public Trigger
+{
+public:
+    ConcussiveShotPvPTrigger(PlayerbotAI* botAI) : Trigger(botAI, "concussive shot pvp") {}
+    bool IsActive() override;
+};
+
 #endif
