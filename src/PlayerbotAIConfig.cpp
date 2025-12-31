@@ -619,6 +619,10 @@ bool PlayerbotAIConfig::Initialize()
         deMode = 2u;
     deButtonMode = static_cast<uint8>(deMode);
     tokenILevelMargin = sConfigMgr->GetOption<float>("AiPlayerbot.Roll.TokenILevelMargin", 0.10f);
+    uint32 tokenRollMode = sConfigMgr->GetOption<uint32>("AiPlayerbot.Roll.SanctificationTokenMode", 0u);
+    if (tokenRollMode > 1u)
+        tokenRollMode = 1u;
+    sanctificationTokenRollMode = static_cast<uint8>(tokenRollMode);
     needOnProfessionRecipes = sConfigMgr->GetOption<bool>("AiPlayerbot.Roll.NeedOnProfessionRecipes", true);
     recipesIgnoreSkillRank   = sConfigMgr->GetOption<bool>("AiPlayerbot.Roll.Recipes.IgnoreSkillRank", false);
     smartNeedBySpec = sConfigMgr->GetOption<bool>("AiPlayerbot.Roll.SmartNeedBySpec", true);
