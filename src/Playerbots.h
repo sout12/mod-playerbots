@@ -64,7 +64,7 @@ bool ForEachBotGroupMember(Player* self, Func&& func)
     for (GroupReference* it = group->GetFirstMember(); it; it = it->next())
     {
         Player* member = it->GetSource();
-        if (!member || member == self || !member->IsInWorld())
+        if (!member || member == self || !member->IsInWorld() || member->IsDuringRemoveFromWorld())
             continue;
 
         PlayerbotAI* memberAI = GET_PLAYERBOT_AI(member);
