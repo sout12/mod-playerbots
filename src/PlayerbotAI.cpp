@@ -46,6 +46,7 @@
 #include "PlayerbotAIConfig.h"
 #include "PlayerbotDbStore.h"
 #include "PlayerbotMgr.h"
+#include "PlayerbotGuildMgr.h"
 #include "Playerbots.h"
 #include "PointMovementGenerator.h"
 #include "PositionValue.h"
@@ -1678,9 +1679,6 @@ void PlayerbotAI::ApplyInstanceStrategies(uint32 mapId, bool tellMaster)
             break;
         case 532:
             strategyName = "karazhan";  // Karazhan
-            break;
-        case 533:
-            strategyName = "naxx";  // Naxxramas
             break;
         case 544:
             strategyName = "magtheridon";  // Magtheridon's Lair
@@ -6049,26 +6047,12 @@ bool PlayerbotAI::CanMove()
     return bot->GetMotionMaster()->GetCurrentMovementGeneratorType() != FLIGHT_MOTION_TYPE;
 }
 
-bool PlayerbotAI::IsRealGuild(uint32 guildId)
-{
-    Guild* guild = sGuildMgr->GetGuildById(guildId);
-    if (!guild)
-    {
-        return false;
-    }
-    uint32 leaderAccount = sCharacterCache->GetCharacterAccountIdByGuid(guild->GetLeaderGUID());
-    if (!leaderAccount)
-        return false;
-
-    return !(sPlayerbotAIConfig->IsInRandomAccountList(leaderAccount));
-}
-
 bool PlayerbotAI::IsInRealGuild()
 {
     if (!bot->GetGuildId())
         return false;
 
-    return IsRealGuild(bot->GetGuildId());
+    return sPlayerbotGuildMgr->IsRealGuild(bot->GetGuildId());
 }
 
 void PlayerbotAI::QueueChatResponse(const ChatQueuedReply chatReply) { chatReplies.push_back(std::move(chatReply)); }
