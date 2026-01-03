@@ -18,7 +18,7 @@ public:
 
     bool Execute(Event event) override;
 
-private:
+protected:
     void List();
     void Save(std::string const name, ItemIds outfit);
     void Update(std::string const name);
