@@ -1211,12 +1211,14 @@ void RandomPlayerbotMgr::CheckBgQueue()
         uint32 randomBotAutoJoinBGAVCount = sPlayerbotAIConfig->randomBotAutoJoinBGAVCount;
         uint32 randomBotAutoJoinBGABCount = sPlayerbotAIConfig->randomBotAutoJoinBGABCount;
         uint32 randomBotAutoJoinBGWSCount = sPlayerbotAIConfig->randomBotAutoJoinBGWSCount;
+        uint32 randomBotAutoJoinBGRBCount = sPlayerbotAIConfig->randomBotAutoJoinBGRBCount;
 
         std::vector<uint32> icBrackets = parseBrackets(sPlayerbotAIConfig->randomBotAutoJoinICBrackets);
         std::vector<uint32> eyBrackets = parseBrackets(sPlayerbotAIConfig->randomBotAutoJoinEYBrackets);
         std::vector<uint32> avBrackets = parseBrackets(sPlayerbotAIConfig->randomBotAutoJoinAVBrackets);
         std::vector<uint32> abBrackets = parseBrackets(sPlayerbotAIConfig->randomBotAutoJoinABBrackets);
         std::vector<uint32> wsBrackets = parseBrackets(sPlayerbotAIConfig->randomBotAutoJoinWSBrackets);
+        std::vector<uint32> rbBrackets = parseBrackets(sPlayerbotAIConfig->randomBotAutoJoinRBBrackets);
 
         // Check both bgInstanceCount / bgInstances.size
         // to help counter against potentional inconsistencies
@@ -1253,6 +1255,7 @@ void RandomPlayerbotMgr::CheckBgQueue()
         updateBGInstanceCount(BATTLEGROUND_QUEUE_AV, avBrackets, randomBotAutoJoinBGAVCount);
         updateBGInstanceCount(BATTLEGROUND_QUEUE_AB, abBrackets, randomBotAutoJoinBGABCount);
         updateBGInstanceCount(BATTLEGROUND_QUEUE_WS, wsBrackets, randomBotAutoJoinBGWSCount);
+        updateBGInstanceCount(BATTLEGROUND_QUEUE_RB, rbBrackets, randomBotAutoJoinBGRBCount);
     }
 
     LogBattlegroundInfo();

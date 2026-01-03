@@ -234,6 +234,7 @@ public:
     uint32 randomBotAutoJoinBGAVCount;
     uint32 randomBotAutoJoinBGABCount;
     uint32 randomBotAutoJoinBGWSCount;
+    uint32 randomBotAutoJoinBGRBCount;
 
     uint32 randomBotAutoJoinArenaBracket;
 

@@ -350,6 +350,7 @@ bool PlayerbotAIConfig::Initialize()
     randomBotAutoJoinBGAVCount = sConfigMgr->GetOption<int32>("AiPlayerbot.RandomBotAutoJoinBGAVCount", 0);
     randomBotAutoJoinBGABCount = sConfigMgr->GetOption<int32>("AiPlayerbot.RandomBotAutoJoinBGABCount", 0);
     randomBotAutoJoinBGWSCount = sConfigMgr->GetOption<int32>("AiPlayerbot.RandomBotAutoJoinBGWSCount", 0);
+    randomBotAutoJoinBGRBCount = sConfigMgr->GetOption<int32>("AiPlayerbot.RandomBotAutoJoinBGRBCount", 0);
 
     randomBotAutoJoinBGRatedArena2v2Count =
         sConfigMgr->GetOption<int32>("AiPlayerbot.RandomBotAutoJoinBGRatedArena2v2Count", 0);
