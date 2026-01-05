@@ -211,7 +211,7 @@ void StatsWeightCalculator::GenerateWeights(Player* player)
 
     // PvP: resilience must dominate weights on battlegrounds/arenas.
     if (player->InBattleground() || player->InArena())
-        stats_weights_[STATS_TYPE_RESILIENCE] += 8.0f;
+        stats_weights_[STATS_TYPE_RESILIENCE] += 24.0f;
 
 }
 
