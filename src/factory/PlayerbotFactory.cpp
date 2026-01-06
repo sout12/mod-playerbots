@@ -42,7 +42,6 @@
 #include "World.h"
 #include "AiObjectContext.h"
 #include "ItemPackets.h"
-#include "CompetitiveQueueMgr.h"
 
 const uint64 diveMask = (1LL << 7) | (1LL << 44) | (1LL << 37) | (1LL << 38) | (1LL << 26) | (1LL << 30) | (1LL << 27) |
                         (1LL << 33) | (1LL << 24) | (1LL << 34);
@@ -63,8 +62,8 @@ std::vector<uint32> PlayerbotFactory::enchantSpellIdCache;
 std::vector<uint32> PlayerbotFactory::enchantGemIdCache;
 std::unordered_map<uint32, std::vector<uint32>> PlayerbotFactory::trainerIdCache;
 
-PlayerbotFactory::PlayerbotFactory(Player* bot, uint32 level, uint32 itemQuality, uint32 gearScoreLimit)
-    : level(level), itemQuality(itemQuality), gearScoreLimit(gearScoreLimit), bot(bot)
+PlayerbotFactory::PlayerbotFactory(Player* bot, uint32 level, uint32 itemQuality, uint32 gearScoreLimit, bool lockLevel)
+    : level(level), itemQuality(itemQuality), gearScoreLimit(gearScoreLimit), lockLevel(lockLevel), bot(bot)
 {
     botAI = GET_PLAYERBOT_AI(bot);
     if (!this->itemQuality)
@@ -209,11 +208,21 @@ void PlayerbotFactory::Prepare()
         bot->ResurrectPlayer(1.0f, false);
 
     bot->CombatStop(true);
-    uint32 currentLevel = bot->GetLevel();
-    bot->GiveLevel(level);
-    if (level != currentLevel)
+
+    if (!lockLevel)
     {
-        bot->SetUInt32Value(PLAYER_XP, 0);
+        uint32 currentLevel = bot->GetLevel();
+        bot->GiveLevel(level);
+        if (level != currentLevel)
+        {
+            bot->SetUInt32Value(PLAYER_XP, 0);
+        }
+    }
+    else
+    {
+        // This factory instance must not touch bot level/XP.
+        // Keep internal target level consistent with actual bot level.
+        level = bot->GetLevel();
     }
     if (!sPlayerbotAIConfig->randomBotShowHelmet || !urand(0, 4))
     {
@@ -256,7 +265,11 @@ void PlayerbotFactory::Randomize(bool incremental)
     bot->RemoveAllSpellCooldown();
     UnbindInstance();
 
-    bot->GiveLevel(level);
+    if (!lockLevel)
+        bot->GiveLevel(level);
+    else
+        level = bot->GetLevel();
+
     bot->InitStatsForLevel(true);
     CancelAuras();
     // bot->SaveToDB(false, false);
@@ -450,16 +463,17 @@ void PlayerbotFactory::Randomize(bool incremental)
     if (pmo)
         pmo->finish();
 
-    uint32 const maxLevelArena = sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL);
-    uint32 const requiredLevelArena = (maxLevelArena < 70 ? 70 : maxLevelArena);
-
-    if (bot->GetLevel() >= requiredLevelArena)
     {
-        pmo = sPerformanceMonitor->start(PERF_MON_RNDBOT, "PlayerbotFactory_Arenas");
-        // LOG_INFO("playerbots", "Initializing arena teams...");
-        InitArenaTeam();
-        if (pmo)
-            pmo->finish();
+        uint32 maxLevel = sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL);
+        // Create/assign random-bot arena teams only for max-level characters, and only for 70/80 realms.
+        if ((maxLevel == 70 || maxLevel == 80) && bot->GetLevel() == maxLevel)
+        {
+            pmo = sPerformanceMonitor->start(PERF_MON_RNDBOT, "PlayerbotFactory_Arenas");
+            // LOG_INFO("playerbots", "Initializing arena teams...");
+            InitArenaTeam();
+            if (pmo)
+                pmo->finish();
+        }
     }
 
     if (!incremental)
@@ -1049,9 +1063,6 @@ void PlayerbotFactory::ClearSkills()
             bot->SetSkill(skillId, 0, 0, 0);
         }
     }
-
-    // Final sweep: if this bot is arena/BG focused, make sure PvP resilience pieces fill empty/weak slots.
-    EnsurePvpResilienceOutfit();
 }
 
 void PlayerbotFactory::ClearEverything()
@@ -1998,159 +2009,6 @@ void PlayerbotFactory::InitEquipment(bool incremental, bool second_chance)
             //     newItem->AddToUpdateQueueOf(bot);
             // }
         }
-    }
-
-    // Final sweep: if this bot is arena/BG focused, make sure PvP resilience pieces fill empty/weak slots.
-    EnsurePvpResilienceOutfit();
-
-    // As a last resort, if we somehow have empty armor slots, equip the starter outfit so bots are never naked.
-    EnsureStarterOutfitIfEmpty();
-}
-
-void PlayerbotFactory::EnsurePvpResilienceOutfit()
-{
-    bool top = sCompetitiveQueueMgr->IsTopRankedArenaPlayer(bot);
-    bool mid = sCompetitiveQueueMgr->IsMidRankedArenaPlayer(bot);
-    bool pvpContext = top || mid || bot->InArena() || bot->InBattleground();
-    if (!pvpContext)
-        return;
-
-    float minGs = top ? 5500.0f : (mid ? 5000.0f : 3500.0f);
-    uint32 minQuality = top ? ITEM_QUALITY_EPIC : ITEM_QUALITY_RARE;
-    uint32 lvl = bot->GetLevel();
-    int32 delta = std::min<uint32>(lvl, 10);
-
-    auto hasResilience = [](ItemTemplate const* proto) {
-        if (!proto)
-            return false;
-        for (uint8 i = 0; i < proto->StatsCount; ++i)
-        {
-            if (proto->ItemStat[i].ItemStatType == ITEM_MOD_RESILIENCE_RATING &&
-                proto->ItemStat[i].ItemStatValue > 0)
-                return true;
-        }
-        return false;
-    };
-
-    auto gearScore = [](ItemTemplate const* proto) {
-        return PlayerbotFactory::CalcMixedGearScore(proto->ItemLevel, proto->Quality);
-    };
-
-    StatsWeightCalculator calculator(bot);
-
-    for (int32 slot : initSlotsOrder)
-    {
-        if (slot == EQUIPMENT_SLOT_TABARD || slot == EQUIPMENT_SLOT_BODY)
-            continue;
-
-        Item* existing = bot->GetItemByPos(INVENTORY_SLOT_BAG_0, slot);
-        if (existing)
-        {
-            ItemTemplate const* proto = existing->GetTemplate();
-            if (hasResilience(proto) && gearScore(proto) >= minGs * 0.9f)
-                continue;  // good enough
-        }
-
-        float bestScore = -1.0f;
-        uint32 bestItem = 0;
-
-        for (uint32 requiredLevel = lvl; requiredLevel > std::max<int32>((int32)lvl - delta, 0); --requiredLevel)
-        {
-            for (InventoryType inventoryType : GetPossibleInventoryTypeListBySlot((EquipmentSlots)slot))
-            {
-                for (uint32 itemId : sRandomItemMgr->GetCachedEquipments(requiredLevel, inventoryType))
-                {
-                    ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemId);
-                    if (!proto)
-                        continue;
-                    if (proto->Quality < minQuality)
-                        continue;
-                    if (!hasResilience(proto))
-                        continue;
-
-                    float gs = gearScore(proto);
-                    if (gs < minGs * 0.85f)
-                        continue;
-
-                    if (proto->Class == ITEM_CLASS_ARMOR && !CanEquipArmor(proto))
-                        continue;
-                    if (proto->Class == ITEM_CLASS_WEAPON && !CanEquipWeapon(proto))
-                        continue;
-                    if (!CanEquipItem(proto))
-                        continue;
-
-                    float score = calculator.CalculateItem(itemId);
-                    if (score > bestScore)
-                    {
-                        uint16 dest;
-                        if (!CanEquipUnseenItem(slot, dest, itemId))
-                            continue;
-                        bestScore = score;
-                        bestItem = itemId;
-                    }
-                }
-            }
-        }
-
-        if (!bestItem)
-            continue;
-
-        uint16 dest;
-        if (!CanEquipUnseenItem(slot, dest, bestItem))
-            continue;
-
-        Item* newItem = bot->EquipNewItem(dest, bestItem, true);
-        if (newItem)
-            bot->AutoUnequipOffhandIfNeed();
-    }
-}
-
-void PlayerbotFactory::EnsureStarterOutfitIfEmpty()
-{
-    // If key armor slots are empty, equip starter gear to avoid naked bots.
-    std::vector<uint8> armorSlots = {
-        EQUIPMENT_SLOT_HEAD,     EQUIPMENT_SLOT_SHOULDERS, EQUIPMENT_SLOT_CHEST,    EQUIPMENT_SLOT_LEGS,
-        EQUIPMENT_SLOT_FEET,     EQUIPMENT_SLOT_WRISTS,    EQUIPMENT_SLOT_HANDS,    EQUIPMENT_SLOT_WAIST,
-        EQUIPMENT_SLOT_NECK,     EQUIPMENT_SLOT_BACK,      EQUIPMENT_SLOT_FINGER1,  EQUIPMENT_SLOT_FINGER2,
-        EQUIPMENT_SLOT_TRINKET1, EQUIPMENT_SLOT_TRINKET2,  EQUIPMENT_SLOT_MAINHAND, EQUIPMENT_SLOT_OFFHAND
-    };
-
-    bool missing = false;
-    for (uint8 slot : armorSlots)
-    {
-        if (!bot->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
-        {
-            missing = true;
-            break;
-        }
-    }
-
-    if (!missing)
-        return;
-
-    if (CharStartOutfitEntry const* oEntry = GetCharStartOutfitEntry(bot->getRace(), bot->getClass(), bot->getGender()))
-    {
-        for (int j = 0; j < MAX_OUTFIT_ITEMS; ++j)
-        {
-            if (oEntry->ItemId[j] <= 0)
-                continue;
-
-            uint32 itemId = oEntry->ItemId[j];
-
-            // skip hearthstone
-            if (itemId == 6948)
-                continue;
-
-            ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemId);
-            if (!proto)
-                continue;
-
-            if (bot->HasItemCount(itemId, 1, true))
-                continue;
-
-            bot->StoreNewItemInBestSlots(itemId, 1);
-        }
-        LOG_WARN("playerbots", "EnsureStarterOutfit: {} had missing gear, equipped starter outfit", bot->GetName());
     }
 }
 
@@ -4217,18 +4075,20 @@ void PlayerbotFactory::InitImmersive()
 
 void PlayerbotFactory::InitArenaTeam()
 {
-    uint32 const maxLevel = sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL);
-    uint32 const requiredLevel = (maxLevel < 70 ? 70 : maxLevel);
 
-    // Extra safety: even if InitArenaTeam() is called from somewhere else,
-    // never touch arena teams below the required level.
-    if (bot->GetLevel() < requiredLevel)
-        return;
-
-    // Arena teams are only for random-bot accounts, never for real player alts.
     if (!sPlayerbotAIConfig->IsInRandomAccountList(bot->GetSession()->GetAccountId()))
         return;
 
+    // Safety: only random bots should ever get random-bot arena teams.
+    if (!sRandomPlayerbotMgr || !sRandomPlayerbotMgr->IsRandomBot(bot))
+        return;
+
+    uint32 maxLevel = sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL);
+    // Create/assign random-bot arena teams only for max-level characters, and only for 70/80 realms.
+    if (maxLevel != 70 && maxLevel != 80)
+        return;
+    if (bot->GetLevel() != maxLevel)
+        return;
 
     // Currently the teams are only remade after a server restart and if deleteRandomBotArenaTeams = 1
     // This is because randomBotArenaTeams is only empty on server restart.
@@ -4288,7 +4148,7 @@ void PlayerbotFactory::InitArenaTeam()
             continue;
         }
 
-        if (arenateam->GetMembersSize() < ((uint32)arenateam->GetType()) && bot->GetLevel() >= requiredLevel)
+        if (arenateam->GetMembersSize() < ((uint32)arenateam->GetType()))
         {
             ObjectGuid capt = arenateam->GetCaptain();
             Player* botcaptain = ObjectAccessor::FindPlayer(capt);

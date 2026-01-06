@@ -11,7 +11,8 @@
 #include "GuildMgr.h"
 #include "PlayerbotFactory.h"
 #include "Playerbots.h"
-#include "PvPGuildNames.h"
+#include "PlayerbotGuildMgr.h"
+#include "World.h"
 #include "ScriptMgr.h"
 #include "SharedDefines.h"
 #include "SocialMgr.h"
@@ -755,244 +756,6 @@ void RandomPlayerbotFactory::CreateRandomBots()
             sPlayerbotAIConfig->randomBotAccounts.size(), totalRandomBotChars);
 }
 
-void RandomPlayerbotFactory::CreateRandomGuilds()
-{
-    std::vector<uint32> randomBots;
-
-    PlayerbotsDatabasePreparedStatement* stmt = PlayerbotsDatabase.GetPreparedStatement(PLAYERBOTS_SEL_RANDOM_BOTS_BOT);
-    stmt->SetData(0, "add");
-    if (PreparedQueryResult result = PlayerbotsDatabase.Query(stmt))
-    {
-        do
-        {
-            Field* fields = result->Fetch();
-            uint32 bot = fields[0].Get<uint32>();
-            randomBots.push_back(bot);
-        } while (result->NextRow());
-    }
-
-    if (sPlayerbotAIConfig->deleteRandomBotGuilds)
-    {
-        LOG_INFO("playerbots", "Deleting random bot guilds...");
-        for (std::vector<uint32>::iterator i = randomBots.begin(); i != randomBots.end(); ++i)
-        {
-            if (Guild* guild = sGuildMgr->GetGuildByLeader(ObjectGuid::Create<HighGuid::Player>(*i)))
-                guild->Disband();
-        }
-
-        LOG_INFO("playerbots", "Random bot guilds deleted");
-    }
-
-    std::unordered_set<uint32> botAccounts;
-    botAccounts.reserve(sPlayerbotAIConfig->randomBotAccounts.size());
-    for (uint32 acc : sPlayerbotAIConfig->randomBotAccounts)
-        botAccounts.insert(acc);
-
-    // Recount bot guilds directly from the database (does not depend on connected bots)
-    uint32 guildNumber = 0;
-    sPlayerbotAIConfig->randomBotGuilds.clear();
-    sPlayerbotAIConfig->randomBotGuilds.shrink_to_fit(); // avoids accumulating old capacity
-
-    if (!botAccounts.empty())
-    {
-        if (QueryResult res = CharacterDatabase.Query(
-                // We only retrieve what is necessary (guildid, leader account)
-                "SELECT g.guildid, c.account "
-                "FROM guild g JOIN characters c ON g.leaderguid = c.guid"))
-        {
-            do
-            {
-                Field* f = res->Fetch();
-                const uint32 guildId   = f[0].Get<uint32>();
-                const uint32 accountId = f[1].Get<uint32>();
-
-                // Determine if guild leader's account is a bot account.
-                if (botAccounts.find(accountId) != botAccounts.end())
-                {
-                    ++guildNumber;
-                    sPlayerbotAIConfig->randomBotGuilds.push_back(guildId);
-                }
-            } while (res->NextRow());
-        }
-    }
-
-    LOG_INFO("playerbots", "{}/{} random bot guilds exist in guild table",guildNumber, sPlayerbotAIConfig->randomBotGuildCount);
-    if (guildNumber >= sPlayerbotAIConfig->randomBotGuildCount)
-    {
-        LOG_DEBUG("playerbots", "No new random guilds required");
-        return;
-    }
-
-    // We list the available leaders (online bots, not in guilds)
-    GuidVector availableLeaders;
-    availableLeaders.reserve(randomBots.size()); // limit reallocs
-    for (const uint32 botLowGuid : randomBots)
-    {
-        ObjectGuid leader = ObjectGuid::Create<HighGuid::Player>(botLowGuid);
-        if (sGuildMgr->GetGuildByLeader(leader))
-        {
-            // already GuildLeader -> ignored
-            continue;
-        }
-        else
-        {
-            if (Player* player = ObjectAccessor::FindPlayer(leader))
-            {
-                if (!player->GetGuildId())
-                    availableLeaders.push_back(leader);
-            }
-        }
-    }
-    LOG_DEBUG("playerbots", "{} available leaders for new guilds found", availableLeaders.size());
-
-    // Create up to randomBotGuildCount by counting only EFFECTIVE creations
-    uint32 createdThisRun = 0;
-    uint32 maxAttempts = sPlayerbotAIConfig->randomBotGuildCount * 3; // Safety: max 3 attempts per guild
-    uint32 attempts = 0;
-    
-    for (; guildNumber < sPlayerbotAIConfig->randomBotGuildCount && attempts < maxAttempts; attempts++)
-    {
-        std::string guildName = "";
-        
-        // Use PvP guild names if PvP guilds are enabled
-        if (sPlayerbotAIConfig->pvpGuildsEnabled)
-        {
-            // Check potential leader's stats to determine if it should be an elite guild
-            bool isEliteGuild = false;
-            
-            if (!availableLeaders.empty())
-            {
-                uint32 index = urand(0, availableLeaders.size() - 1);
-                ObjectGuid leader = availableLeaders[index];
-                Player* potentialLeader = ObjectAccessor::FindPlayer(leader);
-                
-                if (potentialLeader)
-                {
-                    // Check arena rating OR honor kills for elite status
-                    uint32 honorKills = potentialLeader->GetUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS);
-                    
-                    // Check if has elite arena rating in any team
-                    bool hasEliteArenaRating = false;
-                    for (uint32 slot = 0; slot < MAX_ARENA_SLOT; ++slot)
-                    {
-                        if (uint32 arenaTeamId = potentialLeader->GetArenaTeamId(slot))
-                        {
-                            if (ArenaTeam* team = sArenaTeamMgr->GetArenaTeamById(arenaTeamId))
-                            {
-                                if (team->GetRating() >= sPlayerbotAIConfig->eliteGuildThreshold)
-                                {
-                                    hasEliteArenaRating = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    
-                    isEliteGuild = hasEliteArenaRating || (honorKills >= sPlayerbotAIConfig->eliteGuildHonorKillThreshold);
-                }
-            }
-            
-            guildName = PvPGuildNames::GetRandomPvPGuildName(isEliteGuild);
-        }
-        else
-        {
-            guildName = CreateRandomGuildName();
-        }
-        
-        if (guildName.empty())
-            break; // no more names available
-
-        if (sGuildMgr->GetGuildByName(guildName))
-            continue; // name already taken, skip
-
-        if (availableLeaders.empty())
-        {
-            LOG_ERROR("playerbots", "No leaders for random guilds available");
-            break; // no more leaders: we can no longer progress without distorting the counter
-        }
-
-        uint32 index = urand(0, availableLeaders.size() - 1);
-        ObjectGuid leader = availableLeaders[index];
-        availableLeaders.erase(availableLeaders.begin() + index); // Removes the chosen leader to avoid re-selecting it repeatedly
-
-        Player* player = ObjectAccessor::FindPlayer(leader);
-        if (!player)
-        {
-            LOG_ERROR("playerbots", "ObjectAccessor Cannot find player to set leader for guild {} . Skipped...",
-                    guildName.c_str());
-            // we will try with other leaders in the next round (guildNumber is not incremented)
-            continue;
-        }
-
-        if (player->GetGuildId())
-        {
-            // leader already in guild -> we don't advance the counter, we move on to the next one
-            continue;
-        }
-
-        LOG_DEBUG("playerbots", "Creating guild name='{}' leader='{}'...", guildName.c_str(), player->GetName().c_str());
-
-        Guild* guild = new Guild();
-        if (!guild->Create(player, guildName))
-        {
-            LOG_ERROR("playerbots", "Error creating guild [ {} ] with leader [ {} ]", guildName.c_str(),
-                    player->GetName().c_str());
-            delete guild;
-            continue;
-        }
-
-        sGuildMgr->AddGuild(guild);
-
-        LOG_DEBUG("playerbots", "Guild created: id={} name='{}'", guild->GetId(), guildName.c_str());
-
-        // create random emblem
-        uint32 st, cl, br, bc, bg;
-        bg = urand(0, 51);
-        bc = urand(0, 17);
-        cl = urand(0, 17);
-        br = urand(0, 7);
-        st = urand(0, 180);
-
-        LOG_DEBUG("playerbots",
-                 "[TABARD] new guild id={} random -> style={}, color={}, borderStyle={}, borderColor={}, bgColor={}",
-                 guild->GetId(), st, cl, br, bc, bg);
-
-        // populate guild table with a random tabard design
-        CharacterDatabase.Execute(
-            "UPDATE guild SET EmblemStyle={}, EmblemColor={}, BorderStyle={}, BorderColor={}, BackgroundColor={} "
-            "WHERE guildid={}",
-            st, cl, br, bc, bg, guild->GetId());
-        LOG_DEBUG("playerbots", "[TABARD] UPDATE done for guild id={}", guild->GetId());
-
-        // Immediate reading for log
-        if (QueryResult qr = CharacterDatabase.Query(
-                "SELECT EmblemStyle,EmblemColor,BorderStyle,BorderColor,BackgroundColor FROM guild WHERE guildid={}",
-                guild->GetId()))
-        {
-            Field* f = qr->Fetch();
-            LOG_DEBUG("playerbots",
-                     "[TABARD] DB check guild id={} => style={}, color={}, borderStyle={}, borderColor={}, bgColor={}",
-                     guild->GetId(), f[0].Get<uint8>(), f[1].Get<uint8>(), f[2].Get<uint8>(), f[3].Get<uint8>(), f[4].Get<uint8>());
-        }
-
-        sPlayerbotAIConfig->randomBotGuilds.push_back(guild->GetId());
-        
-        // Track PvP guilds for premade formation
-        if (sPlayerbotAIConfig->pvpGuildsEnabled && !guildName.empty())
-        {
-            // If we used PvP guild names, this is a PvP guild
-            sPlayerbotAIConfig->pvpGuildIds.push_back(guild->GetId());
-        }
-        
-        // The guild is only counted if it is actually created
-        ++guildNumber;
-        ++createdThisRun;
-    }
-
-    // Shows the true total and how many were created during this run
-    LOG_INFO("playerbots", "{} random bot guilds created this run)", createdThisRun);
-}
-
 std::string const RandomPlayerbotFactory::CreateRandomGuildName()
 {
     std::string guildName = "";
@@ -1026,8 +789,8 @@ std::string const RandomPlayerbotFactory::CreateRandomGuildName()
 
 void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count)
 {
-    uint32 const maxLevel = sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL);
-    uint32 const requiredLevel = (maxLevel < 70 ? 70 : maxLevel);
+    uint32 maxLevel = sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL);
+    bool allowArenaTeams = (maxLevel == 70 || maxLevel == 80);
 
     std::vector<uint32> randomBots;
 
@@ -1058,7 +821,7 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
         {
             Player* player = ObjectAccessor::FindConnectedPlayer(captain);
 
-            if (!arenateam && player && player->GetLevel() >= requiredLevel)
+            if (allowArenaTeams && !arenateam && player && player->GetLevel() == maxLevel)
                 availableCaptains.push_back(captain);
         }
     }
@@ -1084,9 +847,9 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
             continue;
         }
 
-        if (player->GetLevel() < requiredLevel)
+        if (player->GetLevel() != maxLevel)
         {
-            LOG_ERROR("playerbots", "Bot {} must be level {} to create an arena team", captain.ToString().c_str(), requiredLevel);
+            LOG_ERROR("playerbots", "Bot {} must be level {} to create an arena team", captain.ToString().c_str(), maxLevel);
             continue;
         }
 

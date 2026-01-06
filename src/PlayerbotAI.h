@@ -25,10 +25,6 @@
 #include "SpellAuras.h"
 #include "Util.h"
 #include "WorldPacket.h"
-#include "SharedDefines.h"
-#include "ServerFacade.h"
-#include "TravelMgr.h"
-#include "Value.h"
 
 class AiObjectContext;
 class Creature;
@@ -44,31 +40,6 @@ class SpellInfo;
 class Unit;
 class WorldObject;
 class WorldPosition;
-
-// SafeTeleport helper to avoid invalid map/Z teleports that can stall or crash bots
-inline bool SafeTeleport(Player* bot, uint32 mapId, float x, float y, float z, float o = 0.0f, const char* reason = "")
-{
-    if (!bot)
-        return false;
-
-    if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z))
-    {
-        LOG_ERROR("playerbots", "[SafeTeleport] Aborted for {}: non-finite coords ({},{},{}) map {}", bot->GetName(),
-                  x, y, z, mapId);
-        return false;
-    }
-
-    // Reject obviously bogus heights (e.g., -200000) that come from bad path data
-    if (z < -5000.0f || z > 5000.0f)
-    {
-        LOG_ERROR("playerbots", "[SafeTeleport] Aborted for {}: invalid Z {} at ({}, {}) map {} reason {}", bot->GetName(),
-                  z, x, y, mapId, reason ? reason : "");
-        return false;
-    }
-
-    bot->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TELEPORTED | AURA_INTERRUPT_FLAG_CHANGE_MAP);
-    return bot->TeleportTo(mapId, x, y, z, o);
-}
 
 struct CreatureData;
 struct GameObjectData;
@@ -420,6 +391,10 @@ public:
     void UpdateAI(uint32 elapsed, bool minimal = false) override;
     void UpdateAIInternal(uint32 elapsed, bool minimal = false) override;
 
+    // Schedule a delayed PvE re-equip after leaving BG/arena (teleport/loading safe).
+    // Used by PvP gear swap logic to avoid re-gearing during map transfer.
+    void SetPendingPveGearReequip(bool hadRealMaster);
+
     std::string const HandleRemoteCommand(std::string const command);
     void HandleCommand(uint32 type, std::string const text, Player* fromPlayer);
     void QueueChatResponse(const ChatQueuedReply reply);
@@ -632,7 +607,6 @@ public:
     NewRpgStatistic rpgStatistic;
     std::unordered_set<uint32> lowPriorityQuest;
     time_t bgReleaseAttemptTime = 0;
-    bool IsMasterOnTransport();
 
     // Schedules a callback to run once after <delayMs> milliseconds.
     void AddTimedEvent(std::function<void()> callback, uint32 delayMs);
@@ -642,21 +616,15 @@ private:
                                    bool mixed = false);
     bool IsTellAllowed(PlayerbotSecurityLevel securityLevel = PLAYERBOT_SECURITY_ALLOW_ALL);
     void UpdateAIGroupMaster();
-    void UpdatePvPGearSwap(uint32 elapsed);
-
     Item* FindItemInInventory(std::function<bool(ItemTemplate const*)> checkItem) const;
     void HandleCommands();
     void HandleCommand(uint32 type, const std::string& text, Player& fromPlayer, const uint32 lang = LANG_UNIVERSAL);
     bool _isBotInitializing = false;
-    inline bool IsValidUnit(const Unit* unit) const
-    {
-        return unit && unit->IsInWorld() && !unit->IsDuringRemoveFromWorld();
-    }
-    inline bool IsValidPlayer(const Player* player) const
-    {
-        return player && player->GetSession() && player->IsInWorld() && !player->IsDuringRemoveFromWorld() &&
-               !player->IsBeingTeleported();
-    }
+
+    // Pending PvE re-equip after leaving BG/arena (deferred until bot is back in world).
+    bool pendingPveGearReequip_ = false;
+    bool pendingPveGearReequipHadRealMaster_ = false;
+
 protected:
     Player* bot;
     Player* master;
@@ -682,11 +650,6 @@ protected:
     BotCheatMask cheatMask = BotCheatMask::none;
     Position jumpDestination = Position();
     uint32 nextTransportCheck = 0;
-    // PvP/BG/Arena gear swap tracking
-    bool lastPvpContext = false;
-    bool pvpGearSwapPending = false;
-    uint32 pvpGearSwapCooldown = 0;
-
 };
 
 #endif
