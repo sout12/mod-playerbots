@@ -362,6 +362,11 @@ AiPlayerbot.Roll.CrossArmorGreedIsPass = 0
 # Default: 0.1
 AiPlayerbot.Roll.TokenILevelMargin = 0.1
 
+# ICC sanctification tokens (Conqueror/Protector/Vanquisher Mark of Sanctification):
+# 0 = always GREED; 1 = NEED while the bot has fewer than 5 tokens of that type.
+# Default: 0
+AiPlayerbot.Roll.SanctificationTokenMode = 0
+
 #
 #
 #

@@ -1381,6 +1381,47 @@ static int8 TokenSlotFromName(ItemTemplate const* proto)
     return -1;
 }
 
+// ICC Tokens
+static std::array<uint32, 6> const& GetSanctificationTokenIds()
+{
+    static std::array<uint32, 6> const sanctificationTokenIds = {
+        52025, // Vanquisher's Mark of Sanctification (25 normal)
+        52026, // Protector's Mark of Sanctification (25 normal)
+        52027, // Conqueror's Mark of Sanctification (25 normal)
+        52028, // Vanquisher's Mark of Sanctification (25 heroic)
+        52029, // Protector's Mark of Sanctification (25 heroic)
+        52030  // Conqueror's Mark of Sanctification (25 heroic)
+    };
+
+    return sanctificationTokenIds;
+}
+
+static bool IsSanctificationToken(ItemTemplate const* proto)
+{
+    if (!proto)
+        return false;
+
+    for (uint32 const entry : GetSanctificationTokenIds())
+    {
+        if (proto->ItemId == entry)
+            return true;
+    }
+
+    return false;
+}
+
+static uint32 GetOwnedSanctificationTokenCount(Player* bot)
+{
+    if (!bot)
+        return 0;
+
+    uint32 total = 0;
+    for (uint32 const entry : GetSanctificationTokenIds())
+        total += bot->GetItemCount(entry, true);
+
+    return total;
+}
+
 // Upgrade heuristic for a token: if the slot is known,
 // consider it a "likely upgrade" if ilvl(token) >= ilvl(best equipped item in that slot) + margin.
 static bool IsTokenLikelyUpgrade(ItemTemplate const* token, uint8 invTypeSlot, Player* bot)
@@ -1423,7 +1464,8 @@ static TokenInfo BuildTokenInfo(ItemTemplate const* proto, Player* bot)
     // WotLK tier tokens are usually Misc / Junk / Epic.
     info.isToken = (proto->Class == ITEM_CLASS_MISC &&
                     proto->SubClass == ITEM_SUBCLASS_JUNK &&
-                    proto->Quality == ITEM_QUALITY_EPIC);
+                    proto->Quality == ITEM_QUALITY_EPIC) ||
+                   IsSanctificationToken(proto);
     if (!info.isToken)
         return info;
 
@@ -1433,12 +1475,23 @@ static TokenInfo BuildTokenInfo(ItemTemplate const* proto, Player* bot)
     if (info.classCanUse && info.invTypeSlot >= 0)
         info.likelyUpgrade = IsTokenLikelyUpgrade(proto, static_cast<uint8>(info.invTypeSlot), bot);
 
+    if (IsSanctificationToken(proto))
+    {
+        bool const slotKnown = info.invTypeSlot >= 0;
+        LOG_DEBUG("playerbots",
+                  "[LootRollDBG][Token] bot={} itemId={} \"{}\" classId={} isToken={} classCanUse={} invTypeSlot={} slotKnown={} likelyUpgrade={}",
+                  bot->GetName(), proto->ItemId, proto->Name1, bot->getClass(), info.isToken ? 1 : 0,
+                  info.classCanUse ? 1 : 0, static_cast<int32>(info.invTypeSlot), slotKnown ? 1 : 0,
+                  info.likelyUpgrade ? 1 : 0);
+    }
+
     return info;
 }
 
 static bool TryTokenRollVote(ItemTemplate const* proto, Player* bot, RollVote& outVote)
 {
     TokenInfo const token = BuildTokenInfo(proto, bot);
+    constexpr uint32 SANCTIFICATION_TOKEN_MAX_COUNT = 5u;
 
     // Not a token → let other rules decide.
     if (!token.isToken)
@@ -1453,8 +1506,19 @@ static bool TryTokenRollVote(ItemTemplate const* proto, Player* bot, RollVote& o
         }
         else
         {
-            // Unknown slot (e.g. T10 sanctification tokens): do not block loot, but stay in GREED.
-            outVote = GREED;
+            // Unknown slot (e.g. T10 sanctification tokens).
+            if (IsSanctificationToken(proto) && sPlayerbotAIConfig->sanctificationTokenRollMode == 1u)
+            {
+                uint32 const ownedTokens = GetOwnedSanctificationTokenCount(bot);
+                outVote = (ownedTokens < SANCTIFICATION_TOKEN_MAX_COUNT) ? NEED : GREED;
+                LOG_DEBUG("playerbots",
+                          "[LootRollDBG][Token] bot={} itemId={} \"{}\" mode={} ownedTokens={} maxTokens={} vote={}",
+                          bot->GetName(), proto->ItemId, proto->Name1,
+                          static_cast<uint32>(sPlayerbotAIConfig->sanctificationTokenRollMode),
+                          ownedTokens, SANCTIFICATION_TOKEN_MAX_COUNT, VoteTxt(outVote));
+            }
+            else
+                outVote = GREED;
         }
     }
     else
