@@ -239,6 +239,8 @@ void MageBoostStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
 void MageCcStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
 {
     triggers.push_back(new TriggerNode("polymorph", NextAction::array(0, new NextAction("polymorph", 30.0f), nullptr)));
+    triggers.push_back(new TriggerNode("polymorph enemy healer",
+                                       NextAction::array(0, new NextAction("polymorph", ACTION_HIGH + 5), nullptr)));
 }
 
 void MageAoeStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)

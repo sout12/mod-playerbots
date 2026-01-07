@@ -22,6 +22,9 @@ void GenericWarriorStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
         NextAction::array(0, new NextAction("intercept", ACTION_HIGH + 2), new NextAction("charge", ACTION_HIGH + 1),
                           nullptr)));
     triggers.push_back(new TriggerNode(
+        "enemy player near",
+        NextAction::array(0, new NextAction("intervene", ACTION_HIGH + 0.5f), nullptr)));
+    triggers.push_back(new TriggerNode(
         "pummel", NextAction::array(0, new NextAction("pummel", ACTION_INTERRUPT + 2), nullptr)));
     triggers.push_back(new TriggerNode(
         "pummel on enemy healer",

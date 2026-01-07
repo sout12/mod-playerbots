@@ -135,6 +135,12 @@ public:
 
 // CC, Interrupt, and Dispel Actions
 
+class CastHexAction : public CastSpellOnEnemyHealerAction
+{
+public:
+    CastHexAction(PlayerbotAI* botAI) : CastSpellOnEnemyHealerAction(botAI, "hex") {}
+};
+
 class CastWindShearAction : public CastSpellAction
 {
 public:

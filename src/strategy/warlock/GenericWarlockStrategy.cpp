@@ -77,6 +77,8 @@ void WarlockCcStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
 {
     triggers.push_back(new TriggerNode("banish", NextAction::array(0, new NextAction("banish on cc", 33.0f), nullptr)));
     triggers.push_back(new TriggerNode("fear", NextAction::array(0, new NextAction("fear on cc", 32.0f), nullptr)));
+    triggers.push_back(new TriggerNode("fear enemy healer",
+        NextAction::array(0, new NextAction("fear enemy healer", ACTION_HIGH + 3), nullptr)));
 }
 
 // Combat strategy for using Curse of Agony

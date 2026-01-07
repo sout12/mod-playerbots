@@ -45,6 +45,20 @@ bool HunterNoStingsActiveTrigger::IsActive()
     return BuffTrigger::IsActive();
 }
 
+bool FreezingTrapEnemyHealerTrigger::IsActive()
+{
+    Unit* healer = AI_VALUE(Unit*, "enemy healer target");
+    if (!healer || !healer->IsAlive())
+        return false;
+    if (!bot->InArena() && !bot->InBattleground())
+        return false;
+    if (!bot->IsWithinLOSInMap(healer))
+        return false;
+    if (healer->HasAuraType(SPELL_AURA_MOD_CONFUSE))
+        return false;
+    return true;
+}
+
 bool HuntersPetDeadTrigger::IsActive()
 {
     // Unit* pet = AI_VALUE(Unit*, "pet target");

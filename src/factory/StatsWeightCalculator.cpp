@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "AiFactory.h"
+#include "CompetitiveQueueMgr.h"
 #include "DBCStores.h"
 #include "ItemEnchantmentMgr.h"
 #include "ItemTemplate.h"
@@ -97,7 +98,11 @@ float StatsWeightCalculator::CalculateItem(uint32 itemId, int32 randomPropertyId
 
 // PvP gear preference:
 // In BG/Arena prefer items with Resilience; in world prefer non-Resilience.
-bool inPvpContext = player_ && (player_->InBattleground() || player_->InArena());
+// Also treat top-ranked and mid-ranked arena players as being in PvP context
+// so they always prefer resilience gear (better gear quality).
+bool inPvpContext = player_ && (player_->InBattleground() || player_->InArena() ||
+                                sCompetitiveQueueMgr->IsTopRankedArenaPlayer(player_) ||
+                                sCompetitiveQueueMgr->IsMidRankedArenaPlayer(player_));
 bool hasResilience = (collector_->stats[STATS_TYPE_RESILIENCE] > 0.0f);
 if (hasResilience && !inPvpContext)
 {

@@ -171,6 +171,7 @@ public:
         creators["fire elemental totem"] = &ShamanATriggerFactoryInternal::fire_elemental_totem;
         creators["earth shock execute"] = &ShamanATriggerFactoryInternal::earth_shock_execute;
         creators["spirit walk ready"] = &ShamanATriggerFactoryInternal::spirit_walk_ready;
+        creators["hex enemy healer"] = &ShamanATriggerFactoryInternal::hex_enemy_healer;
         creators["chain lightning no cd"] = &ShamanATriggerFactoryInternal::chain_lightning_no_cd;
         creators["call of the elements and enemy within melee"] = &ShamanATriggerFactoryInternal::call_of_the_elements_and_enemy_within_melee;
         creators["maelstrom weapon 5 and medium aoe"] = &ShamanATriggerFactoryInternal::maelstrom_weapon_5_and_medium_aoe;
@@ -236,6 +237,7 @@ private:
     static Trigger* fire_elemental_totem(PlayerbotAI* botAI) { return new FireElementalTotemTrigger(botAI); }
     static Trigger* earth_shock_execute(PlayerbotAI* botAI) { return new EarthShockExecuteTrigger(botAI); }
     static Trigger* spirit_walk_ready(PlayerbotAI* ai) { return new SpiritWalkTrigger(ai); }
+    static Trigger* hex_enemy_healer(PlayerbotAI* botAI) { return new HexEnemyHealerTrigger(botAI); }
     static Trigger* chain_lightning_no_cd(PlayerbotAI* ai) { return new ChainLightningNoCdTrigger(ai); }
     static Trigger* call_of_the_elements_and_enemy_within_melee(PlayerbotAI* ai) { return new CallOfTheElementsAndEnemyWithinMeleeTrigger(ai); }
     static Trigger* maelstrom_weapon_5_and_medium_aoe(PlayerbotAI* ai) { return new MaelstromWeapon5AndMediumAoeTrigger(ai); }
@@ -359,6 +361,7 @@ public:
         creators["set windfury totem"] = &ShamanAiObjectContextInternal::set_windfury_totem;
         creators["set nature resistance totem"] = &ShamanAiObjectContextInternal::set_nature_resistance_totem;
         creators["set grounding totem"] = &ShamanAiObjectContextInternal::set_grounding_totem;
+        creators["hex"] = &ShamanAiObjectContextInternal::hex;
     }
 
 private:
@@ -451,6 +454,7 @@ private:
     static Action* set_windfury_totem(PlayerbotAI* ai) { return new SetWindfuryTotemAction(ai); }
     static Action* set_nature_resistance_totem(PlayerbotAI* ai) { return new SetNatureResistanceTotemAction(ai); }
     static Action* set_grounding_totem(PlayerbotAI* ai) { return new SetGroundingTotemAction(ai); }
+    static Action* hex(PlayerbotAI* ai) { return new CastHexAction(ai); }
 };
 
 SharedNamedObjectContextList<Strategy> ShamanAiObjectContext::sharedStrategyContexts;

@@ -168,6 +168,12 @@ public:
     bool isPossible() override;
 };
 
+class CastFearOnEnemyHealerAction : public CastSpellOnEnemyHealerAction
+{
+public:
+    CastFearOnEnemyHealerAction(PlayerbotAI* botAI) : CastSpellOnEnemyHealerAction(botAI, "fear") {}
+};
+
 class CastSpellLockAction : public CastSpellAction
 {
 public:

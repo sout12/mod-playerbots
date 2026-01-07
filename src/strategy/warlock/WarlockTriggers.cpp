@@ -66,6 +66,20 @@ bool FearTrigger::IsActive()
     return ccTarget && moonTarget && ccTarget == moonTarget && HasCcTargetTrigger::IsActive();
 }
 
+bool FearEnemyHealerTrigger::IsActive()
+{
+    Unit* healer = AI_VALUE(Unit*, "enemy healer target");
+    if (!healer || !healer->IsAlive())
+        return false;
+    if (!bot->InArena() && !bot->InBattleground())
+        return false;
+    if (!bot->IsWithinLOSInMap(healer))
+        return false;
+    if (healer->HasAuraType(SPELL_AURA_MOD_FEAR))
+        return false;
+    return true;
+}
+
 bool DemonArmorTrigger::IsActive()
 {
     Unit* target = GetTarget();

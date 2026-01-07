@@ -107,6 +107,7 @@ void GenericShamanStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
     triggers.push_back(new TriggerNode("wind shear", NextAction::array(0, new NextAction("wind shear", 23.0f), nullptr)));
     triggers.push_back(new TriggerNode("wind shear on enemy healer", NextAction::array(0, new NextAction("wind shear on enemy healer", 23.0f), nullptr)));
     triggers.push_back(new TriggerNode("purge", NextAction::array(0, new NextAction("purge", ACTION_DISPEL), nullptr)));
+    triggers.push_back(new TriggerNode("hex enemy healer", NextAction::array(0, new NextAction("hex", ACTION_HIGH + 4), nullptr)));
     triggers.push_back(new TriggerNode("ghost wolf pvp", NextAction::array(0, new NextAction("ghost wolf", ACTION_HIGH + 6), nullptr)));
     triggers.push_back(new TriggerNode("medium mana", NextAction::array(0, new NextAction("mana potion", ACTION_DISPEL), nullptr)));
     triggers.push_back(new TriggerNode("new pet", NextAction::array(0, new NextAction("set pet stance", 65.0f), nullptr)));

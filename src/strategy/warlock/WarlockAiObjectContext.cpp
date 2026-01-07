@@ -154,6 +154,7 @@ public:
         creators["soulstone"] = &WarlockTriggerFactoryInternal::soulstone;
         creators["banish"] = &WarlockTriggerFactoryInternal::banish;
         creators["fear"] = &WarlockTriggerFactoryInternal::fear;
+        creators["fear enemy healer"] = &WarlockTriggerFactoryInternal::fear_enemy_healer;
         creators["spell lock"] = &WarlockTriggerFactoryInternal::spell_lock;
         creators["devour magic purge"] = &WarlockTriggerFactoryInternal::devour_magic_purge;
         creators["devour magic cleanse"] = &WarlockTriggerFactoryInternal::devour_magic_cleanse;
@@ -202,6 +203,7 @@ private:
     static Trigger* corruption_on_attacker(PlayerbotAI* botAI) { return new CorruptionOnAttackerTrigger(botAI); }
     static Trigger* banish(PlayerbotAI* botAI) { return new BanishTrigger(botAI); }
     static Trigger* fear(PlayerbotAI* botAI) { return new FearTrigger(botAI); }
+    static Trigger* fear_enemy_healer(PlayerbotAI* botAI) { return new FearEnemyHealerTrigger(botAI); }
     static Trigger* spell_lock(PlayerbotAI* botAI) { return new SpellLockInterruptSpellTrigger(botAI); }
     static Trigger* devour_magic_purge(PlayerbotAI* botAI) { return new DevourMagicPurgeTrigger(botAI); }
     static Trigger* devour_magic_cleanse(PlayerbotAI* botAI) { return new DevourMagicCleanseTrigger(botAI); }
@@ -268,6 +270,7 @@ public:
         creators["drain life"] = &WarlockAiObjectContextInternal::drain_life;
         creators["banish on cc"] = &WarlockAiObjectContextInternal::banish_on_cc;
         creators["fear on cc"] = &WarlockAiObjectContextInternal::fear_on_cc;
+        creators["fear enemy healer"] = &WarlockAiObjectContextInternal::fear_enemy_healer;
         creators["spell lock"] = &WarlockAiObjectContextInternal::spell_lock;
         creators["devour magic purge"] = &WarlockAiObjectContextInternal::devour_magic_purge;
         creators["devour magic cleanse"] = &WarlockAiObjectContextInternal::devour_magic_cleanse;
@@ -339,6 +342,7 @@ private:
     static Action* drain_life(PlayerbotAI* botAI) { return new CastDrainLifeAction(botAI); }
     static Action* banish_on_cc(PlayerbotAI* botAI) { return new CastBanishOnCcAction(botAI); }
     static Action* fear_on_cc(PlayerbotAI* botAI) { return new CastFearOnCcAction(botAI); }
+    static Action* fear_enemy_healer(PlayerbotAI* botAI) { return new CastFearOnEnemyHealerAction(botAI); }
     static Action* spell_lock(PlayerbotAI* botAI) { return new CastSpellLockAction(botAI); }
     static Action* devour_magic_purge(PlayerbotAI* botAI) { return new CastDevourMagicPurgeAction(botAI); }
     static Action* devour_magic_cleanse(PlayerbotAI* botAI) { return new CastDevourMagicCleanseAction(botAI); }

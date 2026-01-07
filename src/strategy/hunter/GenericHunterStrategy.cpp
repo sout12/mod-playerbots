@@ -151,6 +151,8 @@ void HunterCcStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
 {
     triggers.push_back(new TriggerNode("scare beast", NextAction::array(0, new NextAction("scare beast on cc", 23.0f), nullptr)));
     triggers.push_back(new TriggerNode("freezing trap", NextAction::array(0, new NextAction("freezing trap on cc", 23.0f), nullptr)));
+    triggers.push_back(new TriggerNode("freezing trap enemy healer",
+        NextAction::array(0, new NextAction("freezing trap enemy healer", ACTION_HIGH + 4), nullptr)));
 }
 
 void HunterTrapWeaveStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)

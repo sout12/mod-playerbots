@@ -97,6 +97,7 @@ public:
         creators["hot streak"] = &MageTriggerFactoryInternal::hot_streak;
         creators["living bomb"] = &MageTriggerFactoryInternal::living_bomb;
         creators["living bomb on attackers"] = &MageTriggerFactoryInternal::living_bomb_on_attackers;
+        creators["polymorph enemy healer"] = &MageTriggerFactoryInternal::polymorph_enemy_healer;
         creators["missile barrage"] = &MageTriggerFactoryInternal::missile_barrage;
         creators["arcane blast"] = &MageTriggerFactoryInternal::arcane_blast;
         creators["counterspell on enemy healer"] = &MageTriggerFactoryInternal::counterspell_enemy_healer;
@@ -149,6 +150,7 @@ private:
     static Trigger* remove_curse_on_party(PlayerbotAI* botAI) { return new PartyMemberRemoveCurseTrigger(botAI); }
     static Trigger* counterspell(PlayerbotAI* botAI) { return new CounterspellInterruptSpellTrigger(botAI); }
     static Trigger* polymorph(PlayerbotAI* botAI) { return new PolymorphTrigger(botAI); }
+    static Trigger* polymorph_enemy_healer(PlayerbotAI* botAI) { return new PolymorphEnemyHealerTrigger(botAI); }
     static Trigger* spellsteal(PlayerbotAI* botAI) { return new SpellstealTrigger(botAI); }
     static Trigger* living_bomb(PlayerbotAI* botAI) { return new LivingBombTrigger(botAI); }
     static Trigger* living_bomb_on_attackers(PlayerbotAI* botAI) { return new LivingBombOnAttackersTrigger(botAI); }

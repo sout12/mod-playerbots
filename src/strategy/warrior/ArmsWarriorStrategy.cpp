@@ -128,6 +128,11 @@ void ArmsWarriorStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
         "light aoe",
         NextAction::array(0, new NextAction("bladestorm", ACTION_HIGH + 5), nullptr)));
 
+    // Burst CD gating: recklessness/death wish only during actual burst
+    triggers.push_back(new TriggerNode(
+        "target critical health",
+        NextAction::array(0, new NextAction("recklessness", ACTION_HIGH + 4), nullptr)));
+
     triggers.push_back(new TriggerNode("medium health",
         NextAction::array(0, new NextAction("enraged regeneration", ACTION_EMERGENCY), nullptr)));
 

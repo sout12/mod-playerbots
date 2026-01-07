@@ -130,6 +130,14 @@ public:
     FreezingTrapTrigger(PlayerbotAI* botAI) : HasCcTargetTrigger(botAI, "freezing trap") {}
 };
 
+class FreezingTrapEnemyHealerTrigger : public Trigger
+{
+public:
+    FreezingTrapEnemyHealerTrigger(PlayerbotAI* botAI) : Trigger(botAI, "freezing trap enemy healer", 3) {}
+
+    bool IsActive() override;
+};
+
 class ConsussiveShotSnareTrigger : public SnareTargetTrigger
 {
 public:

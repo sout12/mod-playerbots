@@ -137,6 +137,14 @@ public:
     bool IsActive() override;
 };
 
+class FearEnemyHealerTrigger : public Trigger
+{
+public:
+    FearEnemyHealerTrigger(PlayerbotAI* botAI) : Trigger(botAI, "fear enemy healer", 3) {}
+
+    bool IsActive() override;
+};
+
 class SpellLockInterruptSpellTrigger : public InterruptSpellTrigger
 {
 public:

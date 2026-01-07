@@ -29,6 +29,9 @@ void GenericPaladinStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
         "hammer of justice on snare target",
         NextAction::array(0, new NextAction("hammer of justice on snare target", ACTION_INTERRUPT), nullptr)));
     triggers.push_back(new TriggerNode(
+        "repentance on enemy healer",
+        NextAction::array(0, new NextAction("repentance on enemy healer", ACTION_HIGH + 4), nullptr)));
+    triggers.push_back(new TriggerNode(
         "critical health", NextAction::array(0, new NextAction("lay on hands", ACTION_EMERGENCY), nullptr)));
     triggers.push_back(
         new TriggerNode("party member critical health",

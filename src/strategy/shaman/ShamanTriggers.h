@@ -10,6 +10,7 @@
 #include "GenericTriggers.h"
 #include "SharedDefines.h"
 #include "Trigger.h"
+#include "Playerbots.h"
 #include <set>
 #include "TotemsShamanStrategy.h"
 #include "Player.h"
@@ -138,6 +139,26 @@ public:
 };
 
     // CC, Interrupt, and Dispel Triggers
+
+class HexEnemyHealerTrigger : public Trigger
+{
+public:
+    HexEnemyHealerTrigger(PlayerbotAI* botAI) : Trigger(botAI, "hex enemy healer", 3) {}
+
+    bool IsActive() override
+    {
+        Unit* healer = AI_VALUE(Unit*, "enemy healer target");
+        if (!healer || !healer->IsAlive())
+            return false;
+        if (!bot->InArena() && !bot->InBattleground())
+            return false;
+        if (healer->HasAura(51514)) // hex aura id
+            return false;
+        if (!bot->IsWithinLOSInMap(healer))
+            return false;
+        return bot->GetDistance(healer) < 30.0f;
+    }
+};
 
 class WindShearInterruptSpellTrigger : public InterruptSpellTrigger
 {

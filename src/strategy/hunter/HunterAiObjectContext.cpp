@@ -75,6 +75,7 @@ public:
         creators["hunters pet medium health"] = &HunterTriggerFactoryInternal::hunters_pet_medium_health;
         creators["hunter's mark"] = &HunterTriggerFactoryInternal::hunters_mark;
         creators["freezing trap"] = &HunterTriggerFactoryInternal::freezing_trap;
+        creators["freezing trap enemy healer"] = &HunterTriggerFactoryInternal::freezing_trap_enemy_healer;
         creators["aspect of the pack"] = &HunterTriggerFactoryInternal::aspect_of_the_pack;
         creators["aspect of the cheetah pvp"] = &HunterTriggerFactoryInternal::aspect_of_the_cheetah_pvp;
         creators["concussive shot pvp"] = &HunterTriggerFactoryInternal::concussive_shot_pvp;
@@ -147,6 +148,7 @@ private:
     static Trigger* silencing_shot(PlayerbotAI* botAI) { return new SilencingShotTrigger(botAI); }
     static Trigger* intimidation(PlayerbotAI* botAI) { return new IntimidationTrigger(botAI); }
     static Trigger* volley_channel_check(PlayerbotAI* botAI) { return new VolleyChannelCheckTrigger(botAI); }
+    static Trigger* freezing_trap_enemy_healer(PlayerbotAI* botAI) { return new FreezingTrapEnemyHealerTrigger(botAI); }
 };
 
 class HunterAiObjectContextInternal : public NamedObjectContext<Action>
@@ -175,6 +177,7 @@ public:
         creators["call pet"] = &HunterAiObjectContextInternal::call_pet;
         creators["black arrow"] = &HunterAiObjectContextInternal::black_arrow;
         creators["freezing trap"] = &HunterAiObjectContextInternal::freezing_trap;
+        creators["freezing trap enemy healer"] = &HunterAiObjectContextInternal::freezing_trap_enemy_healer;
         creators["rapid fire"] = &HunterAiObjectContextInternal::rapid_fire;
         creators["boost"] = &HunterAiObjectContextInternal::rapid_fire;
         creators["deterrence"] = &HunterAiObjectContextInternal::deterrence;
@@ -240,6 +243,7 @@ private:
     static Action* call_pet(PlayerbotAI* botAI) { return new CastCallPetAction(botAI); }
     static Action* black_arrow(PlayerbotAI* botAI) { return new CastBlackArrow(botAI); }
     static Action* freezing_trap(PlayerbotAI* botAI) { return new CastFreezingTrap(botAI); }
+    static Action* freezing_trap_enemy_healer(PlayerbotAI* botAI) { return new CastFreezingTrapOnEnemyHealerAction(botAI); }
     static Action* rapid_fire(PlayerbotAI* botAI) { return new CastRapidFireAction(botAI); }
     static Action* deterrence(PlayerbotAI* botAI) { return new CastDeterrenceAction(botAI); }
     static Action* readiness(PlayerbotAI* botAI) { return new CastReadinessAction(botAI); }

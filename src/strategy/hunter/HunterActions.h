@@ -121,6 +121,12 @@ public:
     Value<Unit*>* GetTargetValue() override;
 };
 
+class CastFreezingTrapOnEnemyHealerAction : public CastSpellOnEnemyHealerAction
+{
+public:
+    CastFreezingTrapOnEnemyHealerAction(PlayerbotAI* botAI) : CastSpellOnEnemyHealerAction(botAI, "freezing trap") {}
+};
+
 class CastWyvernStingAction : public CastDebuffSpellAction
 {
 public:
