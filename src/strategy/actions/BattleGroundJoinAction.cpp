@@ -1334,4 +1334,3 @@ bool BGStrategyCheckAction::Execute(Event event)
 
     return false;
 }
-
