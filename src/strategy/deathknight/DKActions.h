@@ -40,7 +40,7 @@ class CastDeathchillAction : public CastBuffSpellAction
 public:
     CastDeathchillAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "deathchill") {}
 
-    NextAction** getPrerequisites() override;
+    std::vector<NextAction> getPrerequisites() override;
 };
 
 class CastDarkCommandAction : public CastSpellAction
@@ -58,7 +58,7 @@ class CastUnholyMeleeSpellAction : public CastMeleeSpellAction
 public:
     CastUnholyMeleeSpellAction(PlayerbotAI* botAI, std::string const spell) : CastMeleeSpellAction(botAI, spell) {}
 
-    NextAction** getPrerequisites() override;
+    std::vector<NextAction> getPrerequisites() override;
 };
 
 // Frost presence
@@ -67,7 +67,7 @@ class CastFrostMeleeSpellAction : public CastMeleeSpellAction
 public:
     CastFrostMeleeSpellAction(PlayerbotAI* botAI, std::string const spell) : CastMeleeSpellAction(botAI, spell) {}
 
-    NextAction** getPrerequisites() override;
+    std::vector<NextAction> getPrerequisites() override;
 };
 
 // Blood presence
@@ -76,7 +76,7 @@ class CastBloodMeleeSpellAction : public CastMeleeSpellAction
 public:
     CastBloodMeleeSpellAction(PlayerbotAI* botAI, std::string const spell) : CastMeleeSpellAction(botAI, spell) {}
 
-    NextAction** getPrerequisites() override;
+    std::vector<NextAction> getPrerequisites() override;
 };
 
 class CastRuneStrikeAction : public CastMeleeSpellAction
@@ -85,10 +85,6 @@ public:
     CastRuneStrikeAction(PlayerbotAI* botAI) : CastMeleeSpellAction(botAI, "rune strike") {}
 };
 
-// debuff
-//  BEGIN_DEBUFF_ACTION(CastPestilenceAction, "pestilence")
-//  END_SPELL_ACTION()
-
 class CastPestilenceAction : public CastSpellAction
 {
 public:
@@ -96,19 +92,11 @@ public:
     ActionThreatType getThreatType() override { return ActionThreatType::None; }
 };
 
-// debuff
-//  BEGIN_DEBUFF_ACTION(CastHowlingBlastAction, "howling blast")
-//  END_SPELL_ACTION()
-
 class CastHowlingBlastAction : public CastSpellAction
 {
 public:
     CastHowlingBlastAction(PlayerbotAI* ai) : CastSpellAction(ai, "howling blast") {}
 };
-
-// debuff it
-//  BEGIN_DEBUFF_ACTION(CastIcyTouchAction, "icy touch")
-//  END_SPELL_ACTION()
 
 class CastIcyTouchAction : public CastSpellAction
 {
@@ -132,8 +120,6 @@ class CastPlagueStrikeAction : public CastSpellAction
 public:
     CastPlagueStrikeAction(PlayerbotAI* ai) : CastSpellAction(ai, "plague strike") {}
 };
-// BEGIN_DEBUFF_ACTION(CastPlagueStrikeAction, "plague strike")
-// END_SPELL_ACTION()
 
 class CastPlagueStrikeOnAttackerAction : public CastDebuffSpellOnMeleeAttackerAction
 {

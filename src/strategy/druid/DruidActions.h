@@ -80,7 +80,7 @@ class CastReviveAction : public ResurrectPartyMemberAction
 public:
     CastReviveAction(PlayerbotAI* botAI) : ResurrectPartyMemberAction(botAI, "revive") {}
 
-    NextAction** getPrerequisites() override;
+    std::vector<NextAction> getPrerequisites() override;
 };
 
 class CastRebirthAction : public ResurrectPartyMemberAction
@@ -88,7 +88,7 @@ class CastRebirthAction : public ResurrectPartyMemberAction
 public:
     CastRebirthAction(PlayerbotAI* botAI) : ResurrectPartyMemberAction(botAI, "rebirth") {}
 
-    NextAction** getPrerequisites() override;
+    std::vector<NextAction> getPrerequisites() override;
     bool isUseful() override;
 };
 
@@ -229,7 +229,7 @@ class CastAbolishPoisonAction : public CastCureSpellAction
 {
 public:
     CastAbolishPoisonAction(PlayerbotAI* botAI) : CastCureSpellAction(botAI, "abolish poison") {}
-    NextAction** getAlternatives() override;
+    std::vector<NextAction> getAlternatives() override;
 };
 
 class CastAbolishPoisonOnPartyAction : public CurePartyMemberAction
@@ -239,7 +239,7 @@ public:
     {
     }
 
-    NextAction** getAlternatives() override;
+    std::vector<NextAction> getAlternatives() override;
 };
 
 class CastBarkskinAction : public CastBuffSpellAction

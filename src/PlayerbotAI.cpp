@@ -11,11 +11,7 @@
 #include <string>
 
 #include "AiFactory.h"
-#include "ArenaTeam.h"
-#include "ArenaTeamMgr.h"
-#include "Battleground.h"
 #include "BudgetValues.h"
-#include "CompetitiveQueueMgr.h"
 #include "ChannelMgr.h"
 #include "CharacterPackets.h"
 #include "ChatHelper.h"
@@ -52,7 +48,6 @@
 #include "PointMovementGenerator.h"
 #include "PositionValue.h"
 #include "RandomPlayerbotMgr.h"
-#include "PlayerbotFactory.h"
 #include "SayAction.h"
 #include "ScriptMgr.h"
 #include "ServerFacade.h"
@@ -373,9 +368,6 @@ void PlayerbotAI::UpdateAI(uint32 elapsed, bool minimal)
     // Update the bot's group status (moved to helper function)
     UpdateAIGroupMaster();
 
-    // PvP/BG/Arena gear swap (switch between PvE and PvP sets)
-    UpdatePvPGearSwap(elapsed);
-
     // Update internal AI
     UpdateAIInternal(elapsed, minimal);
     YieldThread(GetReactDelay());
@@ -441,184 +433,11 @@ void PlayerbotAI::UpdateAIGroupMaster()
             }
         }
     }
-    // For RDF/LFG groups: if the group leader changes, silently update master without resetting strategies
-    // This prevents crashes during queue operations while allowing bots to respect the new dungeon guide
-    else if (IsRandomBot && group && master && master->GetGUID() != group->GetLeaderGUID())
-    {
-        Player* newMaster = FindNewMaster();
-        if (newMaster && newMaster != master)
-        {
-            master = newMaster;
-            botAI->SetMaster(newMaster);
-            // Don't call ResetStrategies() - it causes crashes during active operations
-            // The follow system already uses "dungeon guide" value which recalculates dynamically
-
-            if (!bot->InBattleground())
-            {
-                botAI->ChangeStrategy("+follow", BOT_STATE_NON_COMBAT);
-
-                if (botAI->GetMaster() == botAI->GetGroupLeader())
-                    botAI->TellMaster("Hello, I follow you!");
-                else
-                    botAI->TellMaster(!urand(0, 2) ? "Hello!" : "Hi!");
-            }
-            else
-            {
-                // we're in a battleground, stay with the pack and focus on objective
-                botAI->ChangeStrategy("-follow", BOT_STATE_NON_COMBAT);
-            }
-        }
-    }
 }
-
-void PlayerbotAI::UpdatePvPGearSwap(uint32 elapsed)
-{
-    if (!bot || !bot->GetSession() || !bot->IsInWorld())
-        return;
-
-    bool isPvpContext = bot->InBattleground() || bot->InArena();
-
-    // Detect transitions world <-> BG/Arena
-    if (isPvpContext != lastPvpContext)
-    {
-        lastPvpContext = isPvpContext;
-        pvpGearSwapPending = true;
-        pvpGearSwapCooldown = 0;  // try immediately
-    }
-
-    if (!pvpGearSwapPending)
-        return;
-
-    if (pvpGearSwapCooldown)
-    {
-        if (pvpGearSwapCooldown > elapsed)
-        {
-            pvpGearSwapCooldown -= elapsed;
-            return;
-        }
-        pvpGearSwapCooldown = 0;
-    }
-
-    // Can't change equipment in combat / teleport; retry later.
-    if (!bot->IsAlive() || bot->IsInCombat() || bot->IsBeingTeleported() || bot->GetSession()->isLogingOut() ||
-        bot->IsDuringRemoveFromWorld())
-    {
-        pvpGearSwapCooldown = 5000;
-        return;
-    }
-
-    // Important: "alt" bots may be temporarily controlled by someone else.
-    // We must not decide this based on master's account.
-    // The module already uses RandomAccountList to distinguish real alts from bot accounts
-    // (see AutoGearAction / PlayerbotAIConfig::IsInRandomAccountList).
-    // - accounts in RandomAccountList => bot accounts (allowed to generate gear)
-    // - all other accounts            => real player alts (bag-only)
-    bool isBotAccount = sRandomPlayerbotMgr->IsRandomBot(bot) ||
-                        sPlayerbotAIConfig->IsInRandomAccountList(bot->GetSession()->GetAccountId());
-    bool bagOnly = !isBotAccount;
-
-    if (bagOnly)
-    {
-        // Bag-only swap for alts
-        if (DoSpecificAction("equip upgrade", Event("pvp gear swap"), true))
-            pvpGearSwapPending = false;
-        else
-            pvpGearSwapCooldown = 5000;
-
-        return;
-    }
-
-    // Gear generation swap (random bots + non-twink addbot bots):
-    // run equipment init only, but rely on resilience preference in StatsWeightCalculator to pick PvP in BG/Arena.
-    Player* gsRef = (master && master->GetSession()) ? master : bot;
-
-    uint32 gsLimit = uint32(PlayerbotAI::GetMixedGearScore(gsRef, true, false, 12) *
-                            sPlayerbotAIConfig->autoInitEquipLevelLimitRatio);
-
-    // work around: distinguish from 0 if no gear
-    if (gsLimit == 0)
-        gsLimit = 1;
-    // Additional arena rating-based gear cap (level 80 only).
-    // 1000 rating => ilvl 200, 2400 rating => ilvl 300 (hard cap).
-    // This is an extra restriction on top of the existing master-gear based limit.
-    if (bot->GetSession() && bot->GetSession()->IsBot() && bot->GetLevel() == 80 && bot->InArena())
-    {
-        uint32 rating = 0;
-
-        if (Battleground* bg = bot->GetBattleground())
-        {
-            if (bg->isArena())
-            {
-                uint8 arenaType = bg->GetArenaType(); // 2,3,5
-                uint8 slot = ArenaTeam::GetSlotByType(arenaType);
-                uint32 teamId = bot->GetArenaTeamId(slot);
-                if (teamId)
-                {
-                    if (ArenaTeam* team = sArenaTeamMgr->GetArenaTeamById(teamId))
-                        rating = team->GetRating();
-                }
-            }
-        }
-
-        // Multi-tier virtual rating for gear variety:
-        // Baseline: 4000-5000 GS (Rating 1500)
-        // Midline: 5000-5500 GS (Rating 1800)
-        // Top: 6000+ GS (Rating 2400)
-        
-        if (rating == 0)
-        {
-            if (sCompetitiveQueueMgr->IsTopRankedArenaPlayer(bot))
-            {
-                rating = 2400; // Top players -> ~6000+ GS
-            }
-            else if (sCompetitiveQueueMgr->IsMidRankedArenaPlayer(bot))
-            {
-                rating = 1800; // Mid-tier players -> ~5300 GS
-            }
-            else
-            {
-                rating = 1500; // Baseline players -> ~4500 GS
-            }
-        }
-        else if (sCompetitiveQueueMgr->IsTopRankedArenaPlayer(bot) && rating < 2400)
-        {
-             rating = 2400;
-        }
-        else if (sCompetitiveQueueMgr->IsMidRankedArenaPlayer(bot) && rating < 1800)
-        {
-             rating = 1800;
-        }
-
-        float ilvlCapF = 200.0f;
-        if (rating >= 2400)
-            ilvlCapF = 300.0f;
-        else if (rating > 1000)
-            ilvlCapF = 200.0f + (float(rating - 1000) * (100.0f / 1400.0f));
-
-        uint32 ilvlCap = uint32(ilvlCapF + 0.5f);
-
-        // Convert item-level cap to the same "mixed gear score" scale used by GetMixedGearScore.
-        // Arena gear at 80 is typically epic; use epic multiplier.
-        uint32 ratingGsCap = uint32(float(ilvlCap) * PlayerbotAI::GetItemScoreMultiplier(ITEM_QUALITY_EPIC) + 0.5f);
-
-        if (ratingGsCap == 0)
-            ratingGsCap = 1;
-
-        if (ratingGsCap < gsLimit)
-            gsLimit = ratingGsCap;
-    }
-
-
-    PlayerbotFactory factory(bot, bot->GetLevel(), ITEM_QUALITY_LEGENDARY, gsLimit);
-    factory.InitEquipment(false, true);
-
-    pvpGearSwapPending = false;
-}
-
 
 void PlayerbotAI::UpdateAIInternal([[maybe_unused]] uint32 elapsed, bool minimal)
 {
-    if (bot->IsBeingTeleported() || !bot->IsInWorld())
+    if (!bot || bot->IsBeingTeleported() || !bot->IsInWorld())
         return;
 
     std::string const mapString = WorldPosition(bot).isOverworld() ? std::to_string(bot->GetMapId()) : "I";
@@ -697,23 +516,37 @@ void PlayerbotAI::UpdateAIInternal([[maybe_unused]] uint32 elapsed, bool minimal
 void PlayerbotAI::HandleCommands()
 {
     ExternalEventHelper helper(aiObjectContext);
+
     for (auto it = chatCommands.begin(); it != chatCommands.end();)
     {
         time_t& checkTime = it->GetTime();
-        if (checkTime && time(0) < checkTime)
+        if (checkTime && time(nullptr) < checkTime)
         {
             ++it;
             continue;
         }
 
-        const std::string& command = it->GetCommand();
         Player* owner = it->GetOwner();
+        if (!owner)
+        {
+            it = chatCommands.erase(it);
+            continue;
+        }
+
+        const std::string& command = it->GetCommand();
+        if (command.empty())
+        {
+            it = chatCommands.erase(it);
+            continue;
+        }
+
         if (!helper.ParseChatCommand(command, owner) && it->GetType() == CHAT_MSG_WHISPER)
         {
             // ostringstream out; out << "Unknown command " << command;
             // TellPlayer(out);
             // helper.ParseChatCommand("help");
         }
+
         it = chatCommands.erase(it);
     }
 }
@@ -721,6 +554,9 @@ void PlayerbotAI::HandleCommands()
 std::map<std::string, ChatMsg> chatMap;
 void PlayerbotAI::HandleCommand(uint32 type, const std::string& text, Player& fromPlayer, const uint32 lang)
 {
+    if (!bot)
+        return;
+
     std::string filtered = text;
 
     if (!IsAllowedCommand(filtered) && !GetSecurity()->CheckLevelFor(PlayerbotSecurityLevel::PLAYERBOT_SECURITY_INVITE,
@@ -892,65 +728,82 @@ void PlayerbotAI::HandleCommand(uint32 type, const std::string& text, Player& fr
 
 void PlayerbotAI::HandleTeleportAck()
 {
+    if (!bot || !bot->GetSession())
+        return;
+
+    // only for bots
     if (IsRealPlayer())
         return;
 
-    // Clearing motion generators and stopping movement which prevents
-    // conflicts between teleport and any active motion (walk, run, swim, flight, etc.)
-    bot->GetMotionMaster()->Clear(true);
-    bot->StopMoving();
-
-    // Near teleport (within map/instance)
-    if (bot->IsBeingTeleportedNear())
-    {
-        // Previous versions manually added the bot to the map if it was not in the world.
-        // not needed: HandleMoveTeleportAckOpcode() safely attaches the player to the map
-        // and clears IsBeingTeleportedNear().
-
-        Player* plMover = bot->m_mover->ToPlayer();
-        if (!plMover)
-            return;
-
-        // Send the near teleport ACK packet
-        WorldPacket p(MSG_MOVE_TELEPORT_ACK, 20);
-        p << plMover->GetPackGUID();
-        p << uint32(0);
-        p << uint32(0);
-        bot->GetSession()->HandleMoveTeleportAck(p);
-
-        // Simulate teleport latency and prevent AI from running too early (used cmangos delays)
-        SetNextCheckDelay(urand(1000, 2000));
-    }
-
-    // Far teleport (worldport / different map)
+    /*
+     * FAR TELEPORT (worldport / map change)
+     * Player may NOT be in world or grid here.
+     * Handle this FIRST.
+     */
     if (bot->IsBeingTeleportedFar())
     {
-        // Handle far teleport ACK:
-        // Moves the bot to the new map, clears IsBeingTeleportedFar(), updates session/map references
         bot->GetSession()->HandleMoveWorldportAck();
 
-        // Ensure bot now has a valid map. If this fails, there is a core/session bug?
+        // after worldport ACK the player should be in a valid map
         if (!bot->GetMap())
         {
             LOG_ERROR("playerbot", "Bot {} has no map after worldport ACK", bot->GetGUID().ToString());
+            return;
         }
 
-        // Instance strategies after teleport
+        // apply instance-related strategies after map attach
         if (sPlayerbotAIConfig->applyInstanceStrategies)
             ApplyInstanceStrategies(bot->GetMapId(), true);
 
-        // healer DPS strategies if restrictions are enabled
         if (sPlayerbotAIConfig->restrictHealerDPS)
             EvaluateHealerDpsStrategy();
 
-        // Reset AI state to to before teleport conditions
+        // reset AI state after teleport
         Reset(true);
 
-        // Slightly longer delay to simulate far teleport latency (used cmangos delays)
+        // clear movement only AFTER teleport is finalized and bot is in world
+        if (bot->IsInWorld() && bot->GetMotionMaster())
+        {
+            bot->GetMotionMaster()->Clear(true);
+            bot->StopMoving();
+        }
+
+        // simulate far teleport latency (cmangos-style)
         SetNextCheckDelay(urand(2000, 5000));
+        return;
     }
 
-    SetNextCheckDelay(sPlayerbotAIConfig->globalCoolDown);
+    /*
+     * NEAR TELEPORT (same map / instance)
+     * Player MUST be in world (and in grid).
+     */
+    if (bot->IsBeingTeleportedNear())
+    {
+        if (!bot->IsInWorld())
+            return;
+
+        Player* plMover = bot->m_mover ? bot->m_mover->ToPlayer() : nullptr;
+        if (!plMover)
+            return;
+
+        WorldPacket p(MSG_MOVE_TELEPORT_ACK, 20);
+        p << plMover->GetPackGUID();
+        p << uint32(0);  // flags
+        p << uint32(0);  // time
+
+        bot->GetSession()->HandleMoveTeleportAck(p);
+
+        // clear movement after successful relocation
+        if (bot->GetMotionMaster())
+        {
+            bot->GetMotionMaster()->Clear(true);
+            bot->StopMoving();
+        }
+
+        // simulate near teleport latency
+        SetNextCheckDelay(urand(1000, 2000));
+        return;
+    }
 }
 
 void PlayerbotAI::Reset(bool full)
@@ -1021,17 +874,6 @@ void PlayerbotAI::LeaveOrDisbandGroup()
 
     WorldPacket* packet = new WorldPacket(CMSG_GROUP_DISBAND);
     bot->GetSession()->QueuePacket(packet);
-}
-
-bool PlayerbotAI::IsMasterOnTransport()
-{
-    if (!master || !master->IsInWorld())
-        return false;
-
-    if (master->GetTransport())
-        return true;
-
-    return master->m_movementInfo.HasMovementFlag(MOVEMENTFLAG_ONTRANSPORT);
 }
 
 bool PlayerbotAI::IsAllowedCommand(std::string const text)
@@ -1478,7 +1320,12 @@ void PlayerbotAI::SpellInterrupted(uint32 spellid)
         Spell* spell = bot->GetCurrentSpell((CurrentSpellTypes)type);
         if (!spell)
             continue;
-        if (spell->GetSpellInfo()->Id == spellid)
+
+        SpellInfo const* spellInfo = spell->GetSpellInfo();
+        if (!spellInfo)
+            continue;
+
+        if (spellInfo->Id == spellid)
             bot->InterruptSpell((CurrentSpellTypes)type);
     }
     // LastSpellCast& lastSpell = aiObjectContext->GetValue<LastSpellCast&>("last spell cast")->Get();
@@ -1599,16 +1446,6 @@ void PlayerbotAI::DoNextAction(bool min)
     }
 
     bool minimal = !AllowActivity();
-
-    if (!currentEngine)
-    {
-        ChangeEngine(BOT_STATE_NON_COMBAT);
-        if (!currentEngine)
-        {
-            SetNextCheckDelay(sPlayerbotAIConfig->errorDelay);
-            return;
-        }
-    }
 
     currentEngine->DoNextAction(nullptr, 0, (minimal || min));
 
@@ -1930,6 +1767,7 @@ bool PlayerbotAI::IsRanged(Player* player, bool bySpec)
             }
             break;
     }
+
     return true;
 }
 
@@ -2023,10 +1861,9 @@ bool PlayerbotAI::IsRangedDpsAssistantOfIndex(Player* player, int index)
 
 bool PlayerbotAI::HasAggro(Unit* unit)
 {
-    if (!unit)
-    {
+    if (!IsValidUnit(unit))
         return false;
-    }
+
     bool isMT = IsMainTank(bot);
     Unit* victim = unit->GetVictim();
     if (victim && (victim->GetGUID() == bot->GetGUID() || (!isMT && victim->ToPlayer() && IsTank(victim->ToPlayer()))))
@@ -3024,6 +2861,9 @@ bool PlayerbotAI::TellMaster(std::string const text, PlayerbotSecurityLevel secu
 
 bool IsRealAura(Player* bot, AuraEffect const* aurEff, Unit const* unit)
 {
+    if (!unit || !unit->IsInWorld() || unit->IsDuringRemoveFromWorld())
+        return false;
+
     if (!aurEff)
         return false;
 
@@ -3031,6 +2871,8 @@ bool IsRealAura(Player* bot, AuraEffect const* aurEff, Unit const* unit)
         return true;
 
     SpellInfo const* spellInfo = aurEff->GetSpellInfo();
+    if (!spellInfo)
+        return false;
 
     uint32 stacks = aurEff->GetBase()->GetStackAmount();
     if (stacks >= spellInfo->StackAmount)
@@ -3046,7 +2888,7 @@ bool IsRealAura(Player* bot, AuraEffect const* aurEff, Unit const* unit)
 bool PlayerbotAI::HasAura(std::string const name, Unit* unit, bool maxStack, bool checkIsOwner, int maxAuraAmount,
                           bool checkDuration)
 {
-    if (!unit)
+    if (!IsValidUnit(unit))
         return false;
 
     std::wstring wnamepart;
@@ -3142,7 +2984,7 @@ bool PlayerbotAI::HasAura(uint32 spellId, Unit const* unit)
 
 Aura* PlayerbotAI::GetAura(std::string const name, Unit* unit, bool checkIsOwner, bool checkDuration, int checkStack)
 {
-    if (!unit)
+    if (!IsValidUnit(unit))
         return nullptr;
 
     std::wstring wnamepart;
@@ -3160,6 +3002,9 @@ Aura* PlayerbotAI::GetAura(std::string const name, Unit* unit, bool checkIsOwner
         for (AuraEffect const* aurEff : auras)
         {
             SpellInfo const* spellInfo = aurEff->GetSpellInfo();
+            if (!spellInfo)
+                continue;
+
             std::string const& auraName = spellInfo->SpellName[0];
 
             // Directly skip if name mismatch (both length and content)
@@ -3239,6 +3084,9 @@ bool PlayerbotAI::CanCastSpell(uint32 spellid, Unit* target, bool checkHasSpell,
 
     if (!target)
         target = bot;
+
+     if (!IsValidUnit(target))
+        return false;
 
     if (Pet* pet = bot->GetPet())
         if (pet->HasSpell(spellid))
@@ -3501,6 +3349,9 @@ bool PlayerbotAI::CanCastSpell(uint32 spellid, float x, float y, float z, bool c
 
 bool PlayerbotAI::CastSpell(std::string const name, Unit* target, Item* itemTarget)
 {
+    if (!IsValidUnit(target))
+        return false;
+
     bool result = CastSpell(aiObjectContext->GetValue<uint32>("spell id", name)->Get(), target, itemTarget);
     if (result)
     {
@@ -3513,15 +3364,19 @@ bool PlayerbotAI::CastSpell(std::string const name, Unit* target, Item* itemTarg
 bool PlayerbotAI::CastSpell(uint32 spellId, Unit* target, Item* itemTarget)
 {
     if (!spellId)
-    {
         return false;
-    }
 
     if (!target)
         target = bot;
 
-    Pet* pet = bot->GetPet();
+    if (!IsValidUnit(target))
+        return false;
+
     SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
+    if (!spellInfo)
+        return false;
+
+    Pet* pet = bot->GetPet();
     if (pet && pet->HasSpell(spellId))
     {
         // List of spell IDs for which we do NOT want to toggle auto-cast or send message
@@ -3924,6 +3779,9 @@ bool PlayerbotAI::CanCastVehicleSpell(uint32 spellId, Unit* target)
     if (!spellId)
         return false;
 
+    if (!IsValidUnit(target))
+        return false;
+
     Vehicle* vehicle = bot->GetVehicle();
     if (!vehicle)
         return false;
@@ -3934,12 +3792,12 @@ bool PlayerbotAI::CanCastVehicleSpell(uint32 spellId, Unit* target)
         return false;
 
     Unit* vehicleBase = vehicle->GetBase();
-
     Unit* spellTarget = target;
+
     if (!spellTarget)
         spellTarget = vehicleBase;
 
-    if (!spellTarget)
+    if (!IsValidUnit(spellTarget))
         return false;
 
     if (vehicleBase->HasSpellCooldown(spellId))
@@ -4006,6 +3864,9 @@ bool PlayerbotAI::CastVehicleSpell(uint32 spellId, Unit* target)
     if (!spellId)
         return false;
 
+    if (!IsValidUnit(target))
+        return false;
+
     Vehicle* vehicle = bot->GetVehicle();
     if (!vehicle)
         return false;
@@ -4016,12 +3877,12 @@ bool PlayerbotAI::CastVehicleSpell(uint32 spellId, Unit* target)
         return false;
 
     Unit* vehicleBase = vehicle->GetBase();
-
     Unit* spellTarget = target;
+
     if (!spellTarget)
         spellTarget = vehicleBase;
 
-    if (!spellTarget)
+    if (!IsValidUnit(spellTarget))
         return false;
 
     SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
@@ -4174,9 +4035,13 @@ bool PlayerbotAI::IsInVehicle(bool canControl, bool canCast, bool canAttack, boo
 
 void PlayerbotAI::WaitForSpellCast(Spell* spell)
 {
+    if (!spell)
+        return;
+
     SpellInfo const* spellInfo = spell->GetSpellInfo();
     uint32 castTime = spell->GetCastTime();
-    if (spellInfo->IsChanneled())
+
+    if (spellInfo && spellInfo->IsChanneled())
     {
         int32 duration = spellInfo->GetDuration();
         bot->ApplySpellMod(spellInfo->Id, SPELLMOD_DURATION, duration);
@@ -4224,6 +4089,9 @@ void PlayerbotAI::RemoveAura(std::string const name)
 
 bool PlayerbotAI::IsInterruptableSpellCasting(Unit* target, std::string const spell)
 {
+    if (!IsValidUnit(target))
+        return false;
+
     uint32 spellid = aiObjectContext->GetValue<uint32>("spell id", spell)->Get();
     if (!spellid || !target->IsNonMeleeSpellCast(true))
         return false;
@@ -4252,7 +4120,10 @@ bool PlayerbotAI::IsInterruptableSpellCasting(Unit* target, std::string const sp
 
 bool PlayerbotAI::HasAuraToDispel(Unit* target, uint32 dispelType)
 {
-    if (!bot || !target || !target->IsInWorld() || !target->IsAlive())
+    if (!IsValidUnit(target) || !target->IsAlive())
+        return false;
+
+    if (!IsValidPlayer(bot))
         return false;
 
     bool isFriend = bot->IsFriendlyTo(target);
@@ -5919,7 +5790,7 @@ void PlayerbotAI::ImbueItem(Item* item) { ImbueItem(item, TARGET_FLAG_NONE, Obje
 //  item on unit
 void PlayerbotAI::ImbueItem(Item* item, Unit* target)
 {
-    if (!target)
+    if (!IsValidUnit(target))
         return;
 
     ImbueItem(item, TARGET_FLAG_UNIT, target->GetGUID());
@@ -6061,16 +5932,38 @@ int32 PlayerbotAI::GetNearGroupMemberCount(float dis)
 
 bool PlayerbotAI::CanMove()
 {
-    // do not allow if not vehicle driver
-    if (IsInVehicle() && !IsInVehicle(true))
+    // Most common checks: confused, stunned, fleeing, jumping, charging. All these
+    // states are set when handling certain aura effects. We don't check against
+    // UNIT_STATE_ROOT here, because this state is used by vehicles.
+    if (bot->HasUnitState(UNIT_STATE_LOST_CONTROL))
         return false;
 
-    if (bot->isFrozen() || bot->IsPolymorphed() || (bot->isDead() && !bot->HasPlayerFlag(PLAYER_FLAGS_GHOST)) ||
-        bot->IsBeingTeleported() || bot->HasRootAura() || bot->HasSpiritOfRedemptionAura() || bot->HasConfuseAura() ||
-        bot->IsCharmed() || bot->HasStunAura() || bot->IsInFlight() || bot->HasUnitState(UNIT_STATE_LOST_CONTROL))
+    // Death state (w/o spirit release) and Spirit of Redemption aura (priest)
+    if ((bot->isDead() && !bot->HasPlayerFlag(PLAYER_FLAGS_GHOST)) || bot->HasSpiritOfRedemptionAura())
         return false;
 
-    return bot->GetMotionMaster()->GetCurrentMovementGeneratorType() != FLIGHT_MOTION_TYPE;
+    // Common CC effects, ordered by frequency: rooted > charmed > frozen > polymorphed.
+    // NOTE: Can't find proper way to check if bot is rooted or charmed w/o additional
+    // vehicle check -- when a passenger is added, they become rooted and charmed.
+    if (!bot->GetVehicle() && (bot->IsRooted() || bot->IsCharmed()))
+        return false;
+    if (bot->isFrozen() || bot->IsPolymorphed())
+        return false;
+
+    // Check for the MM controlled slot types: feared, confused, fleeing, etc.
+    if (bot->GetMotionMaster()->GetMotionSlotType(MOTION_SLOT_CONTROLLED) != NULL_MOTION_TYPE)
+        return false;
+
+    // Traveling state: taxi flight and being teleported (relatively rare)
+    if (bot->IsInFlight() || bot->GetMotionMaster()->GetCurrentMovementGeneratorType() == FLIGHT_MOTION_TYPE ||
+        bot->IsBeingTeleported())
+        return false;
+
+    // Vehicle state: is in the vehicle and can control it (rare, content-specific)
+    if ((bot->GetVehicle() && !IsInVehicle(true)))
+        return false;
+
+    return true;
 }
 
 bool PlayerbotAI::IsInRealGuild()

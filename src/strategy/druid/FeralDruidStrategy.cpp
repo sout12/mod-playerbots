@@ -20,98 +20,71 @@ public:
         creators["abolish poison"] = &abolish_poison;
         creators["abolish poison on party"] = &abolish_poison_on_party;
         creators["prowl"] = &prowl;
-        creators["rejuvenation"] = &rejuvenation;
-        creators["regrowth"] = &regrowth;
-        creators["healing touch"] = &healing_touch;
     }
 
 private:
     static ActionNode* survival_instincts([[maybe_unused]] PlayerbotAI* botAI)
     {
         return new ActionNode("survival instincts",
-                              /*P*/ nullptr,
-                              /*A*/ NextAction::array(0, new NextAction("barkskin"), nullptr),
-                              /*C*/ nullptr);
+                              /*P*/ {},
+                              /*A*/ { NextAction("barkskin") },
+                              /*C*/ {});
     }
 
     static ActionNode* thorns([[maybe_unused]] PlayerbotAI* botAI)
     {
         return new ActionNode("thorns",
-                              /*P*/ NextAction::array(0, new NextAction("caster form"), nullptr),
-                              /*A*/ nullptr,
-                              /*C*/ nullptr);
+                              /*P*/ { NextAction("caster form") },
+                              /*A*/ {},
+                              /*C*/ {});
     }
 
     static ActionNode* omen_of_clarity([[maybe_unused]] PlayerbotAI* botAI)
     {
         return new ActionNode("omen of clarity",
-                              /*P*/ NextAction::array(0, new NextAction("caster form"), nullptr),
-                              /*A*/ nullptr,
-                              /*C*/ nullptr);
+                              /*P*/ { NextAction("caster form") },
+                              /*A*/ {},
+                              /*C*/ {});
     }
 
     static ActionNode* cure_poison([[maybe_unused]] PlayerbotAI* botAI)
     {
         return new ActionNode("cure poison",
-                              /*P*/ NextAction::array(0, new NextAction("caster form"), nullptr),
-                              /*A*/ nullptr,
-                              /*C*/ nullptr);
+                              /*P*/ { NextAction("caster form") },
+                              /*A*/ {},
+                              /*C*/ {});
     }
 
     static ActionNode* cure_poison_on_party([[maybe_unused]] PlayerbotAI* botAI)
     {
         return new ActionNode("cure poison on party",
-                              /*P*/ NextAction::array(0, new NextAction("caster form"), nullptr),
-                              /*A*/ nullptr,
-                              /*C*/ nullptr);
+                              /*P*/ { NextAction("caster form") },
+                              /*A*/ {},
+                              /*C*/ {});
     }
 
     static ActionNode* abolish_poison([[maybe_unused]] PlayerbotAI* botAI)
     {
         return new ActionNode("abolish poison",
-                              /*P*/ NextAction::array(0, new NextAction("caster form"), nullptr),
-                              /*A*/ nullptr,
-                              /*C*/ nullptr);
+                              /*P*/ { NextAction("caster form") },
+                              /*A*/ {},
+                              /*C*/ {});
     }
 
     static ActionNode* abolish_poison_on_party([[maybe_unused]] PlayerbotAI* botAI)
     {
         return new ActionNode("abolish poison on party",
-                              /*P*/ NextAction::array(0, new NextAction("caster form"), nullptr),
-                              /*A*/ nullptr,
-                              /*C*/ nullptr);
+                              /*P*/ { NextAction("caster form") },
+                              /*A*/ {},
+                              /*C*/ {});
     }
 
     static ActionNode* prowl([[maybe_unused]] PlayerbotAI* botAI)
     {
         return new ActionNode("prowl",
-                              /*P*/ NextAction::array(0, new NextAction("cat form"), nullptr),
-                              /*A*/ nullptr,
-                              /*C*/ nullptr);
-    }
-
-    static ActionNode* rejuvenation([[maybe_unused]] PlayerbotAI* botAI)
-    {
-        return new ActionNode("rejuvenation",
-                              /*P*/ NextAction::array(0, new NextAction("caster form"), nullptr),
-                              /*A*/ nullptr,
-                              /*C*/ nullptr);
-    }
-
-    static ActionNode* regrowth([[maybe_unused]] PlayerbotAI* botAI)
-    {
-        return new ActionNode("regrowth",
-                              /*P*/ NextAction::array(0, new NextAction("caster form"), nullptr),
-                              /*A*/ nullptr,
-                              /*C*/ nullptr);
-    }
-
-    static ActionNode* healing_touch([[maybe_unused]] PlayerbotAI* botAI)
-    {
-        return new ActionNode("healing touch",
-                              /*P*/ NextAction::array(0, new NextAction("caster form"), nullptr),
-                              /*A*/ nullptr,
-                              /*C*/ nullptr);
+                              /*P*/ { NextAction("cat form") },
+                              /*A*/ {},
+                              /*C*/ {});
     }
 };
 
@@ -125,28 +98,16 @@ void FeralDruidStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
 {
     GenericDruidStrategy::InitTriggers(triggers);
 
-    // triggers.push_back(new TriggerNode("not facing target", NextAction::array(0, new NextAction("set facing",
-    // ACTION_NORMAL + 7), nullptr)));
     triggers.push_back(new TriggerNode(
-        "enemy out of melee", NextAction::array(0, new NextAction("reach melee", ACTION_HIGH + 1), nullptr)));
+        "enemy out of melee", { NextAction("reach melee", ACTION_HIGH + 1) }));
     triggers.push_back(new TriggerNode(
-        "enemy player near", NextAction::array(0, new NextAction("prowl", ACTION_HIGH + 6), nullptr)));
-    // triggers.push_back(new TriggerNode("enemy too close for melee", NextAction::array(0, new NextAction("move out of
-    // enemy contact", ACTION_NORMAL + 8), nullptr)));
+        "critical health", { NextAction("survival instincts", ACTION_EMERGENCY + 1) }));
     triggers.push_back(new TriggerNode(
-        "critical health", NextAction::array(0, new NextAction("survival instincts", ACTION_EMERGENCY + 1), nullptr)));
-    triggers.push_back(
-        new TriggerNode("low health", NextAction::array(0, new NextAction("rejuvenation", ACTION_HIGH + 5), nullptr)));
-    triggers.push_back(
-        new TriggerNode("critical health", NextAction::array(0, new NextAction("regrowth", ACTION_CRITICAL_HEAL + 2),
-                                                             new NextAction("healing touch", ACTION_CRITICAL_HEAL + 1),
-                                                             nullptr)));
-    triggers.push_back(new TriggerNode(
-        "omen of clarity", NextAction::array(0, new NextAction("omen of clarity", ACTION_HIGH + 9), nullptr)));
+        "omen of clarity", { NextAction("omen of clarity", ACTION_HIGH + 9) }));
     triggers.push_back(new TriggerNode("player has flag",
-                                       NextAction::array(0, new NextAction("dash", ACTION_EMERGENCY + 2), nullptr)));
+                                       { NextAction("dash", ACTION_EMERGENCY + 2) }));
     triggers.push_back(new TriggerNode("enemy flagcarrier near",
-                                       NextAction::array(0, new NextAction("dash", ACTION_EMERGENCY + 2), nullptr)));
+                                       { NextAction("dash", ACTION_EMERGENCY + 2) }));
     triggers.push_back(
-        new TriggerNode("berserk", NextAction::array(0, new NextAction("berserk", ACTION_HIGH + 6), nullptr)));
+        new TriggerNode("berserk", { NextAction("berserk", ACTION_HIGH + 6) }));
 }
