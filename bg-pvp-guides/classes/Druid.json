@@ -1,0 +1,171 @@
+{
+  "class": "Druid",
+  "version": "3.3.5a",
+  "roles": [
+    "healer",
+    "melee_dps",
+    "ranged_dps",
+    "flag_carrier"
+  ],
+  "technical_data": {
+    "spec_detection": {
+      "Restoration": "Talent: Wild Growth (48438)",
+      "Feral": "Talent: Mangle (33917) or Berserk (50334)",
+      "Balance": "Talent: Starfall (48505)"
+    },
+    "spell_ids": {
+      "Cyclone": 33786,
+      "Entangling_Roots": 339,
+      "Barkskin": 22812,
+      "Innervate": 29166,
+      "Travel_Form": 783,
+      "Cat_Form": 768,
+      "Bear_Form": 9634,
+      "Aquatic_Form": 1066,
+      "Berserk": 50334,
+      "Starfall": 48505,
+      "Wild_Growth": 48438,
+      "Dash": 1850
+    },
+    "map_specific_utility": {
+      "General": [
+        {
+          "name": "Aquatic Form",
+          "spell_id": 1066,
+          "when": "Swimming",
+          "priority": "TOP_PRIORITY",
+          "conditions": [
+            "is_swimming == true",
+            "form != Aquatic"
+          ],
+          "target": "self"
+        },
+        {
+          "name": "Travel Form",
+          "spell_id": 783,
+          "when": "Travel In Combat",
+          "priority": "high",
+          "conditions": [
+            "outdoors == true",
+            "in_combat == true",
+            "moving == true",
+            "form != Travel"
+          ],
+          "target": "self"
+        }
+      ]
+    }
+  },
+  "win_condition": {
+    "Restoration": "Unkillable mobility. Shift Polymorphs/Roots. Clone low HP targets to stop healing.",
+    "Feral": "Bleed pressure + Instant Cast clones. Berserk burst window.",
+    "Balance": "Starfall AoE pressure + Cyclone spam.",
+    "priority_legend": {
+      "TOP_PRIORITY": "Survival / CC",
+      "very_high": "Mobility / Hots",
+      "high": "Damage",
+      "medium": "Utility"
+    }
+  },
+  "arena_strategies": {
+    "2v2": {
+      "Druid_War": "Resto/Arms. Grind it out. Clone DPS while Warrior hits Healer. Switch.",
+      "Feral_Rogue": "Stealth Cleave. Double opener. Bleed and run."
+    },
+    "3v3": {
+      "LSD": "Lock/Ele/Resto Druid. Rot comp. Clone chain is vital.",
+      "RMD": "Rogue/Mage/Druid. Setup comp. Clone is used to stop heals during Kidney Shot."
+    }
+  },
+  "spell_rules": {
+    "control": [
+      {
+        "name": "Cyclone",
+        "spell_id": 33786,
+        "when": "Remove Player from Game",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_low_hp (to block heals) == true OR target_bursting == true"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Entangling Roots",
+        "spell_id": 339,
+        "when": "Root Melee",
+        "priority": "high",
+        "conditions": [
+          "target_is_melee == true"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Bash",
+        "spell_id": 5211,
+        "when": "Stun",
+        "priority": "very_high",
+        "conditions": [
+          "form == Bear",
+          "melee_range == true"
+        ],
+        "target": "enemy"
+      }
+    ],
+    "healing": [
+      {
+        "name": "Lifebloom",
+        "spell_id": 33763,
+        "when": "Stack Hots",
+        "priority": "high",
+        "conditions": [
+          "stack_count < 3"
+        ],
+        "target": "ally"
+      },
+      {
+        "name": "Wild Growth",
+        "spell_id": 48438,
+        "when": "AoE Stabilize",
+        "priority": "very_high",
+        "conditions": [
+          "multiple_allies_damaged == true"
+        ],
+        "target": "ally_group"
+      }
+    ],
+    "defensive": [
+      {
+        "name": "Barkskin",
+        "spell_id": 22812,
+        "when": "Stun Protection",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "incoming_stun == true OR incoming_burst == true"
+        ],
+        "target": "self"
+      },
+      {
+        "name": "Shapeshift",
+        "spell_id": 0,
+        "when": "Break Roots/Slows",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "self_rooted == true",
+          "mana > 10%"
+        ],
+        "target": "self"
+      },
+      {
+        "name": "Dash",
+        "spell_id": 1850,
+        "when": "Flag Run / Speed",
+        "priority": "very_high",
+        "conditions": [
+          "self_is_flag_carrier == true",
+          "form == Cat_Form"
+        ],
+        "target": "self"
+      }
+    ]
+  }
+}

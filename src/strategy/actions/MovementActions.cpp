@@ -851,7 +851,18 @@ bool MovementAction::ReachCombatTo(Unit* target, float distance)
     PathType type = path.GetPathType();
     int typeOk = PATHFIND_NORMAL | PATHFIND_INCOMPLETE | PATHFIND_SHORTCUT;
     if (!(type & typeOk))
+    {
+        // Arena-specific failover: some arena navmeshes (e.g. Dalaran Sewers lower ramps/grates)
+        // occasionally return PATHFIND_NOPATH while bots can visually reach each other. In that
+        // case allow a direct MovePoint without path generation so combat can resume instead of
+        // both teams circling endlessly.
+        if (bot->InArena() && bot->GetMap() && bot->GetMap()->IsBattleArena())
+        {
+            return MoveTo(target->GetMapId(), tx, ty, tz, false, false, false, true,
+                          MovementPriority::MOVEMENT_COMBAT, true);
+        }
         return false;
+    }
     float shortenTo = distance;
 
     // Avoid walking too far when moving towards each other

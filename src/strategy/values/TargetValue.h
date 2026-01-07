@@ -29,6 +29,8 @@ public:
     bool IsFlagCarrier(Unit* unit);
     bool IsHealer(Unit* unit);
     bool IsLowHealthPriority(Unit* unit);
+    bool IsCapturingObjective(Unit* unit);
+    bool IsTemporarilyImmune(Unit* unit);
 
 protected:
     Unit* result;

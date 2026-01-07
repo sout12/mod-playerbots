@@ -1,0 +1,50 @@
+{
+  "arena": "5v5",
+  "version": "3.3.5a",
+  "description": "Strategic guidelines for 5v5 arena combat in Wrath of the Lich King",
+  "win_condition": {
+    "primary": "Global One-Shot",
+    "mechanics": {
+      "chaos_factor": "High. CC is less effective due to instant dispels. Burst is king.",
+      "target_calling": "Must swap targets instantly."
+    }
+  },
+  "strategies": {
+    "Standard_Play": {
+      "plan": "Pick the squishiest target (usually Shaman/Mage). count down 3-2-1. EVERYONE BURSTS.",
+      "switch": "If target uses immunity (Ice Block/Bubble), HARD SWITCH to nearest target instantly."
+    },
+    "Euro_Comp": {
+      "comp": "Rogue / Mage / Priest / Warlock / Shaman",
+      "tactics": "Control 3 people. Kill 1. Massive CC chains (Fear/Poly/Clone) covering the map."
+    },
+    "Drain_Comp": {
+      "comp": "Multiple Hunters/Priests",
+      "tactics": "Mana burn EVERYONE. Viper Sting EVERYONE. OOM the healers in 30 seconds."
+    }
+  },
+  "priority_list": {
+    "hierarchy": [
+      {
+        "priority": 1,
+        "action": "Focus Fire Called Target",
+        "reason": "5 people hitting 1 target = instant death"
+      },
+      {
+        "priority": 2,
+        "action": "Mass Dispel / Purge",
+        "reason": "Remove Paladin Bubbles/Ice Blocks"
+      },
+      {
+        "priority": 3,
+        "action": "Heroism / Bloodlust",
+        "reason": "Pop immediately on engage"
+      },
+      {
+        "priority": 99,
+        "action": "1v1 Duels",
+        "reason": "You will die to crossfire"
+      }
+    ]
+  }
+}

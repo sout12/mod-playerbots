@@ -108,6 +108,8 @@ public:
         creators["mirror image"] = &MageTriggerFactoryInternal::mirror_image;
         creators["frost nova on target"] = &MageTriggerFactoryInternal::frost_nova_on_target;
         creators["frostbite on target"] = &MageTriggerFactoryInternal::frostbite_on_target;
+        creators["blink pvp"] = &MageTriggerFactoryInternal::blink_pvp;
+        creators["frost nova pvp"] = &MageTriggerFactoryInternal::frost_nova_pvp;
         creators["no focus magic"] = &MageTriggerFactoryInternal::no_focus_magic;
         creators["frostfire bolt"] = &MageTriggerFactoryInternal::frostfire_bolt;
         creators["firestarter"] = &MageTriggerFactoryInternal::firestarter;
@@ -157,6 +159,8 @@ private:
     static Trigger* mirror_image(PlayerbotAI* botAI) { return new MirrorImageTrigger(botAI); }
     static Trigger* frost_nova_on_target(PlayerbotAI* botAI) { return new FrostNovaOnTargetTrigger(botAI); }
     static Trigger* frostbite_on_target(PlayerbotAI* botAI) { return new FrostbiteOnTargetTrigger(botAI); }
+    static Trigger* blink_pvp(PlayerbotAI* botAI) { return new BlinkPvPTrigger(botAI); }
+    static Trigger* frost_nova_pvp(PlayerbotAI* botAI) { return new FrostNovaPvPTrigger(botAI); }
     static Trigger* no_focus_magic(PlayerbotAI* botAI) { return new NoFocusMagicTrigger(botAI); }
     static Trigger* frostfire_bolt(PlayerbotAI* botAI) { return new FrostfireBoltTrigger(botAI); }
     static Trigger* improved_scorch(PlayerbotAI* botAI) { return new ImprovedScorchTrigger(botAI); }

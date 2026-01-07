@@ -18,6 +18,14 @@ public:
     bool IsActive() override;
 };
 
+class PvpCcBreakTrigger : public Trigger
+{
+public:
+    PvpCcBreakTrigger(PlayerbotAI* botAI) : Trigger(botAI, "pvp cc break", 1) {}
+
+    bool IsActive() override;
+};
+
 class PlayerHasNoFlag : public Trigger
 {
 public:

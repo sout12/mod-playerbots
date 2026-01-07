@@ -214,4 +214,11 @@ public:
     bool IsActive() override;
 };
 
+class PathOfFrostPvPTrigger : public Trigger
+{
+public:
+    PathOfFrostPvPTrigger(PlayerbotAI* botAI) : Trigger(botAI, "path of frost pvp", 5) {}
+    bool IsActive() override;
+};
+
 #endif

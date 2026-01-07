@@ -17,6 +17,19 @@ void GenericWarriorStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
     CombatStrategy::InitTriggers(triggers);
     triggers.push_back(new TriggerNode(
         "enemy out of melee", NextAction::array(0, new NextAction("reach melee", ACTION_HIGH + 1), nullptr)));
+    triggers.push_back(new TriggerNode(
+        "intercept and far enemy",
+        NextAction::array(0, new NextAction("intercept", ACTION_HIGH + 2), new NextAction("charge", ACTION_HIGH + 1),
+                          nullptr)));
+    triggers.push_back(new TriggerNode(
+        "pummel", NextAction::array(0, new NextAction("pummel", ACTION_INTERRUPT + 2), nullptr)));
+    triggers.push_back(new TriggerNode(
+        "pummel on enemy healer",
+        NextAction::array(0, new NextAction("pummel on enemy healer", ACTION_INTERRUPT + 3), nullptr)));
+    triggers.push_back(new TriggerNode(
+        "disarm", NextAction::array(0, new NextAction("disarm", ACTION_HIGH + 2), nullptr)));
+    triggers.push_back(new TriggerNode(
+        "spell reflection", NextAction::array(0, new NextAction("spell reflection", ACTION_HIGH + 3), nullptr)));
     /*triggers.push_back(new TriggerNode("bloodrage", NextAction::array(0, new NextAction("bloodrage", ACTION_HIGH + 1),
     nullptr))); triggers.push_back(new TriggerNode("shield bash", NextAction::array(0, new NextAction("shield bash",
     ACTION_INTERRUPT + 4), nullptr))); triggers.push_back(new TriggerNode("shield bash on enemy healer",

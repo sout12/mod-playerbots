@@ -1,0 +1,116 @@
+{
+    "module": "WotLK_PvP_Consumables",
+    "version": "3.3.5a",
+    "description": "Rules for using Consumables and Engineering Gadgets in PvP.",
+    "item_ids": {
+        "Free_Action_Potion": 5634,
+        "Living_Action_Potion": 20008,
+        "Swiftness_Potion": 2459,
+        "Rocket_Boots_Xtreme": 7189,
+        "Nitro_Boosts": 54861,
+        "Hand_Mounted_Pyro_Rocket": 54999,
+        "Hyperspeed_Accelerators": 54996,
+        "Runic_Mana_Potion": 33448,
+        "Runic_Healing_Potion": 33447,
+        "Dragonfin_Filet": 42938,
+        "Snapper_Extreme": 42942
+    },
+    "rules": {
+        "engineering": [
+            {
+                "name": "Nitro Boosts",
+                "spell_id": 54861,
+                "when": "Chase or Escape",
+                "priority": "TOP_PRIORITY",
+                "conditions": [
+                    "flag_carrier_mode == true",
+                    "health_percent < 40 (Escape)",
+                    "target_distance > 30 (Chase)"
+                ],
+                "cooldown_check": true
+            },
+            {
+                "name": "Hand-Mounted Pyro Rocket",
+                "spell_id": 54999,
+                "when": "Execute / Burst",
+                "priority": "very_high",
+                "conditions": [
+                    "target_hp < 15%",
+                    "global_cooldown_ready == true"
+                ],
+                "cooldown_check": true
+            },
+            {
+                "name": "Hyperspeed Accelerators",
+                "spell_id": 54996,
+                "when": "Burst Phase",
+                "priority": "high",
+                "conditions": [
+                    "kill_window == true",
+                    "casting_major_cooldown == true"
+                ],
+                "cooldown_check": true
+            }
+        ],
+        "potions": [
+            {
+                "name": "Free Action Potion",
+                "item_id": 5634,
+                "when": "Pre-Stun Immunity",
+                "priority": "TOP_PRIORITY",
+                "conditions": [
+                    "bg_mode == true",
+                    "engaging_pack_of_enemies == true",
+                    "stun_imminent == true"
+                ],
+                "note": "Does not remove existing stuns."
+            },
+            {
+                "name": "Living Action Potion",
+                "item_id": 20008,
+                "when": "Break Stun/Slow",
+                "priority": "TOP_PRIORITY",
+                "conditions": [
+                    "bg_mode == true",
+                    "self_stunned == true",
+                    "pvp_trinket_cooldown == true"
+                ]
+            },
+            {
+                "name": "Swiftness Potion",
+                "item_id": 2459,
+                "when": "Flag Carry Range",
+                "priority": "high",
+                "conditions": [
+                    "bg_mode == true",
+                    "carrying_flag == true",
+                    "enemy_close == true"
+                ]
+            }
+        ],
+        "food": [
+            {
+                "name": "Dragonfin Filet",
+                "item_id": 42938,
+                "bonus": "+40 Strength",
+                "when": "Pre-Battle / OOC",
+                "priority": "medium",
+                "conditions": [
+                    "buff_missing == true",
+                    "class == Warrior/DK/Paladin"
+                ]
+            },
+            {
+                "name": "Snapper Extreme",
+                "item_id": 42942,
+                "bonus": "+40 Hit Rating",
+                "when": "Pre-Battle / OOC",
+                "priority": "medium",
+                "conditions": [
+                    "buff_missing == true",
+                    "hit_capped == false"
+                ]
+            }
+        ]
+    }
+}

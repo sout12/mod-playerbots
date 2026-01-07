@@ -39,6 +39,11 @@ bool UseItemAction::Execute(Event event)
     return false;
 }
 
+bool UseItemAction::UseItemOnGameObjectDirect(Item* item, ObjectGuid go)
+{
+    return UseItemOnGameObject(item, go);
+}
+
 bool UseItemAction::UseGameObject(ObjectGuid guid)
 {
     GameObject* go = botAI->GetGameObject(guid);

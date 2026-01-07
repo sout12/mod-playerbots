@@ -19,6 +19,13 @@ bool UnstealthTrigger::IsActive()
     if (!botAI->HasAura("stealth", bot))
         return false;
 
+    if (bot->InArena())
+    {
+        Unit* enemy = AI_VALUE(Unit*, "enemy player target");
+        if (enemy && enemy->IsAlive() && sServerFacade->GetDistance2d(bot, enemy) < 40.0f)
+            return false;
+    }
+
     return botAI->HasAura("stealth", bot) && !AI_VALUE(uint8, "attacker count") &&
            (AI_VALUE2(bool, "moving", "self target") &&
             ((botAI->GetMaster() &&
@@ -61,6 +68,25 @@ bool StealthTrigger::IsActive()
         distance += 15;
 
     return target && sServerFacade->GetDistance2d(bot, target) < distance;
+}
+
+bool ShadowDanceTrigger::IsActive()
+{
+    if (!BoostTrigger::IsActive())
+        return false;
+
+    if (!bot->IsInCombat())
+        return false;
+
+    Unit* target = AI_VALUE(Unit*, "current target");
+    if (!target || !target->IsPlayer())
+        return false;
+
+    // Only burst when target is vulnerable or already pressured
+    if (target->HasUnitState(UNIT_STATE_STUNNED) || target->HasUnitState(UNIT_STATE_CONTROLLED))
+        return true;
+
+    return target->GetHealthPct() < 70.0f;
 }
 
 bool SapTrigger::IsPossible() { return bot->GetLevel() > 10 && bot->HasSpell(6770) && !bot->IsInCombat(); }
@@ -170,4 +196,54 @@ bool SprintPvPTrigger::IsActive()
     }
     
     return false;
+}
+
+bool KidneyShotPvPTrigger::IsActive()
+{
+    if (!bot->HasSpell(408) || bot->HasSpellCooldown(408))
+        return false;
+
+    Unit* target = bot->GetSelectedUnit();
+    if (!target || !target->IsPlayer())
+        return false;
+
+    if (!bot->InBattleground() && !bot->InArena() && !bot->IsInCombat())
+        return false;
+
+    if (!bot->IsWithinMeleeRange(target))
+        return false;
+
+    if (AI_VALUE2(uint8, "combo", "current target") < 5)
+        return false;
+
+    if (target->HasAuraType(SPELL_AURA_MOD_STUN) || botAI->HasAura("cheap shot", target) ||
+        botAI->HasAura("kidney shot", target))
+        return false;
+
+    return true;
+}
+
+bool CheapShotPvPTrigger::IsActive()
+{
+    if (!bot->HasSpell(1833) || bot->HasSpellCooldown(1833))
+        return false;
+
+    if (!botAI->HasAura("stealth", bot))
+        return false;
+
+    Unit* target = bot->GetSelectedUnit();
+    if (!target || !target->IsPlayer())
+        return false;
+
+    if (!bot->InBattleground() && !bot->InArena() && !bot->IsInCombat())
+        return false;
+
+    if (!bot->IsWithinMeleeRange(target))
+        return false;
+
+    if (target->HasAuraType(SPELL_AURA_MOD_STUN) || botAI->HasAura("cheap shot", target) ||
+        botAI->HasAura("kidney shot", target))
+        return false;
+
+    return true;
 }

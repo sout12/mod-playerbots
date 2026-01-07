@@ -1,0 +1,173 @@
+{
+  "class": "Paladin",
+  "version": "3.3.5a",
+  "roles": [
+    "healer",
+    "melee_dps",
+    "tank",
+    "support"
+  ],
+  "technical_data": {
+    "spec_detection": {
+      "Holy": "Talent: Beacon of Light (53563)",
+      "Protection": "Talent: Avenger's Shield (31935)",
+      "Retribution": "Talent: Crusader Strike (35395) or Divine Storm (53385)"
+    },
+    "spell_ids": {
+      "Divne_Shield": 642,
+      "Hand_of_Freedom": 1044,
+      "Hand_of_Protection": 10278,
+      "Hand_of_Sacrifice": 6940,
+      "Beacon_of_Light": 53563,
+      "Sacred_Shield": 53601,
+      "Avenging_Wrath": 31884,
+      "Divine_Plea": 54428,
+      "Hammer_of_Justice": 853
+    }
+  },
+  "win_condition": {
+    "Holy": "Outlast the enemy. Use Beacon to heal 2 targets at once. Rotate minor cooldowns (Freedom/Sacrifice) aggressively.",
+    "Retribution": "Global a target in a Hammer of Justice -> Avenging Wrath window.",
+    "priority_legend": {
+      "TOP_PRIORITY": "Invulnerability / Critical Save",
+      "very_high": "Major Cooldowns / Dispel",
+      "high": "Core Rotation",
+      "medium": "Buff Maintenance"
+    }
+  },
+  "arena_strategies": {
+    "2v2": {
+      "Holy_War": "War/Pal. Stay max range. Freedom Warrior on CD. Hoj enemy healer for kills.",
+      "Ret_Hunter": "Cupid Cleave. Burst setup with Trap + HoJ. Off-heal Hunter."
+    },
+    "3v3": {
+      "TSG": "Run at enemy. Freedom Warrior/DK. BOP them if they get bursted physically.",
+      "R/M/Pal": "Defensive playstyle. Dispel Poly/Fear instantly. Sacrifice on Polymorph to break it."
+    }
+  },
+  "spell_rules": {
+    "healing": [
+      {
+        "name": "Beacon of Light",
+        "spell_id": 53563,
+        "when": "Maintenance",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "self_no_beacon == true",
+          "spec == Holy"
+        ],
+        "target": "self_or_tank"
+      },
+      {
+        "name": "Sacred Shield",
+        "spell_id": 53601,
+        "when": "Pre-Heal",
+        "priority": "very_high",
+        "conditions": [
+          "target_no_sacred_shield == true"
+        ],
+        "target": "focus_target"
+      },
+      {
+        "name": "Flash of Light",
+        "spell_id": 48785,
+        "when": "Fast Heal (Infusion of Light proc)",
+        "priority": "high",
+        "conditions": [
+          "buff_infusion_of_light == true"
+        ],
+        "target": "low_hp_ally"
+      },
+      {
+        "name": "Holy Shock",
+        "spell_id": 48825,
+        "when": "Instant Heal/Damage",
+        "priority": "very_high",
+        "conditions": [
+          "cooldown_ready == true"
+        ],
+        "target": "low_hp_ally_or_enemy"
+      }
+    ],
+    "damage": [
+      {
+        "name": "Hammer of Justice",
+        "spell_id": 853,
+        "when": "Stun for Kill or Peel",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "kill_window == true OR ally_low_hp == true"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Avenging Wrath",
+        "spell_id": 31884,
+        "when": "Burst",
+        "priority": "very_high",
+        "conditions": [
+          "target_controlled == true",
+          "self_is_flag_carrier == false"
+        ],
+        "target": "self"
+      },
+      {
+        "name": "Crusader Strike",
+        "spell_id": 35395,
+        "when": "Core Damage",
+        "priority": "high",
+        "conditions": [
+          "melee_range == true"
+        ],
+        "target": "enemy"
+      }
+    ],
+    "utility": [
+      {
+        "name": "Cleanse",
+        "spell_id": 4987,
+        "when": "Remove CC/Debuffs",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "ally_cc == true",
+          "magic_debuff == true"
+        ],
+        "target": "ally"
+      },
+      {
+        "name": "Hand of Freedom",
+        "spell_id": 1044,
+        "when": "Enable Movement",
+        "priority": "very_high",
+        "conditions": [
+          "ally_rooted == true",
+          "ally_is_melee == true"
+        ],
+        "target": "ally"
+      },
+      {
+        "name": "Hand of Protection",
+        "spell_id": 10278,
+        "when": "Physical Immunity",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "ally_hp < 20%",
+          "incoming_physical_damage == true",
+          "ally_is_flag_carrier == false"
+        ],
+        "target": "ally"
+      },
+      {
+        "name": "Divine Shield",
+        "spell_id": 642,
+        "when": "Save Self",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "self_hp < 15%",
+          "self_is_flag_carrier == false"
+        ],
+        "target": "self"
+      }
+    ]
+  }
+}

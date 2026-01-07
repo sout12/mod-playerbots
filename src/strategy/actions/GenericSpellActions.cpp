@@ -358,21 +358,42 @@ bool UseTrinketAction::UseTrinket(Item* item)
             const SpellInfo* spellInfo = sSpellMgr->GetSpellInfo(spellId);
 
             if (!spellInfo || !spellInfo->IsPositive())
-                return false;
-
-            bool applyAura = false;
-            for (int i = 0; i < MAX_SPELL_EFFECTS; i++)
             {
-                const SpellEffectInfo& effectInfo = spellInfo->Effects[i];
-                if (effectInfo.Effect == SPELL_EFFECT_APPLY_AURA)
-                {
-                    applyAura = true;
-                    break;
-                }
+                bool isPvpTrinket = (spellId == 42292 || spellId == 59752);
+                if (!isPvpTrinket)
+                    return false;
+
+                bool hasHardCc =
+                    bot->HasAuraType(SPELL_AURA_MOD_STUN) ||
+                    bot->HasAuraType(SPELL_AURA_MOD_FEAR) ||
+                    bot->HasAuraType(SPELL_AURA_MOD_CONFUSE) ||
+                    bot->HasAuraType(SPELL_AURA_MOD_CHARM) ||
+                    bot->HasAuraType(SPELL_AURA_MOD_ROOT) ||
+                    bot->HasAuraType(SPELL_AURA_MOD_PACIFY) ||
+                    bot->HasAuraType(SPELL_AURA_MOD_SILENCE) ||
+                    bot->HasAuraType(SPELL_AURA_MOD_PACIFY_SILENCE);
+
+                if (!hasHardCc)
+                    return false;
             }
 
-            if (!applyAura)
-                return false;
+            bool isPvpTrinket = (spellId == 42292 || spellId == 59752);
+            if (!isPvpTrinket)
+            {
+                bool applyAura = false;
+                for (int i = 0; i < MAX_SPELL_EFFECTS; i++)
+                {
+                    const SpellEffectInfo& effectInfo = spellInfo->Effects[i];
+                    if (effectInfo.Effect == SPELL_EFFECT_APPLY_AURA)
+                    {
+                        applyAura = true;
+                        break;
+                    }
+                }
+
+                if (!applyAura)
+                    return false;
+            }
 
             uint32 spellProcFlag = spellInfo->ProcFlags;
 

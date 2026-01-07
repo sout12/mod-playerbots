@@ -15,6 +15,7 @@
 #include "ArenaTeamMgr.h"
 #include "Battleground.h"
 #include "BudgetValues.h"
+#include "CompetitiveQueueMgr.h"
 #include "ChannelMgr.h"
 #include "CharacterPackets.h"
 #include "ChatHelper.h"
@@ -559,9 +560,34 @@ void PlayerbotAI::UpdatePvPGearSwap(uint32 elapsed)
             }
         }
 
-        // Treat unrated/skirmish/unknown as low rating
+        // Multi-tier virtual rating for gear variety:
+        // Baseline: 4000-5000 GS (Rating 1500)
+        // Midline: 5000-5500 GS (Rating 1800)
+        // Top: 6000+ GS (Rating 2400)
+        
         if (rating == 0)
-            rating = 1000;
+        {
+            if (sCompetitiveQueueMgr->IsTopRankedArenaPlayer(bot))
+            {
+                rating = 2400; // Top players -> ~6000+ GS
+            }
+            else if (sCompetitiveQueueMgr->IsMidRankedArenaPlayer(bot))
+            {
+                rating = 1800; // Mid-tier players -> ~5300 GS
+            }
+            else
+            {
+                rating = 1500; // Baseline players -> ~4500 GS
+            }
+        }
+        else if (sCompetitiveQueueMgr->IsTopRankedArenaPlayer(bot) && rating < 2400)
+        {
+             rating = 2400;
+        }
+        else if (sCompetitiveQueueMgr->IsMidRankedArenaPlayer(bot) && rating < 1800)
+        {
+             rating = 1800;
+        }
 
         float ilvlCapF = 200.0f;
         if (rating >= 2400)

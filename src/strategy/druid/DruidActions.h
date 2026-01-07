@@ -42,6 +42,12 @@ public:
     CastHealingTouchAction(PlayerbotAI* botAI) : CastHealingSpellAction(botAI, "healing touch") {}
 };
 
+class CastCycloneAction : public CastDebuffSpellAction
+{
+public:
+    CastCycloneAction(PlayerbotAI* botAI) : CastDebuffSpellAction(botAI, "cyclone") {}
+};
+
 class CastRejuvenationOnPartyAction : public HealPartyMemberAction
 {
 public:

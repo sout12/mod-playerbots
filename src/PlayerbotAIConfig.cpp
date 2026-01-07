@@ -213,7 +213,20 @@ bool PlayerbotAIConfig::Initialize()
     // PvP Configuration
     pvpTitlesEnabled = sConfigMgr->GetOption<bool>("AiPlayerbot.PvPTitles", true);
     competitiveQueueEnabled = sConfigMgr->GetOption<bool>("AiPlayerbot.RandomBotCompetitiveQueue", true);
-    competitiveQueueTopRank = sConfigMgr->GetOption<uint32>("AiPlayerbot.RandomBotCompetitiveQueueTopRank", 25);
+    competitiveQueueTopRankBG = sConfigMgr->GetOption<uint32>("AiPlayerbot.RandomBotCompetitiveQueueTopRankBG", 25);
+    competitiveQueueTopRankArena = sConfigMgr->GetOption<uint32>("AiPlayerbot.RandomBotCompetitiveQueueTopRankArena", competitiveQueueTopRankBG);
+    
+    // Check if the old setting is present and the new ones aren't to provide smooth migration
+    if (competitiveQueueTopRankBG == 25 && competitiveQueueTopRankBG == competitiveQueueTopRankArena)
+    {
+        uint32 oldRank = sConfigMgr->GetOption<uint32>("AiPlayerbot.RandomBotCompetitiveQueueTopRank", 25);
+        if (oldRank != 25)
+        {
+            competitiveQueueTopRankBG = oldRank;
+            competitiveQueueTopRankArena = oldRank;
+        }
+    }
+
     competitiveQueueTopChance = sConfigMgr->GetOption<float>("AiPlayerbot.RandomBotCompetitiveQueueTopChance", 0.8f);
     competitiveQueueNormalChance = sConfigMgr->GetOption<float>("AiPlayerbot.RandomBotCompetitiveQueueNormalChance", 0.3f);
 

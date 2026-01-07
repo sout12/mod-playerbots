@@ -1,0 +1,171 @@
+{
+  "class": "Shaman",
+  "version": "3.3.5a",
+  "roles": [
+    "healer",
+    "ranged_dps",
+    "melee_dps",
+    "totem_support"
+  ],
+  "technical_data": {
+    "spec_detection": {
+      "Restoration": "Talent: Earth Shield (974)",
+      "Elemental": "Talent: Thunderstorm (51490)",
+      "Enhancement": "Talent: Feral Spirit (51533)"
+    },
+    "spell_ids": {
+      "Bloodlust": 2825,
+      "Heroism": 32182,
+      "Grounding_Totem": 8177,
+      "Tremor_Totem": 8143,
+      "Wind_Shear": 57994,
+      "Hex": 51514,
+      "Lava_Burst": 51505,
+      "Thunderstorm": 51490,
+      "Riptide": 61295,
+      "Water_Walking": 546,
+      "Ghost_Wolf": 2645
+    },
+    "map_specific_utility": {
+      "AB": [
+        {
+          "name": "Water Walking",
+          "spell_id": 546,
+          "when": "Water Crossing",
+          "priority": "very_high",
+          "conditions": [
+            "zone_area == Arathi Basin",
+            "is_swimming == false",
+            "mounted == true"
+          ],
+          "target": "self"
+        }
+      ],
+      "General": [
+        {
+          "name": "Ghost Wolf",
+          "spell_id": 2645,
+          "when": "Travel Indoors/Combat",
+          "priority": "high",
+          "conditions": [
+            "indoors == true OR in_combat == true",
+            "moving == true",
+            "mounted == false"
+          ],
+          "target": "self"
+        }
+      ]
+    }
+  },
+  "win_condition": {
+    "Elemental": "Global someone with Lava Burst + Chain Lightning + Earth Shock. Knock enemies off lumber mill/bridge.",
+    "Enhancement": "Run down clothies. Interrupt everything with low CD Wind Shear.",
+    "Restoration": "Outlast. Keep Earth Shield up. Ground/Shear CC.",
+    "priority_legend": {
+      "TOP_PRIORITY": "Group Buff / Interrupt",
+      "very_high": "Totem Management",
+      "high": "Healing / Burst",
+      "medium": "Purge"
+    }
+  },
+  "arena_strategies": {
+    "2v2": {
+      "Enh_Ret": "Turbo Cleave (Lite). Run at healer. Shear -> HoJ -> Hex chain.",
+      "Ele_Destro": "Double Caster. One shot setup. Sync Lava Burst with Chaos Bolt."
+    },
+    "3v3": {
+      "LSD": "Lock/Ele/Druid. High disruptive control. Hex one, Fear one, Cyclone one. Rot damage.",
+      "Thunder_Cleave": "War/Ele/Healer. Warrior MS applies pressure, Ele bursts low HP targets."
+    }
+  },
+  "spell_rules": {
+    "totems": [
+      {
+        "name": "Grounding Totem",
+        "spell_id": 8177,
+        "when": "Absorb Spell",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_casting_harmful == true"
+        ],
+        "target": "self_pos"
+      },
+      {
+        "name": "Tremor Totem",
+        "spell_id": 8143,
+        "when": "Break Fear/Sleep/Charm",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "ally_feared == true"
+        ],
+        "target": "self_pos"
+      }
+    ],
+    "control": [
+      {
+        "name": "Wind Shear",
+        "spell_id": 57994,
+        "when": "Interrupt",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_casting == true"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Hex",
+        "spell_id": 51514,
+        "when": "CC Healer/DPS",
+        "priority": "very_high",
+        "conditions": [
+          "kill_window == true"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Thunderstorm",
+        "spell_id": 51490,
+        "when": "Knockback / Mana",
+        "priority": "high",
+        "conditions": [
+          "nearby_enemies >= 2",
+          "map_has_cliffs == true"
+        ],
+        "target": "self"
+      }
+    ],
+    "pumping": [
+      {
+        "name": "Bloodlust",
+        "spell_id": 2825,
+        "when": "Team Burst",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "combat_start == true OR kill_opportunity == true",
+          "debuff_sated == false"
+        ],
+        "target": "party"
+      },
+      {
+        "name": "Purge",
+        "spell_id": 370,
+        "when": "Remove Buffs",
+        "priority": "high",
+        "conditions": [
+          "target_has_hot/shield == true"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Lava Burst",
+        "spell_id": 51505,
+        "when": "Nuke",
+        "priority": "high",
+        "conditions": [
+          "flame_shock_active == true"
+        ],
+        "target": "enemy"
+      }
+    ]
+  }
+}

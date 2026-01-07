@@ -106,12 +106,14 @@ void GenericHunterStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
     triggers.push_back(new TriggerNode("rapid fire", NextAction::array(0, new NextAction("rapid fire", 29.0f), nullptr)));
     triggers.push_back(new TriggerNode("aspect of the viper", NextAction::array(0, new NextAction("aspect of the viper", 28.0f), NULL)));
     triggers.push_back(new TriggerNode("aspect of the hawk", NextAction::array(0, new NextAction("aspect of the dragonhawk", 27.5f), nullptr)));
+    triggers.push_back(new TriggerNode("aspect of the cheetah pvp", NextAction::array(0, new NextAction("aspect of the cheetah", 30.0f), nullptr)));
 
     // Aggro/Threat/Defensive Triggers
     triggers.push_back(new TriggerNode("has aggro", NextAction::array(0, new NextAction("concussive shot", 20.0f), nullptr)));
     triggers.push_back(new TriggerNode("low tank threat", NextAction::array(0, new NextAction("misdirection on main tank", 27.0f), NULL)));
     triggers.push_back(new TriggerNode("low health", NextAction::array(0, new NextAction("deterrence", 35.0f), nullptr)));
     triggers.push_back(new TriggerNode("concussive shot on snare target", NextAction::array(0, new NextAction("concussive shot", 20.0f), nullptr)));
+    triggers.push_back(new TriggerNode("concussive shot pvp", NextAction::array(0, new NextAction("concussive shot", 25.0f), nullptr)));
     triggers.push_back(new TriggerNode("medium threat", NextAction::array(0, new NextAction("feign death", 35.0f), nullptr)));
     triggers.push_back(new TriggerNode("hunters pet medium health", NextAction::array(0, new NextAction("mend pet", 22.0f), nullptr)));
     triggers.push_back(new TriggerNode("hunters pet low health", NextAction::array(0, new NextAction("mend pet", 21.0f), nullptr)));

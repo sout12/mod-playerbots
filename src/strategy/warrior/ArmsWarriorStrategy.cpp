@@ -61,8 +61,8 @@ ArmsWarriorStrategy::ArmsWarriorStrategy(PlayerbotAI* botAI) : GenericWarriorStr
 
 NextAction** ArmsWarriorStrategy::getDefaultActions()
 {
-    return NextAction::array(0, new NextAction("bladestorm", ACTION_DEFAULT + 0.2f),
-                            new NextAction("mortal strike", ACTION_DEFAULT + 0.1f),
+    // Avoid firing bladestorm by default (use triggers/burst instead)
+    return NextAction::array(0, new NextAction("mortal strike", ACTION_DEFAULT + 0.2f),
                             new NextAction("melee", ACTION_DEFAULT), nullptr);
 }
 
@@ -122,6 +122,11 @@ void ArmsWarriorStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
 
     triggers.push_back(new TriggerNode("critical health",
         NextAction::array(0, new NextAction("intimidating shout", ACTION_EMERGENCY), nullptr)));
+
+    // Arena burst setup: use bladestorm only when enemies are stacked (light aoe) and we're already in combat
+    triggers.push_back(new TriggerNode(
+        "light aoe",
+        NextAction::array(0, new NextAction("bladestorm", ACTION_HIGH + 5), nullptr)));
 
     triggers.push_back(new TriggerNode("medium health",
         NextAction::array(0, new NextAction("enraged regeneration", ACTION_EMERGENCY), nullptr)));

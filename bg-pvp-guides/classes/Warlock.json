@@ -1,0 +1,120 @@
+{
+  "class": "Warlock",
+  "version": "3.3.5a",
+  "roles": [
+    "ranged_dps",
+    "cc",
+    "rot_pressure"
+  ],
+  "technical_data": {
+    "spec_detection": {
+      "Affliction": "Talent: Unstable Affliction (30108)",
+      "Destruction": "Talent: Chaos Bolt (50796)",
+      "Demonology": "Talent: Metamorphosis (59672)"
+    },
+    "spell_ids": {
+      "Fear": 5782,
+      "Death_Coil": 27223,
+      "Demonic_Circle_Teleport": 48020,
+      "Unstable_Affliction": 30108,
+      "Chaos_Bolt": 50796,
+      "Spell_Lock": 19647,
+      "Haunt": 48181,
+      "Shadowflame": 47897
+    }
+  },
+  "win_condition": {
+    "Affliction": "Cover everyone in DoTs. U.A. protects DoTs from dispel. Fear healer.",
+    "Destruction": "Setup burst. Shadowfury -> Immolate -> Conflag -> Chaos Bolt.",
+    "priority_legend": {
+      "TOP_PRIORITY": "Survival / CC",
+      "very_high": "DoT Protection / Burst",
+      "high": "Pressure",
+      "medium": "Pet Management"
+    }
+  },
+  "arena_strategies": {
+    "2v2": {
+      "Lock_Druid": "Resto/Aff. Infinite rot. Kite endlessly. Outlast mana bars.",
+      "Lock_Rogue": "RL. Fear into Kidney Shot. Reset with Port."
+    },
+    "3v3": {
+      "RLS": "Rogue/Lock/Shaman. Very strong control. Fear/Hex/Blind rotation. Switch targets often.",
+      "LSD": "Lock/Ele/Druid. Wizard Cleave. DoT everything. Create chaos."
+    }
+  },
+  "spell_rules": {
+    "control": [
+      {
+        "name": "Fear",
+        "spell_id": 5782,
+        "when": "Spam CC",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_not_feared == true",
+          "dr_fear != full"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Spell Lock",
+        "spell_id": 19647,
+        "when": "Interrupt School",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_casting == true",
+          "pet_alive == true"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Death Coil",
+        "spell_id": 27223,
+        "when": "Horror / Heal",
+        "priority": "very_high",
+        "conditions": [
+          "self_hp < 40%",
+          "instant_cc_needed == true"
+        ],
+        "target": "enemy"
+      }
+    ],
+    "defensive": [
+      {
+        "name": "Demonic Circle: Teleport",
+        "spell_id": 48020,
+        "when": "Escape",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "self_focused == true",
+          "nearby_enemies > 0"
+        ],
+        "target": "self_teleport"
+      }
+    ],
+    "offensive": [
+      {
+        "name": "Unstable Affliction",
+        "spell_id": 30108,
+        "when": "DoT / Dispel Protection",
+        "priority": "very_high",
+        "conditions": [
+          "target_no_ua == true",
+          "spec == Affliction"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Chaos Bolt",
+        "spell_id": 50796,
+        "when": "Nuke (Pierces Absorb)",
+        "priority": "very_high",
+        "conditions": [
+          "spec == Destruction",
+          "backdraft_active == true"
+        ],
+        "target": "enemy"
+      }
+    ]
+  }
+}

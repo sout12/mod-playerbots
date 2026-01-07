@@ -48,6 +48,7 @@ public:
     void ApplyStatAppropriateness(ItemTemplate const* proto);
 
     bool NotBestArmorType(uint32 item_subclass_armor);
+    uint32 GetBestArmorType() const;
 
     void ApplyOverflowPenalty(Player* player);
     void ApplyWeightFinetune(Player* player);

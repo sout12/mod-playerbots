@@ -141,6 +141,30 @@ public:
     HibernateTrigger(PlayerbotAI* botAI) : HasCcTargetTrigger(botAI, "hibernate") {}
 };
 
+class CycloneOnEnemyHealerTrigger : public Trigger
+{
+public:
+    CycloneOnEnemyHealerTrigger(PlayerbotAI* botAI) : Trigger(botAI, "cyclone on enemy healer", 3) {}
+
+    bool IsActive() override
+    {
+        Unit* healer = AI_VALUE(Unit*, "enemy healer target");
+        if (!healer || !healer->IsAlive())
+            return false;
+
+        if (!bot->InArena() && !bot->InBattleground())
+            return false;
+
+        if (healer->HasAura(33786)) // Cyclone
+            return false;
+
+        if (!bot->IsWithinLOSInMap(healer))
+            return false;
+
+        return bot->GetDistance(healer) < 30.0f;
+    }
+};
+
 class CurePoisonTrigger : public NeedCureTrigger
 {
 public:

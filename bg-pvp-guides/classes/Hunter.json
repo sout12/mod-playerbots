@@ -1,0 +1,183 @@
+{
+  "class": "Hunter",
+  "version": "3.3.5a",
+  "roles": [
+    "ranged_dps",
+    "cc",
+    "kiting",
+    "anti_stealth"
+  ],
+  "technical_data": {
+    "spec_detection": {
+      "Beast_Mastery": "Talent: Beast Mastery (53270)",
+      "Marksmanship": "Talent: Chimera Shot (53209)",
+      "Survival": "Talent: Explosive Shot (53301)"
+    },
+    "spell_ids": {
+      "Freezing_Trap": 1499,
+      "Frost_Trap": 13809,
+      "Deterrence": 19263,
+      "Disengage": 781,
+      "Kill_Shot": 53351,
+      "Chimera_Shot": 53209,
+      "Explosive_Shot": 53301,
+      "Scatter_Shot": 19503,
+      "Master_Call": 53271,
+      "Aspect_of_the_Pack": 13159,
+      "Aspect_of_the_Dragonhawk": 61847
+    },
+    "map_specific_utility": {
+      "General": [
+        {
+          "name": "Aspect of the Pack",
+          "spell_id": 13159,
+          "when": "Group Speed Boost",
+          "priority": "high",
+          "conditions": [
+            "bg_start == true",
+            "in_combat == false",
+            "mounted == false"
+          ],
+          "target": "self"
+        },
+        {
+          "name": "REMOVE Aspect of the Pack",
+          "spell_id": 13159,
+          "when": "Remove Daze Risk",
+          "priority": "TOP_PRIORITY",
+          "conditions": [
+            "in_combat == true",
+            "buff_aspect_of_the_pack == true"
+          ],
+          "target": "self_cancel_aura"
+        }
+      ]
+    }
+  },
+  "win_condition": {
+    "Marksmanship": "Land a Freezing Trap on Healer -> Burst Target with Chimera Shot/Aimed Shot.",
+    "Beast_Mastery": "Pop Bestial Wrath (The Red Kitty) and one-shot a clothie.",
+    "priority_legend": {
+      "TOP_PRIORITY": "CC Chain / Finishing Blow",
+      "very_high": "Defensive / Peel",
+      "high": "Burst Damage",
+      "medium": "Mana Regen / Sustain"
+    }
+  },
+  "arena_strategies": {
+    "2v2": {
+      "Hunt_Ret": "Cupid Cleave. Chain CC: Scatter -> Trap -> HoJ. Massive burst.",
+      "Hunt_Disc": "Mana Drain strategy. Viper Sting the healer. Priest fears off Trap."
+    },
+    "3v3": {
+      "PHD": "Paladin/Hunter/DK. High pressure. Grips into Traps.",
+      "Beast_Cleave": "Enhance/BM/Healer. All-in burst. Pop everything at start."
+    }
+  },
+  "spell_rules": {
+    "control": [
+      {
+        "name": "Scatter Shot",
+        "spell_id": 19503,
+        "when": "Setup for Trap or Peel",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_is_healer == true",
+          "trap_available == true"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Freezing Trap",
+        "spell_id": 1499,
+        "when": "Long CC",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_is_frozen_or_stunned == true",
+          "scatter_active == true"
+        ],
+        "target": "enemy_location"
+      },
+      {
+        "name": "Wyvern Sting",
+        "spell_id": 49012,
+        "when": "Ranged Sleep",
+        "priority": "high",
+        "conditions": [
+          "spec == Survival",
+          "target_not_cc == true"
+        ],
+        "target": "enemy"
+      }
+    ],
+    "damage": [
+      {
+        "name": "Kill Shot",
+        "spell_id": 53351,
+        "when": "Execute",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_hp < 20%"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Chimera Shot",
+        "spell_id": 53209,
+        "when": "Burst / Disarm",
+        "priority": "very_high",
+        "conditions": [
+          "spec == Marksmanship",
+          "scorpid_sting_active == true (for disarm)"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Explosive Shot",
+        "spell_id": 53301,
+        "when": "Core Damage",
+        "priority": "very_high",
+        "conditions": [
+          "spec == Survival",
+          "lock_and_load_proc == true"
+        ],
+        "target": "enemy"
+      }
+    ],
+    "utility": [
+      {
+        "name": "Deterrence",
+        "spell_id": 19263,
+        "when": "Deflect Everything",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "self_hp < 20%",
+          "incoming_burst == true"
+        ],
+        "target": "self"
+      },
+      {
+        "name": "Master's Call",
+        "spell_id": 53271,
+        "when": "Freedom",
+        "priority": "very_high",
+        "conditions": [
+          "self_rooted == true",
+          "pet_alive == true"
+        ],
+        "target": "self"
+      },
+      {
+        "name": "Roar of Sacrifice",
+        "spell_id": 53480,
+        "when": "Anti-Crit",
+        "priority": "very_high",
+        "conditions": [
+          "ally_focused == true",
+          "pet_spec == Cunning"
+        ],
+        "target": "ally"
+      }
+    ]
+  }
+}

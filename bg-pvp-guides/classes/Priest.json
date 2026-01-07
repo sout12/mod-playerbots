@@ -1,0 +1,147 @@
+{
+  "class": "Priest",
+  "version": "3.3.5a",
+  "roles": [
+    "healer",
+    "ranged_dps",
+    "support",
+    "dispel_bot"
+  ],
+  "technical_data": {
+    "spec_detection": {
+      "Discipline": "Talent: Penance (47540)",
+      "Shadow": "Talent: Shadowform (15473)",
+      "Holy": "Talent: Circle of Healing (34861) or Guardian Spirit (47788)"
+    },
+    "spell_ids": {
+      "Power_Word_Shield": 48066,
+      "Penance": 47540,
+      "Pain_Suppression": 33206,
+      "Psychic_Scream": 10890,
+      "Mass_Dispel": 32375,
+      "Dispersion": 47585,
+      "Psychic_Horror": 64044,
+      "Silence": 15487,
+      "Vampiric_Touch": 34914
+    }
+  },
+  "win_condition": {
+    "Discipline": "Keep Shields up. Burn Mana. Offensive Dispel targets for Kill Windows.",
+    "Shadow": "Rot everyone with DoTs. Silence Healer -> Horror Healer chain.",
+    "priority_legend": {
+      "TOP_PRIORITY": "Save Life / Secure Kill",
+      "very_high": "Major Utility / CC",
+      "high": "Efficient Healing / Damage",
+      "medium": "Buffs"
+    }
+  },
+  "arena_strategies": {
+    "2v2": {
+      "Disc_Rogue": "Offensive Healer. Fear off Kidney Shot. Mana Burn enemy healer.",
+      "Shadow_Mage": "Shatterplay. Silence Healer -> Deep Freeze -> Shatter. Insane burst."
+    },
+    "3v3": {
+      "RMP": "Disc/Rogue/Mage. Cross CC. Fear Healer -> Poly DPS. Assist burst with Smite/Holy Fire.",
+      "Shadowplay": "Shadow/Lock/Shaman. DoT everything. Rot them down. massive spread pressure."
+    }
+  },
+  "spell_rules": {
+    "healing": [
+      {
+        "name": "Power Word: Shield",
+        "spell_id": 48066,
+        "when": "Prevent Damage",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_no_debuff_weakened_soul == true"
+        ],
+        "target": "ally"
+      },
+      {
+        "name": "Penance",
+        "spell_id": 47540,
+        "when": "Efficient Heal / Burst Damage",
+        "priority": "very_high",
+        "conditions": [
+          "cooldown_ready == true"
+        ],
+        "target": "ally_or_enemy"
+      },
+      {
+        "name": "Pain Suppression",
+        "spell_id": 33206,
+        "when": "Stop Burst",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "ally_hp < 40%",
+          "incoming_burst == true"
+        ],
+        "target": "ally"
+      }
+    ],
+    "shadow_control": [
+      {
+        "name": "Silence",
+        "spell_id": 15487,
+        "when": "Prevent Healing",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_healer_casting == true"
+        ],
+        "target": "enemy_healer"
+      },
+      {
+        "name": "Psychic Horror",
+        "spell_id": 64044,
+        "when": "Disarm / Horror",
+        "priority": "very_high",
+        "conditions": [
+          "target_melee_bursting == true OR chain_cc == true"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Vampiric Touch",
+        "spell_id": 34914,
+        "when": "Protection (Dispel backlash)",
+        "priority": "high",
+        "conditions": [
+          "target_no_dot == true"
+        ],
+        "target": "enemy"
+      }
+    ],
+    "utility": [
+      {
+        "name": "Mass Dispel",
+        "spell_id": 32375,
+        "when": "Remove Bubble/Ice Block",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "enemy_immune == true"
+        ],
+        "target": "area"
+      },
+      {
+        "name": "Dispersion",
+        "spell_id": 47585,
+        "when": "Save Self / Regen Mana",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "self_hp < 20% OR self_mana < 10%"
+        ],
+        "target": "self"
+      },
+      {
+        "name": "Psychic Scream",
+        "spell_id": 10890,
+        "when": "Peel / Offensive Fear",
+        "priority": "very_high",
+        "conditions": [
+          "enemies_in_range > 0"
+        ],
+        "target": "area"
+      }
+    ]
+  }
+}

@@ -121,6 +121,8 @@ void DpsRogueStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
     triggers.push_back(
         new TriggerNode("kick on enemy healer",
                         NextAction::array(0, new NextAction("kick on enemy healer", ACTION_INTERRUPT + 1), nullptr)));
+    triggers.push_back(new TriggerNode("kidney shot pvp",
+                                       NextAction::array(0, new NextAction("kidney shot", ACTION_HIGH + 4), nullptr)));
 
     // triggers.push_back(new TriggerNode(
     //     "behind target",
@@ -134,8 +136,11 @@ void DpsRogueStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
 
     triggers.push_back(new TriggerNode(
         "enemy out of melee",
-        NextAction::array(0, new NextAction("stealth", ACTION_HIGH + 3), new NextAction("sprint", ACTION_HIGH + 2),
+        NextAction::array(0, new NextAction("shadowstep", ACTION_HIGH + 5),
+                          new NextAction("stealth", ACTION_HIGH + 3), new NextAction("sprint", ACTION_HIGH + 2),
                           new NextAction("reach melee", ACTION_HIGH + 1), nullptr)));
+    triggers.push_back(
+        new TriggerNode("sprint pvp", NextAction::array(0, new NextAction("sprint", ACTION_HIGH + 4), nullptr)));
 
     triggers.push_back(new TriggerNode("expose armor",
                                        NextAction::array(0, new NextAction("expose armor", ACTION_HIGH + 3), nullptr)));
@@ -214,6 +219,13 @@ NextAction** StealthedRogueStrategy::getDefaultActions()
 
 void StealthedRogueStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
 {
+    triggers.push_back(new TriggerNode("cheap shot pvp",
+                                       NextAction::array(0, new NextAction("cheap shot", ACTION_HIGH + 6), nullptr)));
+    triggers.push_back(new TriggerNode(
+        "enemy out of melee",
+        NextAction::array(0, new NextAction("shadowstep", ACTION_HIGH + 7),
+                          new NextAction("cheap shot", ACTION_HIGH + 5), new NextAction("ambush", ACTION_HIGH + 4),
+                          nullptr)));
     triggers.push_back(new TriggerNode("combo points available",
                                        NextAction::array(0, new NextAction("eviscerate", ACTION_HIGH), nullptr)));
     triggers.push_back(
@@ -254,6 +266,8 @@ void RogueBoostStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
 {
     triggers.push_back(new TriggerNode(
         "adrenaline rush", NextAction::array(0, new NextAction("adrenaline rush", ACTION_HIGH + 2), nullptr)));
+    triggers.push_back(new TriggerNode(
+        "shadow dance", NextAction::array(0, new NextAction("shadow dance", ACTION_HIGH + 3), nullptr)));
 }
 
 void RogueCcStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)

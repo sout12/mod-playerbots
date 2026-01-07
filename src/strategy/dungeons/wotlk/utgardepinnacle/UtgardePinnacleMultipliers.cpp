@@ -88,12 +88,26 @@ float YmironMultiplier::GetValue(Action* action)
     Unit* boss = AI_VALUE2(Unit*, "find target", "king ymiron");
     if (!boss) { return 1.0f; }
 
-    if (boss->FindCurrentSpellBySpellId(SPELL_BANE) || boss->HasAura(SPELL_BANE))
+    const bool baneActive = boss->FindCurrentSpellBySpellId(SPELL_BANE) || boss->HasAura(SPELL_BANE);
+    if (!baneActive) { return 1.0f; }
+
+    // Avoid any AoE damage splashing onto the boss while Bane is active
+    if (action->getThreatType() == Action::ActionThreatType::Aoe
+        && !dynamic_cast<CastHealingSpellAction*>(action))
     {
-        if (dynamic_cast<AttackAction*>(action))
-        {
-            return 0.0f;
-        }
+        return 0.0f;
+    }
+
+    Unit* target = action->GetTarget();
+    if (!target) { return 1.0f; }
+
+    // Stop all direct damage and hostile spells aimed at Ymiron during Bane
+    if (target == boss
+        && (dynamic_cast<AttackAction*>(action)
+            || dynamic_cast<CastSpellAction*>(action)
+            || action->getThreatType() == Action::ActionThreatType::Single))
+    {
+        return 0.0f;
     }
     return 1.0f;
 }

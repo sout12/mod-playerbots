@@ -1,0 +1,212 @@
+{
+  "class": "Warrior",
+  "version": "3.3.5a",
+  "roles": [
+    "melee_dps",
+    "tank",
+    "objective_defender",
+    "flag_protector"
+  ],
+  "technical_data": {
+    "spec_detection": {
+      "Arms": "Talent: Mortal Strike (12294) or Bladestorm (46924)",
+      "Fury": "Talent: Titan's Grip (46917)",
+      "Protection": "Talent: Shockwave (46968)"
+    },
+    "spell_ids": {
+      "Mortal_Strike": 12294,
+      "Bladestorm": 46924,
+      "Shield_Wall": 871,
+      "Spell_Reflection": 23920,
+      "Disarm": 676,
+      "Pummel": 6552,
+      "Shield_Bash": 72
+    }
+  },
+  "win_condition": {
+    "Arms": "Maintain 100% Mortal Strike uptime. Burst with Bladestorm during CC windows.",
+    "Protection": "Disrupt enemy team with Stuns/Silences. Flag Carry survival.",
+    "priority_legend": {
+      "TOP_PRIORITY": "Survival / Kill Confirmation",
+      "very_high": "Control / Key Debuffs",
+      "high": "Sustained Damage",
+      "medium": "Filler"
+    }
+  },
+  "arena_strategies": {
+    "2v2": {
+      "War_Pal": "Sustained pressure. Paladin keeps Freedom (1044) on Warrior. Warrior peels for Paladin with Intervene/Piercing Howl.",
+      "War_Druid": "Rot/Grind strategy. Warrior switches targets to drain resources. Druid cyclones off-target."
+    },
+    "3v3": {
+      "TSG_War_DK_Pal": "Tunnel Vision. Train the Healer or squishy caster. Coordinate Bladestorm with Gargoyle.",
+      "Dispel_Cleave": "Warrior provides MS. Healers purge/dispel aggressively to keep Warrior uptime high."
+    }
+  },
+  "game_state": {
+    "early_game": {
+      "focus": "Establish positioning, charge immediately",
+      "priority": [
+        "Charge",
+        "Hamstring",
+        "Rend"
+      ]
+    },
+    "mid_game": {
+      "focus": "Pressure Healers, Peel for Teammates",
+      "priority": [
+        "Mortal Strike",
+        "Overpower",
+        "Bladestorm"
+      ]
+    },
+    "late_game": {
+      "focus": "Execute range, Defensive Cooldowns",
+      "priority": [
+        "Execute",
+        "Shield Wall",
+        "Intervene"
+      ]
+    }
+  },
+  "spell_rules": {
+    "interrupts": [
+      {
+        "name": "Pummel",
+        "spell_id": 6552,
+        "when": "Interrupt caster or healer in melee",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_is_casting == true",
+          "target_distance <= 5"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Shield Bash",
+        "spell_id": 72,
+        "when": "Interrupt if Shield Equipped",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_is_casting == true",
+          "is_shield_equipped == true"
+        ],
+        "target": "enemy"
+      }
+    ],
+    "control": [
+      {
+        "name": "Charge",
+        "spell_id": 11578,
+        "when": "Gap Close / Stun",
+        "priority": "very_high",
+        "conditions": [
+          "target_distance >= 8",
+          "in_combat == false OR stance == Battle"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Intercept",
+        "spell_id": 20252,
+        "when": "Gap Close / Stun",
+        "priority": "very_high",
+        "conditions": [
+          "target_distance >= 8",
+          "stance == Berserker"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Disarm",
+        "spell_id": 676,
+        "when": "Disarm Melee Burst",
+        "priority": "high",
+        "conditions": [
+          "target_class == Warrior OR target_class == Rogue OR target_class == Hunter",
+          "target_is_bursting == true"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Intimidating Shout",
+        "spell_id": 5246,
+        "when": "Peel or Setup Kill",
+        "priority": "high",
+        "conditions": [
+          "multiple_enemies_in_range == true",
+          "target_hp_percent > 20"
+        ],
+        "target": "area"
+      }
+    ],
+    "damage": [
+      {
+        "name": "Mortal Strike",
+        "spell_id": 12294,
+        "when": "Healing Reduction",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_debuff(Mortal Strike) == false",
+          "rage >= 30"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Execute",
+        "spell_id": 5308,
+        "when": "Kill Shot",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_hp_percent <= 20"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Overpower",
+        "spell_id": 7384,
+        "when": "Unavoidable Damage",
+        "priority": "very_high",
+        "conditions": [
+          "is_proc(Overpower) == true"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Bladestorm",
+        "spell_id": 46924,
+        "when": "Burst / CC Immunity",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_hp_percent <= 50",
+          "enemy_cc_cooldowns_used == true"
+        ],
+        "target": "self_area"
+      }
+    ],
+    "defensive": [
+      {
+        "name": "Shield Wall",
+        "spell_id": 871,
+        "when": "Survival",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "self_hp_percent <= 30",
+          "is_shield_equipped == true"
+        ],
+        "target": "self"
+      },
+      {
+        "name": "Spell Reflection",
+        "spell_id": 23920,
+        "when": "Reflect CC/Burst",
+        "priority": "very_high",
+        "conditions": [
+          "target_casting_cc == true OR target_casting_nuke == true",
+          "is_shield_equipped == true"
+        ],
+        "target": "self"
+      }
+    ]
+  }
+}

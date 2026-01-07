@@ -1,0 +1,76 @@
+{
+  "arena": "2v2",
+  "version": "3.3.5a",
+  "description": "Strategic guidelines for 2v2 arena combat in Wrath of the Lich King",
+  "win_condition": {
+    "primary": "Kill one target (Cross-CC Healer + Burst DPS)",
+    "priority_legend": {
+      "Priority 1": "Kill Target (Opportunity Window)",
+      "Priority 2": "CC Healer (Prevent Recovery)",
+      "Priority 3": "Peel/Survive (Reset)",
+      "Priority 99": "Tunnel Visioning Immune Target"
+    }
+  },
+  "compositions": {
+    "Rogue_Mage": {
+      "type": "Double DPS (Control/Burst)",
+      "strategy": {
+        "opener": "Sap Healer -> Cheap Shot Kill Target -> Polymorph Healer off Sap.",
+        "burst": "Combustion/Dance during Kidney Shot.",
+        "reset": "If kill fails, both stealth/run. Drink/Eat. Re-open."
+      },
+      "counters": "Hunter/Druid (Unshakable Dots), Warlock/Shaman (Anti-Burst)"
+    },
+    "Warrior_Paladin": {
+      "type": "Healer + DPS (Sustained)",
+      "strategy": {
+        "opener": "Charge -> Hamstring. Paladin stays max range.",
+        "kill_window": "Bladestorm + HoJ on Healer.",
+        "defense": "Hand of Freedom on Warrior 100% uptime. Cleanse everything."
+      },
+      "counters": "Mage/Priest (Dispel Freedom -> Kite Warrior)"
+    },
+    "Shadow_Priest_Rogue": {
+      "type": "Double DPS (Rot/Burst)",
+      "strategy": {
+        "opener": "Silence Healer -> Stunlock Kill Target -> Fear bomb.",
+        "kill_window": "Dots rolling + Psychic Horror + Dismantle."
+      }
+    }
+  },
+  "strategies": {
+    "Healer_DPS_vs_Healer_DPS": {
+      "plan": "Mana Burn / Dampening style. CC Chain healer (Fear -> Clone -> Silence). Switch to healer if no trinket."
+    },
+    "Double_DPS_vs_Healer_DPS": {
+      "plan": "ALL IN. Must kill within first 2 cooldown rotations. If game goes long, you lose."
+    },
+    "Healer_DPS_vs_Double_DPS": {
+      "plan": "SURVIVE Opener. Rotate CDs (Trinket -> Wall -> Bubble). Once they exhaust CDs, counter-pressure."
+    }
+  },
+  "priority_list": {
+    "hierarchy": [
+      {
+        "priority": 1,
+        "action": "Break CC (Trinket)",
+        "condition": "ally_dying"
+      },
+      {
+        "priority": 2,
+        "action": "Crowd Control Healer",
+        "condition": "kill_window_open"
+      },
+      {
+        "priority": 3,
+        "action": "Burst Damage",
+        "condition": "target_stunned"
+      },
+      {
+        "priority": 4,
+        "action": "Line of Sight",
+        "condition": "enemy_bursting"
+      }
+    ]
+  }
+}

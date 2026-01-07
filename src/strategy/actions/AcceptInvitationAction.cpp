@@ -47,7 +47,10 @@ bool AcceptInvitationAction::Execute(Event event)
         return false;
 
     if (sRandomPlayerbotMgr->IsRandomBot(bot))
-        botAI->SetMaster(inviter);
+    {
+        if (!GET_PLAYERBOT_AI(inviter))
+            botAI->SetMaster(inviter);
+    }
     // else
     // sPlayerbotDbStore->Save(botAI);
 

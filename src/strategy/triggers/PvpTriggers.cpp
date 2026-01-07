@@ -16,6 +16,33 @@
 
 bool EnemyPlayerNear::IsActive() { return AI_VALUE(Unit*, "enemy player target"); }
 
+bool PvpCcBreakTrigger::IsActive()
+{
+    if (!bot->InBattleground() && !bot->InArena() && !bot->IsInCombat())
+        return false;
+
+    bool hasHardCc =
+        bot->HasAuraType(SPELL_AURA_MOD_STUN) ||
+        bot->HasAuraType(SPELL_AURA_MOD_FEAR) ||
+        bot->HasAuraType(SPELL_AURA_MOD_CONFUSE) ||
+        bot->HasAuraType(SPELL_AURA_MOD_CHARM) ||
+        bot->HasAuraType(SPELL_AURA_MOD_ROOT) ||
+        bot->HasAuraType(SPELL_AURA_MOD_PACIFY) ||
+        bot->HasAuraType(SPELL_AURA_MOD_SILENCE) ||
+        bot->HasAuraType(SPELL_AURA_MOD_PACIFY_SILENCE);
+
+    if (!hasHardCc)
+        return false;
+
+    if (bot->GetHealthPct() <= 50.0f)
+        return true;
+
+    if (AI_VALUE(uint8, "attacker count") > 0)
+        return true;
+
+    return bot->IsInCombat();
+}
+
 bool PlayerHasNoFlag::IsActive()
 {
     if (botAI->GetBot()->InBattleground())

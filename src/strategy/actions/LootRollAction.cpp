@@ -138,11 +138,34 @@ static bool IsJewelryOrCloak(ItemTemplate const* proto)
     }
 }
 
+// Highest armor proficiency the bot currently knows (skill-based, not class expectation).
+static uint8 BestLearnedArmorSubclassFor(Player* bot)
+{
+    if (!bot)
+        return ITEM_SUBCLASS_ARMOR_CLOTH;
+
+    if (bot->HasSkill(SKILL_PLATE_MAIL))
+        return ITEM_SUBCLASS_ARMOR_PLATE;
+
+    if (bot->HasSkill(SKILL_MAIL))
+        return ITEM_SUBCLASS_ARMOR_MAIL;
+
+    if (bot->HasSkill(SKILL_LEATHER))
+        return ITEM_SUBCLASS_ARMOR_LEATHER;
+
+    return ITEM_SUBCLASS_ARMOR_CLOTH;
+}
+
 // Preferred armor subclass (ITEM_SUBCLASS_ARMOR_*) for the bot (WotLK rules)
 static uint8 PreferredArmorSubclassFor(Player* bot)
 {
     if (!bot)
         return ITEM_SUBCLASS_ARMOR_CLOTH;
+
+    // Always prefer the highest proficiency the bot has actually trained.
+    uint8 learned = BestLearnedArmorSubclassFor(bot);
+    if (learned != ITEM_SUBCLASS_ARMOR_CLOTH)
+        return learned;
 
     uint8 cls = bot->getClass();
     uint32 lvl = bot->GetLevel();

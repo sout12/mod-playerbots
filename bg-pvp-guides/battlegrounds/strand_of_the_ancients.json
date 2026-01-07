@@ -1,0 +1,100 @@
+{
+  "battleground": "Strand of the Ancients",
+  "version": "3.3.5a",
+  "game_type": "Time Attack (Siege)",
+  "win_condition": {
+    "primary": "Destroy the Relic (Attack) / Protect the Relic (Defend)",
+    "mechanics": {
+      "Demolishers": "The only way to win efficiently.",
+      "Bombs": "Backup way to win.",
+      "policy": "Protect Demos. Kill Demos. Ignore everything else."
+    },
+    "priority_legend": {
+      "Priority 1": "Absolute Highest / Critical",
+      "Priority 2": "High / Support",
+      "Priority 3": "Situational",
+      "Priority 99": "Do Not Do"
+    }
+  },
+  "technical_data": {
+    "Bombs": {
+      "Seaforium_Charge": {
+        "name": "Seaforium Charge",
+        "spawn_location": "Barrels at the Docks (Start) and Courtyards",
+        "spell_id": 40940,
+        "cast_time": "10s plant time",
+        "effect": "Deals siege damage to Gates.",
+        "strategy": "Plant at the center of the Gate. Defend until explosion."
+      }
+    },
+    "Vehicles": {
+      "Demolisher": {
+        "name": "Demolisher",
+        "hp": "Scales with Item Level",
+        "abilities": [
+          "Hurl Boulder (Ranged Siege)",
+          "Ram (Melee Siege/Knockback)"
+        ],
+        "weakness": "Susceptible to CC (Snares/Roots) and Pillars."
+      }
+    },
+    "Relic": {
+      "name": "Titan Relic",
+      "location": "Northmost Chamber",
+      "interaction": "Click to channel (Win Condition)"
+    }
+  },
+  "behavior_policies": {
+    "Attacker": {
+      "drivers": "Drive to gate. IGNORE PLAYERS. Do not turn to fight.",
+      "escort": "CC and Peel for the Demo. Do not chase kills away from the specific Demo you are guarding.",
+      "bombers": "Plant bombs. Die. Respawn. Repeat."
+    },
+    "Defender": {
+      "focus": "KILL DEMOLISHERS. Do not fight infantry unless they are planting bombs.",
+      "turrets": "Focus fire Demos. Do not shoot players unless Demos are dead."
+    }
+  },
+  "objectives": {
+    "Demolishers": {
+      "strategy": "Spawn -> Drive -> Siege. Round ends when Relic dies.",
+      "priority": "Priority 1 - Absolute Highest"
+    },
+    "Graveyards": {
+      "strategy": "Cap to move spawn point closer. Critical for maintaining Demo wave pressure.",
+      "priority": "Priority 2 - High"
+    }
+  },
+  "strategies": {
+    "Attack_Round": {
+      "tactics": "Split Demos. Hit Blue/Green gates simultaneously. Rush GY caps. Zerg Relic."
+    },
+    "Defense_Round": {
+      "tactics": "Hold the Beach. Focus Demos. Fall back instantly if gate is breached. Don't get farmed at a lost gate."
+    }
+  },
+  "priority_list": {
+    "hierarchy": [
+      {
+        "priority": 1,
+        "action": "Kill/Protect Demolisher",
+        "reason": "Primary Mechanic"
+      },
+      {
+        "priority": 2,
+        "action": "Disarm/Plant Bomb",
+        "reason": "Secondary Mechanic"
+      },
+      {
+        "priority": 3,
+        "action": "Cap Graveyard",
+        "reason": "Spawn advantage"
+      },
+      {
+        "priority": 99,
+        "action": "Player Kill",
+        "reason": "Irrelevant to gate hp"
+      }
+    ]
+  }
+}

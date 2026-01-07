@@ -1,0 +1,174 @@
+{
+  "battleground": "Isle of Conquest",
+  "version": "3.3.5a",
+  "game_type": "Siege Warfare",
+  "win_condition": {
+    "primary": "Kill General (Requires Gate Destruction)",
+    "mechanics": {
+      "Siege_Engines": "Destroy Gates",
+      "Glaives": "Destroy Gates/Players",
+      "Bombs": "Destroy Gates",
+      "policy": "Vehicles > Players. Protect vehicles at all costs."
+    },
+    "priority_legend": {
+      "Priority 1": "Critical / Win Condition",
+      "Priority 2": "High Value / Tactical",
+      "Priority 3": "Low Value",
+      "Priority 99": "Forbidden"
+    }
+  },
+  "technical_data": {
+    "Bombs": {
+      "Seaforium_Charge": {
+        "name": "Seaforium Charge",
+        "spawn_location": "Inside the Workshop (Center)",
+        "spell_id": 66497,
+        "item_id": 47030,
+        "cast_time": "Instant pickup, 5s plant time",
+        "damage": "High Siege Damage to Gates",
+        "respawn_time": "10-15 seconds"
+      },
+      "Huge_Seaforium_Charge": {
+        "name": "Huge Seaforium Charge",
+        "spawn_location": "Inside Enemy Keep (Requires Hangar Airship Drop or Gate Breach to access)",
+        "spell_id": 66504,
+        "description": "Deals massive damage to the final gate.",
+        "strategy": "Plant at the door to the General's room."
+      }
+    },
+    "Vehicles": {
+      "Siege_Engine": {
+        "name": "Siege Engine",
+        "spawn_location": "Workshop (Front)",
+        "abilities_driver": {
+          "Ram": "Spell ID 67796. Deals 2000 Siege Dmg to buildings. 1.5s CD.",
+          "Steam_Rush": "Spell ID 67797. Speed boost + Knockback.",
+          "Desecration": "Spell ID 414266. Creates a Shadow zone doing damage (Replaces Mortar in 3.3.5a)."
+        },
+        "abilities_passenger": {
+          "Seat_1_Turret": "Fire Cannon (67461) / Steam Blast (66203)",
+          "Seat_2_3_Flame": "Flame Turret (67446) / Napalm (66186)"
+        }
+      },
+      "Glaive_Thrower": {
+        "name": "Glaive Thrower",
+        "spawn_location": "Docks",
+        "abilities": {
+          "Glaive_Throw": "Spell ID 67034. Long range siege damage.",
+          "Blade_Salvo": "Spell ID 67195. Anti-infantry AoE cone.",
+          "Desecration": "Spell ID 414266."
+        },
+        "range": "80-100 yards (Outranges Turrets)"
+      },
+      "Demolisher": {
+        "name": "Demolisher",
+        "abilities": {
+          "Hurl_Boulder": "Spell ID 67440. Ranged Siege/Fire Dmg.",
+          "Ram": "Spell ID 67441. Melee Siege Dmg."
+        },
+        "passenger_slots": 2,
+        "passenger_behavior": "Cast class spells (Ranged DPS prefered). Protect Driver."
+      }
+    },
+    "Bosses": {
+      "Alliance_General": {
+        "name": "High Commander Halford Wyrmbane",
+        "location": "Alliance Keep (North)",
+        "id": 34922
+      },
+      "Horde_General": {
+        "name": "Overlord Agmar",
+        "location": "Horde Keep (South)",
+        "id": 34924
+      }
+    }
+  },
+  "behavior_policies": {
+    "combat": {
+      "rule": "Ignore player combat unless defending a Vehicle.",
+      "zerg_logic": "Do not fight in the Field of Strife. Fight at the Workshop or Docks.",
+      "vehicle_drivers": "Do not chase kills. Hit the GATE."
+    },
+    "movement": {
+      "rule": "Move directly to siege nodes (Workshop/Docks).",
+      "bomb_running": "If foot soldier, grab bombs and run to gate. Ignore PvP."
+    },
+    "passenger_logic": {
+      "Siege_Engine": {
+        "Seat_1_Turret": {
+          "priority": "High - Anti-Air / Anti-Infantry",
+          "action": "Use Fire Cannon on Players/Walls. Use Steam Blast to peel melee off the engine."
+        },
+        "Seat_2_3_Flame": {
+          "priority": "Medium",
+          "action": "Spam Flame Turret on nearby infantry to protect the vehicle."
+        }
+      },
+      "Demolisher": {
+        "Seat_1_2": {
+          "priority": "Low",
+          "action": "Cast Class Spells. Protect the vehicle from melee attackers. Repair if Engineer."
+        }
+      }
+    }
+  },
+  "objectives": {
+    "Workshop": {
+      "priority": "Priority 1 (Horde Preferred)",
+      "strategy": "Get Siege Engine. Shield it. Drive to gate. Users pick up bombs.",
+      "value": "Highest Siege Damage"
+    },
+    "Docks": {
+      "priority": "Priority 1 (Alliance Preferred)",
+      "strategy": "Get Glaives. Protect them constantly. Range down the gate.",
+      "value": "High Damage + Player Suppression"
+    },
+    "Hangar": {
+      "priority": "Priority 2",
+      "strategy": "Airship drop behind gates. Sabotage from inside.",
+      "value": "Tactical Bypass"
+    },
+    "Refinery_Quarry": {
+      "priority": "Priority 3",
+      "strategy": "Take if free. Do not fight for these.",
+      "value": "Buffs/Reinforcements"
+    }
+  },
+  "faction_strategies": {
+    "Alliance": {
+      "tactics": "Docks Rush. Secure Glaives. Escort Glaives to West Gate. Destroy Gate. Kill General."
+    },
+    "Horde": {
+      "tactics": "Workshop Rush. Secure Siege Engines. Escort to Front Gate. Destroy Gate. Kill General."
+    }
+  },
+  "priority_list": {
+    "hierarchy": [
+      {
+        "priority": 1,
+        "action": "Protect/Drive Vehicle",
+        "reason": "Win Condition Tool"
+      },
+      {
+        "priority": 2,
+        "action": "Enter Vehicle as Passenger",
+        "reason": "Support Fire"
+      },
+      {
+        "priority": 3,
+        "action": "Destroy Gate",
+        "reason": "Path to Win"
+      },
+      {
+        "priority": 4,
+        "action": "Kill General",
+        "reason": "Victory"
+      },
+      {
+        "priority": 99,
+        "action": "Field PvP",
+        "reason": "Useless"
+      }
+    ]
+  }
+}

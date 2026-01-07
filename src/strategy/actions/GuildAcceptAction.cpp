@@ -6,9 +6,12 @@
 #include "GuildAcceptAction.h"
 
 #include "Event.h"
+#include "Guild.h"
+#include "GuildMgr.h"
 #include "GuildPackets.h"
 #include "PlayerbotSecurity.h"
 #include "Playerbots.h"
+#include "RandomPlayerbotMgr.h"
 
 bool GuildAcceptAction::Execute(Event event)
 {
@@ -40,6 +43,39 @@ bool GuildAcceptAction::Execute(Event event)
     {
         botAI->TellError("Sorry, I don't want to join your guild :(");
         accept = false;
+    }
+    else if (sRandomPlayerbotMgr->IsRandomBot(bot))
+    {
+        // Random bots should only join bot-owned guilds, not player-owned guilds
+        // Check if the guild master is a real player
+        if (Guild* guild = sGuildMgr->GetGuildById(guildId))
+        {
+            ObjectGuid guildMasterGuid = guild->GetLeaderGUID();
+            Player* guildMaster = ObjectAccessor::FindPlayer(guildMasterGuid);
+            
+            // If guild master is online, check if they're a bot
+            // If offline, check the character database
+            bool isPlayerOwnedGuild = false;
+            
+            if (guildMaster)
+            {
+                // Guild master is online - check if they're a real player
+                isPlayerOwnedGuild = !sRandomPlayerbotMgr->IsRandomBot(guildMaster);
+            }
+            else
+            {
+                // Guild master is offline - check if GUID is in random bot list
+                isPlayerOwnedGuild = !sRandomPlayerbotMgr->IsRandomBot(guildMasterGuid.GetCounter());
+            }
+            
+            if (isPlayerOwnedGuild)
+            {
+                LOG_DEBUG("playerbots", "Random bot {} declining invite to player-owned guild {} (GM: {})",
+                         bot->GetName(), guild->GetName(), guildMasterGuid.ToString());
+                botAI->TellError("Sorry, I only join bot guilds!");
+                accept = false;
+            }
+        }
     }
 
     if (accept)

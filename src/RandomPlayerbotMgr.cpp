@@ -963,6 +963,35 @@ std::vector<uint32> parseBrackets(const std::string& str)
     return brackets;
 }
 
+static PvPDifficultyEntry const* GetQueueBracket(Player* player, BattlegroundTypeId bgTypeId)
+{
+    if (!player)
+        return nullptr;
+
+    uint32 mapId = 0;
+    if (Battleground* bg = sBattlegroundMgr->GetBattlegroundTemplate(bgTypeId))
+        mapId = bg->GetMapId();
+
+    if (!mapId)
+    {
+        if (bgTypeId == BATTLEGROUND_RB)
+            mapId = 489; // WSG map for RB bracket lookup
+        else if (bgTypeId == BATTLEGROUND_AA)
+            mapId = 559; // Nagrand Arena map for arena bracket lookup
+    }
+
+    if (!mapId)
+        return nullptr;
+
+    PvPDifficultyEntry const* pvpDiff = GetBattlegroundBracketByLevel(mapId, player->GetLevel());
+    if (!pvpDiff && bgTypeId == BATTLEGROUND_RB)
+    {
+        pvpDiff = GetBattlegroundBracketByLevel(489, player->GetLevel());
+    }
+
+    return pvpDiff;
+}
+
 void RandomPlayerbotMgr::CheckBgQueue()
 {
     if (!BgCheckTimer)
@@ -981,6 +1010,8 @@ void RandomPlayerbotMgr::CheckBgQueue()
 
     LOG_DEBUG("playerbots", "Checking BG Queue...");
 
+    bool allowRandomBgQueue = sPlayerbotAIConfig->randomBotAutoJoinBGRBCount > 0;
+
     // Initialize Battleground Data (do not clear here)
 
     for (int bracket = BG_BRACKET_ID_FIRST; bracket < MAX_BATTLEGROUND_BRACKETS; ++bracket)
@@ -997,6 +1028,9 @@ void RandomPlayerbotMgr::CheckBgQueue()
     // Opens a queue for bots to join
     for (Player* player : players)
     {
+        if (player->GetSession()->IsBot())
+            continue;
+
         // Skip player if not currently in a queue
         if (!player->InBattlegroundQueue())
             continue;
@@ -1018,11 +1052,10 @@ void RandomPlayerbotMgr::CheckBgQueue()
             
             // Skip Random BG - we don't want bots to react to player random queues
             // Bots should only populate specific BGs configured in playerbots.conf
-            if (bgTypeId == BATTLEGROUND_RB)
+            if (bgTypeId == BATTLEGROUND_RB && !allowRandomBgQueue)
                 continue;
                 
-            uint32 mapId = sBattlegroundMgr->GetBattlegroundTemplate(bgTypeId)->GetMapId();
-            PvPDifficultyEntry const* pvpDiff = GetBattlegroundBracketByLevel(mapId, player->GetLevel());
+            PvPDifficultyEntry const* pvpDiff = GetQueueBracket(player, bgTypeId);
             if (!pvpDiff)
                 continue;
 
@@ -1030,6 +1063,13 @@ void RandomPlayerbotMgr::CheckBgQueue()
             BattlegroundBracketId bracketId = pvpDiff->GetBracketId();
             BattlegroundData[queueTypeId][bracketId].minLevel = pvpDiff->minLevel;
             BattlegroundData[queueTypeId][bracketId].maxLevel = pvpDiff->maxLevel;
+
+            if (bgTypeId == BATTLEGROUND_RB)
+            {
+                LOG_DEBUG("playerbots", "RandomBG: Detected real player {} in Random BG queue, bracket {} ({}), activeBgQueue={}",
+                          player->GetName(), bracketId, (uint32)bgTypeId,
+                          BattlegroundData[queueTypeId][bracketId].activeBgQueue);
+            }
 
             // Arena logic
             bool isRated = false;
@@ -1113,17 +1153,23 @@ void RandomPlayerbotMgr::CheckBgQueue()
             BattlegroundTypeId bgTypeId = sBattlegroundMgr->BGTemplateId(queueTypeId);
             
             // Skip Random BG for bots - only join configured specific BGs
-            if (bgTypeId == BATTLEGROUND_RB)
+            if (bgTypeId == BATTLEGROUND_RB && !allowRandomBgQueue)
                 continue;
                 
-            uint32 mapId = sBattlegroundMgr->GetBattlegroundTemplate(bgTypeId)->GetMapId();
-            PvPDifficultyEntry const* pvpDiff = GetBattlegroundBracketByLevel(mapId, bot->GetLevel());
+            PvPDifficultyEntry const* pvpDiff = GetQueueBracket(bot, bgTypeId);
             if (!pvpDiff)
                 continue;
 
             BattlegroundBracketId bracketId = pvpDiff->GetBracketId();
             BattlegroundData[queueTypeId][bracketId].minLevel = pvpDiff->minLevel;
             BattlegroundData[queueTypeId][bracketId].maxLevel = pvpDiff->maxLevel;
+
+            if (bgTypeId == BATTLEGROUND_RB)
+            {
+                LOG_DEBUG("playerbots", "RandomBG: Detected bot {} in Random BG queue, bracket {} ({}), activeBgQueue={}",
+                          bot->GetName(), bracketId, (uint32)bgTypeId,
+                          BattlegroundData[queueTypeId][bracketId].activeBgQueue);
+            }
 
             if (uint8 arenaType = BattlegroundMgr::BGArenaType(queueTypeId))
             {
@@ -1198,8 +1244,9 @@ void RandomPlayerbotMgr::CheckBgQueue()
         }
     }
 
-    // If enabled, wait for all bots to have logged in before queueing for Arena's / BG's
-    if (sPlayerbotAIConfig->randomBotAutoJoinBG && playerBots.size() >= GetMaxAllowedBotCount())
+    // If enabled, wait until at least the minimum bot population is online before queueing for Arena/BG.
+    if (sPlayerbotAIConfig->randomBotAutoJoinBG &&
+        playerBots.size() >= std::max<uint32>(1, sPlayerbotAIConfig->minRandomBots))
     {
         uint32 randomBotAutoJoinArenaBracket = sPlayerbotAIConfig->randomBotAutoJoinArenaBracket;
         uint32 randomBotAutoJoinBGRatedArena2v2Count = sPlayerbotAIConfig->randomBotAutoJoinBGRatedArena2v2Count;
@@ -1234,10 +1281,28 @@ void RandomPlayerbotMgr::CheckBgQueue()
         {
             for (uint32 bracket : brackets)
             {
+                // For Random BG, log diagnostic information but don't skip activation based on real players
+                // The queue should activate based on minCount (configured instance count) regardless of real player presence
+                if (queueType == BATTLEGROUND_QUEUE_RB)
+                {
+                    uint32 realPlayers =
+                        BattlegroundData[queueType][bracket].bgAlliancePlayerCount +
+                        BattlegroundData[queueType][bracket].bgHordePlayerCount;
+                    
+                    LOG_DEBUG("playerbots", "RandomBG: Checking activation for bracket {} - realPlayers={}, activeBgQueue={}, instanceCount={}, minCount={}",
+                              bracket, realPlayers, BattlegroundData[queueType][bracket].activeBgQueue,
+                              BattlegroundData[queueType][bracket].bgInstanceCount, minCount);
+                }
+
                 if (BattlegroundData[queueType][bracket].activeBgQueue == 0 &&
                     BattlegroundData[queueType][bracket].bgInstanceCount < minCount &&
                     BattlegroundData[queueType][bracket].bgInstances.size() < minCount)
+                {
+                    LOG_DEBUG("playerbots", "RandomBG: Activating queue for bracket {} - was active={}, instanceCount={}, minCount={}",
+                              bracket, BattlegroundData[queueType][bracket].activeBgQueue,
+                              BattlegroundData[queueType][bracket].bgInstanceCount, minCount);
                     BattlegroundData[queueType][bracket].activeBgQueue = 1;
+                }
             }
         };
 
@@ -1249,13 +1314,41 @@ void RandomPlayerbotMgr::CheckBgQueue()
         updateRatedArenaInstanceCount(BATTLEGROUND_QUEUE_5v5, randomBotAutoJoinArenaBracket,
                                       randomBotAutoJoinBGRatedArena5v5Count);
 
-        // Update battleground instance counts
         updateBGInstanceCount(BATTLEGROUND_QUEUE_IC, icBrackets, randomBotAutoJoinBGICCount);
         updateBGInstanceCount(BATTLEGROUND_QUEUE_EY, eyBrackets, randomBotAutoJoinBGEYCount);
         updateBGInstanceCount(BATTLEGROUND_QUEUE_AV, avBrackets, randomBotAutoJoinBGAVCount);
         updateBGInstanceCount(BATTLEGROUND_QUEUE_AB, abBrackets, randomBotAutoJoinBGABCount);
         updateBGInstanceCount(BATTLEGROUND_QUEUE_WS, wsBrackets, randomBotAutoJoinBGWSCount);
         updateBGInstanceCount(BATTLEGROUND_QUEUE_RB, rbBrackets, randomBotAutoJoinBGRBCount);
+
+        // Initialize Random BG bracket data if configured but not yet populated
+        // This ensures bots can match the bracket even when no real players are queuing
+        // Without this, minLevel/maxLevel stay at 0 and no bots can pass the canJoinBg() check
+        if (randomBotAutoJoinBGRBCount > 0)
+        {
+            for (uint32 bracket : rbBrackets)
+            {
+                if (BattlegroundData[BATTLEGROUND_QUEUE_RB][bracket].minLevel == 0)
+                {
+                    // Use WSG map (489) as reference for bracket levels since RB uses same brackets
+                    PvPDifficultyEntry const* pvpDiff = GetBattlegroundBracketByLevel(489, bracket == 0 ? 10 : 
+                                                                                             bracket == 1 ? 20 :
+                                                                                             bracket == 2 ? 30 :
+                                                                                             bracket == 3 ? 40 :
+                                                                                             bracket == 4 ? 50 :
+                                                                                             bracket == 5 ? 60 :
+                                                                                             bracket == 6 ? 70 : 80);
+                    if (pvpDiff)
+                    {
+                        BattlegroundData[BATTLEGROUND_QUEUE_RB][bracket].minLevel = pvpDiff->minLevel;
+                        BattlegroundData[BATTLEGROUND_QUEUE_RB][bracket].maxLevel = pvpDiff->maxLevel;
+                        
+                        LOG_DEBUG("playerbots", "RandomBG: Initialized bracket {} with levels {}-{}",
+                                 bracket, pvpDiff->minLevel, pvpDiff->maxLevel);
+                    }
+                }
+            }
+        }
     }
 
     LogBattlegroundInfo();
@@ -3201,8 +3294,13 @@ void RandomPlayerbotMgr::OnPlayerLogin(Player* player)
     }
     else
     {
-        players.push_back(player);
-        LOG_DEBUG("playerbots", "Including non-random bot player {} into random bot update", player->GetName().c_str());
+        PlayerbotAI* botAI = GET_PLAYERBOT_AI(player);
+        if (!player->GetSession()->IsBot() && (!botAI || botAI->IsRealPlayer()))
+        {
+            players.push_back(player);
+            LOG_DEBUG("playerbots", "Including non-random bot player {} into random bot update",
+                      player->GetName().c_str());
+        }
     }
 }
 

@@ -20,6 +20,7 @@ public:
         creators["abolish poison on party"] = &abolish_poison_on_party;
         creators["rebirth"] = &rebirth;
         creators["entangling roots on cc"] = &entangling_roots_on_cc;
+        creators["cyclone"] = &cyclone;
         creators["innervate"] = &innervate;
     }
 
@@ -88,6 +89,14 @@ private:
                               /*C*/ nullptr);
     }
 
+    static ActionNode* cyclone([[maybe_unused]] PlayerbotAI* botAI)
+    {
+        return new ActionNode("cyclone",
+                              /*P*/ NextAction::array(0, new NextAction("caster form"), nullptr),
+                              /*A*/ nullptr,
+                              /*C*/ nullptr);
+    }
+
     static ActionNode* innervate([[maybe_unused]] PlayerbotAI* botAI)
     {
         return new ActionNode("innervate",
@@ -108,6 +117,14 @@ void GenericDruidStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
 
     triggers.push_back(
         new TriggerNode("low health", NextAction::array(0, new NextAction("barkskin", ACTION_HIGH + 7), nullptr)));
+    triggers.push_back(new TriggerNode(
+        "travel form pvp", NextAction::array(0, new NextAction("travel form", ACTION_HIGH + 6), nullptr)));
+    triggers.push_back(new TriggerNode(
+        "entangling roots pvp", NextAction::array(0, new NextAction("entangling roots", ACTION_HIGH + 5), nullptr)));
+    triggers.push_back(new TriggerNode(
+        "cyclone on enemy healer", NextAction::array(0, new NextAction("cyclone", ACTION_HIGH + 6), nullptr)));
+    triggers.push_back(new TriggerNode(
+        "dash pvp", NextAction::array(0, new NextAction("dash", ACTION_HIGH + 6), nullptr)));
 
     // triggers.push_back(new TriggerNode("low health", NextAction::array(0, new NextAction("regrowth",
     // ACTION_MEDIUM_HEAL + 2), nullptr))); triggers.push_back(new TriggerNode("party member low health",

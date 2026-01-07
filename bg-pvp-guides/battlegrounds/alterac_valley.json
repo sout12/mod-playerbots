@@ -1,0 +1,127 @@
+{
+  "battleground": "Alterac Valley",
+  "version": "3.3.5a",
+  "game_type": "Reinforcement Race / Boss Rush",
+  "win_condition": {
+    "primary": "Kill Enemy General immediately OR Drain Reinforcements via Captains/Towers",
+    "kill_policy": "IGNORE ALL KILLS that do not directly contribute to an objective.",
+    "priority_legend": {
+      "Priority 0": "Highest / Immediate Rush",
+      "Priority 1": "Critical / Main Objective",
+      "Priority 2": "Secondary / Support",
+      "Priority 99": "Do Not Do / Waste of Time"
+    }
+  },
+  "technical_data": {
+    "Generals": {
+      "Alliance": {
+        "name": "Vanndar Stormpike",
+        "location": "Dun Baldar (North Keep)",
+        "id": 11948,
+        "mechanic": "Stacks 'Stormpike Battle Standard' (HP Buff) - scales with Bunkers."
+      },
+      "Horde": {
+        "name": "Drek'Thar",
+        "location": "Frostwolf Keep (South Keep)",
+        "id": 11946,
+        "mechanic": "Stacks 'Frostwolf Battle Standard' (HP Buff) - scales with Towers."
+      }
+    },
+    "Captains": {
+      "Alliance": {
+        "name": "Captain Balinda Stonehearth",
+        "location": "Stonehearth Outpost",
+        "id": 13318,
+        "mechanic": "Casts spells. Interruptible. Kill for -100 Reinforcements."
+      },
+      "Horde": {
+        "name": "Captain Galvangar",
+        "location": "Iceblood Garrison",
+        "id": 13319,
+        "mechanic": "Melee cleave. Fear. Kill for -100 Reinforcements."
+      }
+    }
+  },
+  "behavior_policies": {
+    "movement": {
+      "rule": "Mount up and ride past enemies.",
+      "road_fighting": "STRICTLY FORBIDDEN. Do not dismount to fight 1v1s.",
+      "objectives": "Ride directly to Captain -> Ride directly to Towers -> Ride directly to General."
+    },
+    "combat": {
+      "rule": "Only fight Commanders, Captains, and players defending them.",
+      "turtle_breaking": "If stuck at a choke, focus Fire on Healers to break the line, then PUSH THROUGH. Do not farm honor."
+    }
+  },
+  "objectives": {
+    "Captains": {
+      "Alliance_Target": "Galvangar",
+      "Horde_Target": "Balinda",
+      "strategy": "Top Priority. Kill = -100 Reinforcements. Ignore defenders, burn the boss.",
+      "priority": "Priority 0 (Highest)"
+    },
+    "Towers_Bunkers": {
+      "strategy": "Cap, Leave 2 Defenders to 'Spin', Main Force moves on.",
+      "priority": "Priority 1 (Critical for weakening General)"
+    },
+    "General": {
+      "strategy": "Tank and Spank. Do not pull Warmasters unless necessary.",
+      "priority": "Win Condition"
+    },
+    "Graveyards": {
+      "strategy": "Only cap specific forward GYs. Do NOT cap Snowfall (Waste of time). Do NOT cap defensive GYs (Slows game).",
+      "Alliance_Prio": "Iceblood GY",
+      "Horde_Prio": "Stonehearth GY"
+    }
+  },
+  "faction_strategies": {
+    "Alliance": {
+      "rush_tactics": {
+        "name": "Drek-Or-Die",
+        "steps": [
+          "Ride South. Ignore Snowfall.",
+          "Kill Galvanger. (Reinforcement Drain)",
+          "Cap Iceblood Tower + Tower Point.",
+          "Cap Iceblood GY.",
+          "Ride to Relief Hut -> Cap FW Towers -> Kill Drek."
+        ]
+      }
+    },
+    "Horde": {
+      "rush_tactics": {
+        "name": "Vanndar Rush",
+        "steps": [
+          "Ride North. Ignore Snowfall.",
+          "Kill Balinda. (Reinforcement Drain)",
+          "Cap Stonehearth Bunker + Icewing Bunker.",
+          "Cap Stonehearth GY.",
+          "Ride to Dun Baldar -> Cap DB Towers -> Kill Vanndar."
+        ]
+      }
+    }
+  },
+  "priority_list": {
+    "actions": [
+      {
+        "priority": 1,
+        "action": "Kill Captain",
+        "reason": "Massive Reinforcement Loss"
+      },
+      {
+        "priority": 2,
+        "action": "Burn Tower",
+        "reason": "Weakens General"
+      },
+      {
+        "priority": 3,
+        "action": "Kill General",
+        "reason": "Game Over"
+      },
+      {
+        "priority": 99,
+        "action": "Kill Random Player",
+        "reason": "Waste of time"
+      }
+    ]
+  }
+}

@@ -30,6 +30,8 @@
 #include "MarkRtiStrategy.h"
 #include "MeleeCombatStrategy.h"
 #include "MoveFromGroupStrategy.h"
+#include "ArenaComboStrategy.h"
+#include "ArenaOpenerStrategy.h"
 #include "NamedObjectContext.h"
 #include "NewRpgStrategy.h"
 #include "NonCombatStrategy.h"
@@ -102,6 +104,8 @@ public:
         creators["eye"] = &StrategyContext::eye;
         creators["isle"] = &StrategyContext::isle;
         creators["arena"] = &StrategyContext::arena;
+        creators["arena opener"] = &StrategyContext::arena_opener;
+        creators["arena combo"] = &StrategyContext::arena_combo;
         creators["mount"] = &StrategyContext::mount;
         creators["rtsc"] = &StrategyContext::rtsc;
         creators["attack tagged"] = &StrategyContext::attack_tagged;
@@ -173,6 +177,8 @@ private:
     static Strategy* eye(PlayerbotAI* botAI) { return new EyeStrategy(botAI); }
     static Strategy* isle(PlayerbotAI* botAI) { return new IsleStrategy(botAI); }
     static Strategy* arena(PlayerbotAI* botAI) { return new ArenaStrategy(botAI); }
+    static Strategy* arena_combo(PlayerbotAI* botAI) { return new ArenaComboStrategy(botAI); }
+    static Strategy* arena_opener(PlayerbotAI* botAI) { return new ArenaOpenerStrategy(botAI); }
     static Strategy* rtsc(PlayerbotAI* botAI) { return new RTSCStrategy(botAI); }
     static Strategy* attack_tagged(PlayerbotAI* botAI) { return new AttackTaggedStrategy(botAI); }
     static Strategy* debug(PlayerbotAI* botAI) { return new DebugStrategy(botAI); }

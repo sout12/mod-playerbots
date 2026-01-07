@@ -1,0 +1,78 @@
+{
+  "module": "Gear_Stats",
+  "version": "3.3.5a",
+  "description": "Hard-coded WotLK 3.3.5a stat priorities, caps, and resilience logic.",
+  "stat_caps": {
+    "hit_rating": {
+      "pvp_melee": 164,
+      "pvp_caster": 105,
+      "note": "5% Hit needed for PvP. 4% for Spells if you have talents.",
+      "value_pct": "5%"
+    },
+    "spell_penetration": {
+      "soft_cap": 75,
+      "hard_cap": 130,
+      "note": "75 negates Mark of the Wild. 130 negates Paladin Auras / Shadow Protection.",
+      "priority": "Mandatory for Casters"
+    },
+    "resilience": {
+      "soft_cap": 1000,
+      "hard_cap": 1414,
+      "note": "Diminishing returns start hitting hard after 1414 (Season 8 Gear max).",
+      "priority": "TOP_PRIORITY for all PvP roles"
+    }
+  },
+  "stat_priorities": {
+    "melee_dps": {
+      "Warrior/DK/Paladin": [
+        "Hit (5%)",
+        "Resilience",
+        "Strength",
+        "Crit",
+        "Armor Pen (Warriors)"
+      ],
+      "Rogue/Feral": [
+        "Hit (5%)",
+        "Resilience",
+        "Agility",
+        "Attack Power",
+        "Crit"
+      ]
+    },
+    "caster_dps": {
+      "Mage/Lock": [
+        "Hit (4%)",
+        "Spell Pen (130)",
+        "Resilience",
+        "Spell Power",
+        "Haste"
+      ],
+      "Ele_Shaman": [
+        "Hit (4%)",
+        "Spell Pen (130)",
+        "Resilience",
+        "Spell Power",
+        "Haste"
+      ]
+    },
+    "healer": {
+      "Priest/Druid": [
+        "Resilience",
+        "Spell Power",
+        "Spirit",
+        "Haste"
+      ],
+      "Paladin": [
+        "Resilience",
+        "Spell Power",
+        "Intellect",
+        "Crit"
+      ]
+    }
+  },
+  "gear_swapping_rules": {
+    "battlegrounds": "Maximize Stamina and Resilience. Survival is key for flag spinning.",
+    "arena": "Balance Resilience with Burst Stats (Armor Pen/Haste). Glass cannon builds viable in 2v2.",
+    "duels": "Counter-gearing allowed (e.g., Shadow Resist gear vs Warlocks)."
+  }
+}

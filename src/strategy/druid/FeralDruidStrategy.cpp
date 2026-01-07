@@ -20,6 +20,9 @@ public:
         creators["abolish poison"] = &abolish_poison;
         creators["abolish poison on party"] = &abolish_poison_on_party;
         creators["prowl"] = &prowl;
+        creators["rejuvenation"] = &rejuvenation;
+        creators["regrowth"] = &regrowth;
+        creators["healing touch"] = &healing_touch;
     }
 
 private:
@@ -86,6 +89,30 @@ private:
                               /*A*/ nullptr,
                               /*C*/ nullptr);
     }
+
+    static ActionNode* rejuvenation([[maybe_unused]] PlayerbotAI* botAI)
+    {
+        return new ActionNode("rejuvenation",
+                              /*P*/ NextAction::array(0, new NextAction("caster form"), nullptr),
+                              /*A*/ nullptr,
+                              /*C*/ nullptr);
+    }
+
+    static ActionNode* regrowth([[maybe_unused]] PlayerbotAI* botAI)
+    {
+        return new ActionNode("regrowth",
+                              /*P*/ NextAction::array(0, new NextAction("caster form"), nullptr),
+                              /*A*/ nullptr,
+                              /*C*/ nullptr);
+    }
+
+    static ActionNode* healing_touch([[maybe_unused]] PlayerbotAI* botAI)
+    {
+        return new ActionNode("healing touch",
+                              /*P*/ NextAction::array(0, new NextAction("caster form"), nullptr),
+                              /*A*/ nullptr,
+                              /*C*/ nullptr);
+    }
 };
 
 FeralDruidStrategy::FeralDruidStrategy(PlayerbotAI* botAI) : GenericDruidStrategy(botAI)
@@ -102,10 +129,18 @@ void FeralDruidStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
     // ACTION_NORMAL + 7), nullptr)));
     triggers.push_back(new TriggerNode(
         "enemy out of melee", NextAction::array(0, new NextAction("reach melee", ACTION_HIGH + 1), nullptr)));
+    triggers.push_back(new TriggerNode(
+        "enemy player near", NextAction::array(0, new NextAction("prowl", ACTION_HIGH + 6), nullptr)));
     // triggers.push_back(new TriggerNode("enemy too close for melee", NextAction::array(0, new NextAction("move out of
     // enemy contact", ACTION_NORMAL + 8), nullptr)));
     triggers.push_back(new TriggerNode(
         "critical health", NextAction::array(0, new NextAction("survival instincts", ACTION_EMERGENCY + 1), nullptr)));
+    triggers.push_back(
+        new TriggerNode("low health", NextAction::array(0, new NextAction("rejuvenation", ACTION_HIGH + 5), nullptr)));
+    triggers.push_back(
+        new TriggerNode("critical health", NextAction::array(0, new NextAction("regrowth", ACTION_CRITICAL_HEAL + 2),
+                                                             new NextAction("healing touch", ACTION_CRITICAL_HEAL + 1),
+                                                             nullptr)));
     triggers.push_back(new TriggerNode(
         "omen of clarity", NextAction::array(0, new NextAction("omen of clarity", ACTION_HIGH + 9), nullptr)));
     triggers.push_back(new TriggerNode("player has flag",

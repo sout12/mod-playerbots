@@ -284,7 +284,8 @@ public:
     // PvP Configuration
     bool pvpTitlesEnabled;
     bool competitiveQueueEnabled;
-    uint32 competitiveQueueTopRank;
+    uint32 competitiveQueueTopRankBG;
+    uint32 competitiveQueueTopRankArena;
     float competitiveQueueTopChance;
     float competitiveQueueNormalChance;
 

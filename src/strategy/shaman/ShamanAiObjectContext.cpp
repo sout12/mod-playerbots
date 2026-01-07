@@ -146,6 +146,7 @@ public:
         creators["water walking"] = &ShamanATriggerFactoryInternal::water_walking;
         creators["water breathing on party"] = &ShamanATriggerFactoryInternal::water_breathing_on_party;
         creators["water walking on party"] = &ShamanATriggerFactoryInternal::water_walking_on_party;
+        creators["ghost wolf pvp"] = &ShamanATriggerFactoryInternal::ghost_wolf_pvp;
         creators["cleanse spirit poison"] = &ShamanATriggerFactoryInternal::cleanse_poison;
         creators["cleanse spirit curse"] = &ShamanATriggerFactoryInternal::cleanse_curse;
         creators["cleanse spirit disease"] = &ShamanATriggerFactoryInternal::cleanse_disease;
@@ -216,6 +217,7 @@ private:
     static Trigger* water_walking(PlayerbotAI* botAI) { return new WaterWalkingTrigger(botAI); }
     static Trigger* water_breathing_on_party(PlayerbotAI* botAI) { return new WaterBreathingOnPartyTrigger(botAI); }
     static Trigger* water_walking_on_party(PlayerbotAI* botAI) { return new WaterWalkingOnPartyTrigger(botAI); }
+    static Trigger* ghost_wolf_pvp(PlayerbotAI* botAI) { return new GhostWolfPvPTrigger(botAI); }
     static Trigger* wind_shear(PlayerbotAI* botAI) { return new WindShearInterruptSpellTrigger(botAI); }
     static Trigger* purge(PlayerbotAI* botAI) { return new PurgeTrigger(botAI); }
     static Trigger* main_hand_weapon_no_imbue(PlayerbotAI* botAI) { return new MainHandWeaponNoImbueTrigger(botAI); }
@@ -295,6 +297,7 @@ public:
         creators["water breathing"] = &ShamanAiObjectContextInternal::water_breathing;
         creators["water walking on party"] = &ShamanAiObjectContextInternal::water_walking_on_party;
         creators["water breathing on party"] = &ShamanAiObjectContextInternal::water_breathing_on_party;
+        creators["ghost wolf"] = &ShamanAiObjectContextInternal::ghost_wolf;
         creators["cleanse spirit"] = &ShamanAiObjectContextInternal::cleanse_spirit;
         creators["cleanse spirit poison on party"] = &ShamanAiObjectContextInternal::cleanse_spirit_poison_on_party;
         creators["cleanse spirit disease on party"] = &ShamanAiObjectContextInternal::cleanse_spirit_disease_on_party;
@@ -376,6 +379,7 @@ private:
     static Action* water_breathing(PlayerbotAI* botAI) { return new CastWaterBreathingAction(botAI); }
     static Action* water_walking_on_party(PlayerbotAI* botAI) { return new CastWaterWalkingOnPartyAction(botAI); }
     static Action* water_breathing_on_party(PlayerbotAI* botAI) { return new CastWaterBreathingOnPartyAction(botAI); }
+    static Action* ghost_wolf(PlayerbotAI* botAI) { return new CastGhostWolfAction(botAI); }
     static Action* water_shield(PlayerbotAI* botAI) { return new CastWaterShieldAction(botAI); }
     static Action* lightning_shield(PlayerbotAI* botAI) { return new CastLightningShieldAction(botAI); }
     static Action* fire_nova(PlayerbotAI* botAI) { return new CastFireNovaAction(botAI); }

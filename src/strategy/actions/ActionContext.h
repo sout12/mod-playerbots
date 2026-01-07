@@ -41,6 +41,7 @@
 #include "LootRollAction.h"
 #include "MoveToRpgTargetAction.h"
 #include "MoveToTravelTargetAction.h"
+#include "ArenaOpenerAction.h"
 #include "MovementActions.h"
 #include "NonCombatActions.h"
 #include "OutfitAction.h"
@@ -211,6 +212,7 @@ public:
         creators["bg use buff"] = &ActionContext::bg_use_buff;
         creators["attack enemy flag carrier"] = &ActionContext::attack_enemy_fc;
         creators["bg check flag"] = &ActionContext::bg_check_flag;
+        creators["arena opener move"] = &ActionContext::arena_opener_move;
 
         // Vehicles
         creators["enter vehicle"] = &ActionContext::enter_vehicle;
@@ -404,6 +406,7 @@ private:
     static Action* attack_enemy_fc(PlayerbotAI* botAI) { return new AttackEnemyFlagCarrierAction(botAI); }
     static Action* bg_use_buff(PlayerbotAI* botAI) { return new BGTactics(botAI, "use buff"); }
     static Action* bg_check_flag(PlayerbotAI* botAI) { return new BGTactics(botAI, "check flag"); }
+    static Action* arena_opener_move(PlayerbotAI* botAI) { return new ArenaOpenerAction(botAI); }
 
     // Vehicles
     static Action* enter_vehicle(PlayerbotAI* botAI) { return new EnterVehicleAction(botAI); }

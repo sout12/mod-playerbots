@@ -1,0 +1,83 @@
+{
+  "arena": "3v3",
+  "version": "3.3.5a",
+  "description": "Strategic guidelines for 3v3 arena combat in Wrath of the Lich King",
+  "win_condition": {
+    "primary": "Coordinate CC chain on Healer + Burst on Squishy",
+    "priority_legend": {
+      "Priority 1": "Synchronized Burst",
+      "Priority 2": "Cross-CC (Healer + Off-DPS)",
+      "Priority 3": "Defensive Peeling",
+      "Priority 99": "Solo Play"
+    }
+  },
+  "compositions": {
+    "RMP": {
+      "name": "Rogue / Mage / Priest",
+      "style": "Setup Based Control",
+      "strategy": {
+        "opener": "Sap Healer -> Open DPS. Poly Off-DPS.",
+        "go": "Kidney Shot Target + Deep Freeze Off-Target + Fear Healer.",
+        "defensive": "Peel with Nova/Poly. Reset with LoS."
+      }
+    },
+    "TSG": {
+      "name": "Warrior / DK / Paladin",
+      "style": "Train / Tunnel Vision",
+      "strategy": {
+        "opener": "Ride the enemy Healer or Squishiest Caster.",
+        "go": "Strangulate Healer + Bladestorm + Gargoyle. UNHEALABLE DAMAGE.",
+        "defensive": "Freedom Warrior. BOP DK. Defensive Stance if focused."
+      }
+    },
+    "LSD": {
+      "name": "Lock / Shaman (Ele) / Druid (Resto)",
+      "style": "Rot / Disrupt",
+      "strategy": {
+        "opener": "Dots everywhere. Flame Shock everywhere.",
+        "go": "Bloodlust + Lava Burst proc + Chaos Bolt. Random one-shots.",
+        "defensive": "Root/Cyclone melees. Grounding Totem critical spells."
+      }
+    },
+    "Beast_Cleave": {
+      "name": "Hunter (BM) / Shaman (Enh) / Paladin (Holy)",
+      "style": "Unstoppable Opening Burst",
+      "strategy": {
+        "opener": "Bestial Wrath + Feral Spirit + Bloodlust + Wings.",
+        "go": "Kill something in 10 seconds. If not, lose."
+      }
+    }
+  },
+  "strategies": {
+    "Melee_Cleave_vs_Caster_Cleave": {
+      "plan": "Rush the Casters. Do not let them set up. Kick Polys/Fears. Grounding Totem is MVP."
+    },
+    "Caster_Cleave_vs_Melee_Cleave": {
+      "plan": "Triangle Formation. Spread out. Drag melees into bad positions. Punish them for chasing."
+    }
+  },
+  "priority_list": {
+    "hierarchy": [
+      {
+        "priority": 1,
+        "action": "Secure Kill",
+        "condition": "target_under_30_hp"
+      },
+      {
+        "priority": 2,
+        "action": "Interrupt CC",
+        "condition": "healer_cc_cast"
+      },
+      {
+        "priority": 3,
+        "action": "Defensive CD",
+        "condition": "burst_income"
+      },
+      {
+        "priority": 4,
+        "action": "Purge/Dispel",
+        "condition": "target_buffed"
+      }
+    ]
+  }
+}

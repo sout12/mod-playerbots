@@ -1,0 +1,104 @@
+{
+  "battleground": "Warsong Gulch",
+  "version": "3.3.5a",
+  "game_type": "Capture the Flag",
+  "win_condition": {
+    "primary": "Capture 3 Flags",
+    "mechanics": {
+      "flag_carriers": "Must survive and cap.",
+      "mid_field": "Must be controlled ONLY to allow FC passage.",
+      "policy": "Flag > Kills. If not killing EFC or peeling for FC, you are useless."
+    },
+    "priority_legend": {
+      "Priority 1": "Critical / Win Condition",
+      "Priority 2": "Map Dominance (For Objective Support)",
+      "Priority 99": "Forbidden"
+    }
+  },
+  "technical_data": {
+    "Flags": {
+      "Alliance_Flag_Spell": 23333,
+      "Horde_Flag_Spell": 23335,
+      "Focused_Assault": "Debuff applied to carriers after 10-15 minutes. Increases damage taken by 10% per stack. Spell ID: 46392.",
+      "mechanic": "Instant Pickup. Instant Cap (at base)."
+    },
+    "Buffs": {
+      "Speed": "Boots spawn in tunnel/side rooms. +100% Movement Speed for 10s.",
+      "Restoration": "Spawns in hut. Restores HP/Mana.",
+      "Berserking": "Spawns in hut. +30% Dmg taken/dealt."
+    }
+  },
+  "behavior_policies": {
+    "combat": {
+      "rule": "Ignore random 1v1s. Fight where the FLAG is.",
+      "mid_control": "Control the middle to intercept THEIR flag carrier or escort YOURS. Do not fight just to fight.",
+      "tunnel_vision": "If EFC is crossing, DROP TARGET and kill EFC."
+    },
+    "movement": {
+      "fc_pathing": "Tunnel or Ramp. Never mid unless escorted.",
+      "support_pathing": "Move to the FC. Do not sit in mid if FC is in tunnel."
+    },
+    "situational_logic": {
+      "stalemate_forcing": "If Enemy has our Flag, and you are closer to THEIR flag than the EFC, TAKE THEIR FLAG. This prevents them from capping."
+    }
+  },
+  "objectives": {
+    "Friendly_Flag": {
+      "action": "Protect at all costs. Peel, Heal, CC.",
+      "priority": "Priority 1"
+    },
+    "Enemy_Flag": {
+      "action": "Kill Carrier. Return Flag.",
+      "priority": "Priority 1"
+    },
+    "Midfield_Control": {
+      "action": "Dominate mid to open lanes for FC.",
+      "priority": "Priority 2"
+    }
+  },
+  "strategies": {
+    "Standard": {
+      "name": "Mid-Map Control for Transport",
+      "tactics": "Hold mid to control rune spawns and intercept EFC. Once our FC has flag, collapse to escort."
+    },
+    "EFC_Hunting": {
+      "name": "Zerg the Carrier",
+      "tactics": "Ignore all DPS/Healers. Focus fire the Flag Carrier. CC the healers."
+    },
+    "Counter_Cap": {
+      "name": "The Stalemate Forcer",
+      "condition": "Enemy has our flag AND Team does not have enemy flag AND Bot is inside Enemy Base (Distance check < 100y)",
+      "action": "IGNORE EFC. Grab the Enemy Flag IMMEDIATELY.",
+      "reason": "Taking their flag prevents them from capping ours. It forces a stalemate and buys time for the team to hunt the EFC."
+    }
+  },
+  "priority_list": {
+    "hierarchy": [
+      {
+        "priority": 1,
+        "action": "Kill Enemy Flag Carrier",
+        "reason": "Prevent Cap"
+      },
+      {
+        "priority": 1,
+        "action": "Grab Enemy Flag (Counter-Cap)",
+        "reason": "Prevent Enemy Cap (Stalemate)"
+      },
+      {
+        "priority": 2,
+        "action": "Protect Friendly Flag Carrier",
+        "reason": "Ensure Cap"
+      },
+      {
+        "priority": 3,
+        "action": "Pick up Flag",
+        "reason": "Objective"
+      },
+      {
+        "priority": 99,
+        "action": "Mid-field HK Farming",
+        "reason": "Detrimental"
+      }
+    ]
+  }
+}

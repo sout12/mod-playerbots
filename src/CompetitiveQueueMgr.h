@@ -31,6 +31,9 @@ public:
     // Check if player is in top-ranked arena list
     bool IsTopRankedArenaPlayer(Player* player);
 
+    // Check if player is in mid-ranked arena list
+    bool IsMidRankedArenaPlayer(Player* player);
+
     // Force refresh of rankings cache
     void RefreshRankings();
 
@@ -40,6 +43,7 @@ private:
 
     std::set<uint32> _topPlayerGuids;      // Top BG players by killing blows
     std::set<uint32> _topArenaPlayerGuids; // Top arena players by team rating
+    std::set<uint32> _midArenaPlayerGuids; // Mid-tier arena players
     time_t _lastCacheUpdate;
     time_t _lastArenaCacheUpdate;
 

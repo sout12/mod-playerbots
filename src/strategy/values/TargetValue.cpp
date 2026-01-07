@@ -140,6 +140,10 @@ float FindTargetStrategy::CalculatePvPPriority(Unit* target)
     Player* player = target->ToPlayer();
     float priority = 0.0f;
 
+    // PRIORITY 0: Targets actively capturing objectives (node/flag channel)
+    if (IsCapturingObjective(player))
+        priority += 250.0f;
+
     // PRIORITY 1: Flag Carrier (300 points)
     if (IsFlagCarrier(player))
         priority += 300.0f;
@@ -163,6 +167,10 @@ float FindTargetStrategy::CalculatePvPPriority(Unit* target)
     // PRIORITY 4: Low HP (100 points)
     if (IsLowHealthPriority(player))
         priority += 100.0f;
+
+    // Deprioritize temporarily immune targets to force a hard switch
+    if (IsTemporarilyImmune(player))
+        priority -= 250.0f;
 
     // Distance bonus - but reduce penalty for high-priority targets
     float distance = botAI->GetBot()->GetDistance(player);
@@ -194,6 +202,8 @@ float FindTargetStrategy::CalculatePvPPriority(Unit* target)
     Group* group = botAI->GetBot()->GetGroup();
     if (group)
     {
+        bool botIsMelee = botAI->IsMelee(botAI->GetBot());
+
         for (GroupReference* ref = group->GetFirstMember(); ref; ref = ref->next())
         {
             Player* member = ref->GetSource();
@@ -202,7 +212,13 @@ float FindTargetStrategy::CalculatePvPPriority(Unit* target)
 
             // Attacking our healer
             if (IsHealer(member) && target->GetVictim() == member)
+            {
                 priority += 100.0f;
+                if (botIsMelee)
+                    priority += 50.0f;
+                else if (player->IsWithinMeleeRange(member))
+                    priority += 50.0f;
+            }
 
             // Attacking our FC
             if (IsFlagCarrier(member) && target->GetVictim() == member)
@@ -250,6 +266,38 @@ bool FindTargetStrategy::IsLowHealthPriority(Unit* unit)
     
     // Low HP threshold: 30% for quick kill priority
     return player->GetHealthPct() < 30;
+}
+
+bool FindTargetStrategy::IsCapturingObjective(Unit* unit)
+{
+    if (!unit || !unit->IsPlayer())
+        return false;
+
+    if (!botAI->GetBot()->InBattleground())
+        return false;
+
+    Spell* spell = unit->GetCurrentSpell(CURRENT_GENERIC_SPELL);
+    if (spell && spell->m_spellInfo && spell->m_spellInfo->Id == 21651)
+        return true;
+
+    spell = unit->GetCurrentSpell(CURRENT_CHANNELED_SPELL);
+    if (spell && spell->m_spellInfo && spell->m_spellInfo->Id == 21651)
+        return true;
+
+    return false;
+}
+
+bool FindTargetStrategy::IsTemporarilyImmune(Unit* unit)
+{
+    if (!unit || !unit->IsPlayer())
+        return false;
+
+    // Divine Shield, Hand of Protection, Ice Block, Dispersion
+    if (botAI->HasAura(642, unit) || botAI->HasAura(1022, unit) || botAI->HasAura(45438, unit) ||
+        botAI->HasAura(47585, unit))
+        return true;
+
+    return false;
 }
 
 WorldPosition LastLongMoveValue::Calculate()

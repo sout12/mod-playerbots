@@ -53,6 +53,9 @@ GuidVector AttackersValue::Calculate()
     if (bot->InArena())
     {
         GuidVector possibleTargets = AI_VALUE(GuidVector, "possible targets");
+        if (possibleTargets.empty())
+            possibleTargets = AI_VALUE(GuidVector, "possible targets no los");
+
         for (ObjectGuid const guid : possibleTargets)
         {
             Unit* unit = botAI->GetUnit(guid);

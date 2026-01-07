@@ -1,0 +1,142 @@
+{
+  "class": "Mage",
+  "version": "3.3.5a",
+  "roles": [
+    "ranged_dps",
+    "cc",
+    "food_vendor"
+  ],
+  "technical_data": {
+    "spec_detection": {
+      "Frost": "Talent: Deep Freeze (44572)",
+      "Fire": "Talent: Living Bomb (44457)",
+      "Arcane": "Talent: Arcane Barrage (44425)"
+    },
+    "spell_ids": {
+      "Polymorph": 118,
+      "Deep_Freeze": 44572,
+      "Ice_Block": 45438,
+      "Counterspell": 2139,
+      "Icy_Veins": 12472,
+      "Frost_Nova": 122,
+      "Spellsteal": 30449,
+      "Ice_Barrier": 11426,
+      "Blink": 1953,
+      "Invisibility": 66
+    }
+  },
+  "win_condition": {
+    "Frost": "Control game. Shatter combo (Frostbolt + Ice Lance) into Deep Freeze. Peeling for team.",
+    "Fire": "RNG Burst. Hot Streak Pyroblasts.",
+    "Arcane": "PvE mainly. In PvP, slow spam + Barrage finish.",
+    "priority_legend": {
+      "TOP_PRIORITY": "Survival / Crowd Control",
+      "very_high": "Burst Setup",
+      "high": "Sustained Damage",
+      "medium": "Utility"
+    }
+  },
+  "arena_strategies": {
+    "2v2": {
+      "Mage_Rogue": "Reset meta. Sheep Healer -> Kill DPS. Reset if DRs are full. Eat/Drink.",
+      "Mage_Priest": "Shatterplay light. Fear/Sheep combos. Discipline keeps Mage alive."
+    },
+    "3v3": {
+      "RMP": "Rogue/Mage/Priest. Polymorph focus target. Deep Freeze kill target. Counterspell Healer. 1-2-3 Go.",
+      "MLD": "Mage/Lock/Druid. Wizard Cleave. Poly/Fear/Clone rotation on Healer gives infinite CC chain."
+    }
+  },
+  "spell_rules": {
+    "control": [
+      {
+        "name": "Polymorph",
+        "spell_id": 118,
+        "when": "CC Healer / Peel DPS",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_not_polymorphed == true",
+          "dr_polymorph != full"
+        ],
+        "target": "focus_target"
+      },
+      {
+        "name": "Counterspell",
+        "spell_id": 2139,
+        "when": "Lockout School",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_casting == true"
+        ],
+        "target": "focus_or_target"
+      },
+      {
+        "name": "Deep Freeze",
+        "spell_id": 44572,
+        "when": "Kill Stun / Peel",
+        "priority": "very_high",
+        "conditions": [
+          "target_frozen == true",
+          "fingers_of_frost == true"
+        ],
+        "target": "enemy"
+      }
+    ],
+    "defensive": [
+      {
+        "name": "Ice Block",
+        "spell_id": 45438,
+        "when": "Immunity",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "self_hp < 15%",
+          "incoming_lethal == true",
+          "self_is_flag_carrier == false"
+        ],
+        "target": "self"
+      },
+      {
+        "name": "Invisibility",
+        "spell_id": 66,
+        "when": "Escape",
+        "priority": "very_high",
+        "conditions": [
+          "self_focused == true",
+          "self_is_flag_carrier == false"
+        ],
+        "target": "self"
+      },
+      {
+        "name": "Blink",
+        "spell_id": 1953,
+        "when": "Escape Stun/Root",
+        "priority": "very_high",
+        "conditions": [
+          "self_stunned == true OR self_rooted == true"
+        ],
+        "target": "forward"
+      }
+    ],
+    "offensive": [
+      {
+        "name": "Spellsteal",
+        "spell_id": 30449,
+        "when": "Steal Buffs (Freedom/Shields)",
+        "priority": "high",
+        "conditions": [
+          "target_has_stealable == true"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Icy Veins",
+        "spell_id": 12472,
+        "when": "Burst Haste",
+        "priority": "very_high",
+        "conditions": [
+          "kill_window == true"
+        ],
+        "target": "self"
+      }
+    ]
+  }
+}

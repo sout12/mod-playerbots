@@ -75,6 +75,12 @@ public:
     CastWaterWalkingAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "water walking") {}
 };
 
+class CastGhostWolfAction : public CastBuffSpellAction
+{
+public:
+    CastGhostWolfAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "ghost wolf") {}
+};
+
 class CastWaterBreathingOnPartyAction : public BuffOnPartyAction
 {
 public:

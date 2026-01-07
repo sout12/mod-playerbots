@@ -1,0 +1,176 @@
+{
+  "class": "DeathKnight",
+  "version": "3.3.5a",
+  "roles": [
+    "melee_dps",
+    "tank",
+    "anti_caster"
+  ],
+  "technical_data": {
+    "spec_detection": {
+      "Unholy": "Talent: Summon Gargoyle (49206)",
+      "Frost": "Talent: Howling Blast (49184)",
+      "Blood": "Talent: Heart Strike (55050)"
+    },
+    "spell_ids": {
+      "Death_Grip": 49576,
+      "Strangulate": 47476,
+      "Icebound_Fortitude": 48792,
+      "Anti_Magic_Shell": 48707,
+      "Summon_Gargoyle": 49206,
+      "Gnaw": 47481,
+      "Chains_of_Ice": 45524,
+      "Death_Strike": 49998,
+      "Mind_Freeze": 47528,
+      "Path_of_Frost": 3714
+    },
+    "map_specific_utility": {
+      "AB": [
+        {
+          "name": "Path of Frost",
+          "spell_id": 3714,
+          "when": "Water Crossing to Blacksmith",
+          "priority": "TOP_PRIORITY",
+          "conditions": [
+            "zone_area == Arathi Basin",
+            "is_swimming == false (pre-cast)",
+            "mounted == true"
+          ],
+          "target": "self"
+        }
+      ]
+    }
+  },
+  "win_condition": {
+    "Unholy": "Spread diseases (Crypt Fever / Ebon Plague). Burst with Gargoyle. Grip Healer into Silence.",
+    "Frost": "Lockdown melee with chains/roots. Burst with Hungering Cold + Howling Blast.",
+    "priority_legend": {
+      "TOP_PRIORITY": "Interrupt / Kill",
+      "very_high": "Gap Close / CC",
+      "high": "Disease Maintenance",
+      "medium": "Damage Rotation"
+    }
+  },
+  "arena_strategies": {
+    "2v2": {
+      "DK_Healer": "Unholy/Paladin. Grind game. DK rots enemy team. Grip Healer on CD to force defensive play.",
+      "Double_DPS": "Unholy/Ret. HoJ -> Strangulate chain. Pop Gargoyle instantly."
+    },
+    "3v3": {
+      "TSG": "DK/War/Pal. The Cleave. Grip Healer into Warrior Bladestorm. Strangulate Healer.",
+      "Shadowcleave": "DK/Lock/Healer. Dot everything. DK peels for Warlock. Gargoyle on kill target."
+    }
+  },
+  "spell_rules": {
+    "control": [
+      {
+        "name": "Death Grip",
+        "spell_id": 49576,
+        "when": "Displace Healer / Peel",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_is_healer == true",
+          "target_distance > 15"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Strangulate",
+        "spell_id": 47476,
+        "when": "Silence Healer",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_healer_casting == true"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Mind Freeze",
+        "spell_id": 47528,
+        "when": "Interrupt",
+        "priority": "very_high",
+        "conditions": [
+          "target_casting == true"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Chains of Ice",
+        "spell_id": 45524,
+        "when": "Slow / Root",
+        "priority": "high",
+        "conditions": [
+          "target_moving == true",
+          "target_no_debuff == true"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Gnaw",
+        "spell_id": 47481,
+        "when": "Pet Stun",
+        "priority": "very_high",
+        "conditions": [
+          "target_casting == true OR kill_window == true"
+        ],
+        "target": "pet_target"
+      }
+    ],
+    "damage": [
+      {
+        "name": "Summon Gargoyle",
+        "spell_id": 49206,
+        "when": "Big Burst",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "runic_power >= 60",
+          "kill_window == true"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Scourge Strike",
+        "spell_id": 55090,
+        "when": "Main Nuke",
+        "priority": "high",
+        "conditions": [
+          "diseases_active == true"
+        ],
+        "target": "enemy"
+      }
+    ],
+    "defensive": [
+      {
+        "name": "Anti-Magic Shell",
+        "spell_id": 48707,
+        "when": "Absorb Magic / Immunity",
+        "priority": "very_high",
+        "conditions": [
+          "incoming_magic_damage == true OR incoming_cc == true"
+        ],
+        "target": "self"
+      },
+      {
+        "name": "Icebound Fortitude",
+        "spell_id": 48792,
+        "when": "Stun Immunity / Wall",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "self_hp < 40%",
+          "self_stunned == true"
+        ],
+        "target": "self"
+      },
+      {
+        "name": "Death Strike",
+        "spell_id": 49998,
+        "when": "Self Heal",
+        "priority": "high",
+        "conditions": [
+          "self_hp < 70%"
+        ],
+        "target": "enemy"
+      }
+    ]
+  }
+}

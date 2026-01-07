@@ -169,6 +169,8 @@ void GenericMageStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
     triggers.push_back(new TriggerNode("low health", NextAction::array(0, new NextAction("mana shield", 85.0f), nullptr)));
     triggers.push_back(new TriggerNode("fire ward", NextAction::array(0, new NextAction("fire ward", 90.0f), nullptr)));
     triggers.push_back(new TriggerNode("frost ward", NextAction::array(0, new NextAction("frost ward", 90.0f), nullptr)));
+    triggers.push_back(new TriggerNode("blink pvp", NextAction::array(0, new NextAction("blink back", 60.0f), nullptr)));
+    triggers.push_back(new TriggerNode("frost nova pvp", NextAction::array(0, new NextAction("frost nova", 60.0f), nullptr)));
     triggers.push_back(new TriggerNode("enemy is close and no firestarter strategy", NextAction::array(0, new NextAction("frost nova", 50.0f), nullptr)));
     triggers.push_back(new TriggerNode("enemy too close for spell and no firestarter strategy", NextAction::array(0, new NextAction("blink back", 35.0f), nullptr)));
 

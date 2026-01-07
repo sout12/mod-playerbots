@@ -42,6 +42,14 @@ public:
     BladeFuryTrigger(PlayerbotAI* botAI) : BoostTrigger(botAI, "blade fury") {}
 };
 
+class ShadowDanceTrigger : public BoostTrigger
+{
+public:
+    ShadowDanceTrigger(PlayerbotAI* botAI) : BoostTrigger(botAI, "shadow dance") {}
+
+    bool IsActive() override;
+};
+
 class RuptureTrigger : public DebuffTrigger
 {
 public:
@@ -112,6 +120,20 @@ public:
     SprintPvPTrigger(PlayerbotAI* botAI) : BuffTrigger(botAI, "sprint", 3) {}
 
     bool IsPossible();
+    bool IsActive() override;
+};
+
+class KidneyShotPvPTrigger : public Trigger
+{
+public:
+    KidneyShotPvPTrigger(PlayerbotAI* botAI) : Trigger(botAI, "kidney shot pvp") {}
+    bool IsActive() override;
+};
+
+class CheapShotPvPTrigger : public Trigger
+{
+public:
+    CheapShotPvPTrigger(PlayerbotAI* botAI) : Trigger(botAI, "cheap shot pvp") {}
     bool IsActive() override;
 };
 

@@ -186,18 +186,16 @@ bool ChooseRpgTargetAction::Execute(Event event)
             if (!player)
                 continue;
 
+            // Skip all bots as RPG targets to prevent train-following behavior in cities
             if (GET_PLAYERBOT_AI(player))
             {
-                GuidPosition guidPP = PAI_VALUE(GuidPosition, "rpg target");
-                if (guidPP.IsPlayer())
-                {
-                    continue;
-                }
+                continue;
             }
         }
 
-        // if (possiblePlayers.size() > 200 || HasSameTarget(guidP, urand(5, 15), possiblePlayers))
-        //     continue;
+        if (HasSameTarget(guidP, urand(3, 10), possiblePlayers))
+            continue;
+
 
         float relevance = getMaxRelevance(guidP);
 

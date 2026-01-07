@@ -555,8 +555,10 @@ void StatsWeightCalculator::CalculateItemTypePenalty(ItemTemplate const* proto)
     // Apply heavy penalty for wearing wrong armor type (leather on mail user, cloth on plate user, etc.)
     // This prevents hunters from wearing leather, warriors from wearing mail/leather, etc.
     if (proto->Class == ITEM_CLASS_ARMOR && proto->SubClass >= ITEM_SUBCLASS_ARMOR_CLOTH &&
-        proto->SubClass <= ITEM_SUBCLASS_ARMOR_PLATE && NotBestArmorType(proto->SubClass))
+        proto->SubClass <= ITEM_SUBCLASS_ARMOR_PLATE)
     {
+        uint32 bestArmorType = GetBestArmorType();
+
         // Body armor (chest, legs, shoulders, etc.) with wrong armor type gets massive penalty
         // Jewelry/cloaks/shields are exempted - they don't have armor type restrictions
         bool isBodyArmor = (proto->InventoryType == INVTYPE_HEAD || proto->InventoryType == INVTYPE_SHOULDERS ||
@@ -565,8 +567,22 @@ void StatsWeightCalculator::CalculateItemTypePenalty(ItemTemplate const* proto)
                            proto->InventoryType == INVTYPE_FEET || proto->InventoryType == INVTYPE_WRISTS ||
                            proto->InventoryType == INVTYPE_HANDS);
         
-        if (isBodyArmor)
-            weight_ *= 0.1;  // 90% penalty for wrong armor type on body pieces
+        if (isBodyArmor && bestArmorType != proto->SubClass)
+        {
+            // Apply a per-tier drop penalty so cloth on plate/mail users is essentially ignored.
+            // Example: plate->cloth (3 tiers) => 0.001f, mail->cloth (2 tiers) => 0.01f, leather->cloth (1 tier) => 0.1f.
+            int tierDifference = static_cast<int>(bestArmorType) - static_cast<int>(proto->SubClass);
+            float penalty = 0.1f;  // default penalty when moving up an armor tier the bot cannot use
+
+            if (tierDifference > 0)
+            {
+                penalty = 1.0f;
+                for (int i = 0; i < tierDifference; ++i)
+                    penalty *= 0.1f;
+            }
+
+            weight_ *= penalty;
+        }
     }
     if (proto->Class == ITEM_CLASS_WEAPON)
     {
@@ -702,19 +718,21 @@ void StatsWeightCalculator::ApplyStatAppropriateness(ItemTemplate const* proto)
 
 bool StatsWeightCalculator::NotBestArmorType(uint32 item_subclass_armor)
 {
+    return item_subclass_armor != GetBestArmorType();
+}
+
+uint32 StatsWeightCalculator::GetBestArmorType() const
+{
     if (player_->HasSkill(SKILL_PLATE_MAIL))
-    {
-        return item_subclass_armor != ITEM_SUBCLASS_ARMOR_PLATE;
-    }
+        return ITEM_SUBCLASS_ARMOR_PLATE;
+
     if (player_->HasSkill(SKILL_MAIL))
-    {
-        return item_subclass_armor != ITEM_SUBCLASS_ARMOR_MAIL;
-    }
+        return ITEM_SUBCLASS_ARMOR_MAIL;
+
     if (player_->HasSkill(SKILL_LEATHER))
-    {
-        return item_subclass_armor != ITEM_SUBCLASS_ARMOR_LEATHER;
-    }
-    return false;
+        return ITEM_SUBCLASS_ARMOR_LEATHER;
+
+    return ITEM_SUBCLASS_ARMOR_CLOTH;
 }
 
 void StatsWeightCalculator::ApplyOverflowPenalty(Player* player)

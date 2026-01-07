@@ -73,16 +73,21 @@ public:
         creators["no stealth"] = &RogueTriggerFactoryInternal::no_stealth;
         creators["stealth"] = &RogueTriggerFactoryInternal::stealth;
         creators["sprint"] = &RogueTriggerFactoryInternal::sprint;
+        creators["sprint pvp"] = &RogueTriggerFactoryInternal::sprint_pvp;
+        creators["kidney shot pvp"] = &RogueTriggerFactoryInternal::kidney_shot_pvp;
+        creators["cheap shot pvp"] = &RogueTriggerFactoryInternal::cheap_shot_pvp;
         creators["main hand weapon no enchant"] = &RogueTriggerFactoryInternal::main_hand_weapon_no_enchant;
         creators["off hand weapon no enchant"] = &RogueTriggerFactoryInternal::off_hand_weapon_no_enchant;
         creators["tricks of the trade on main tank"] = &RogueTriggerFactoryInternal::tricks_of_the_trade_on_main_tank;
         creators["adrenaline rush"] = &RogueTriggerFactoryInternal::adrenaline_rush;
         creators["blade fury"] = &RogueTriggerFactoryInternal::blade_fury;
+        creators["shadow dance"] = &RogueTriggerFactoryInternal::shadow_dance;
     }
 
 private:
     static Trigger* adrenaline_rush(PlayerbotAI* botAI) { return new AdrenalineRushTrigger(botAI); }
     static Trigger* blade_fury(PlayerbotAI* botAI) { return new BladeFuryTrigger(botAI); }
+    static Trigger* shadow_dance(PlayerbotAI* botAI) { return new ShadowDanceTrigger(botAI); }
     static Trigger* kick(PlayerbotAI* botAI) { return new KickInterruptSpellTrigger(botAI); }
     static Trigger* rupture(PlayerbotAI* botAI) { return new RuptureTrigger(botAI); }
     static Trigger* slice_and_dice(PlayerbotAI* botAI) { return new SliceAndDiceTrigger(botAI); }
@@ -95,6 +100,9 @@ private:
     static Trigger* no_stealth(PlayerbotAI* botAI) { return new NoStealthTrigger(botAI); }
     static Trigger* stealth(PlayerbotAI* botAI) { return new StealthTrigger(botAI); }
     static Trigger* sprint(PlayerbotAI* botAI) { return new SprintTrigger(botAI); }
+    static Trigger* sprint_pvp(PlayerbotAI* botAI) { return new SprintPvPTrigger(botAI); }
+    static Trigger* kidney_shot_pvp(PlayerbotAI* botAI) { return new KidneyShotPvPTrigger(botAI); }
+    static Trigger* cheap_shot_pvp(PlayerbotAI* botAI) { return new CheapShotPvPTrigger(botAI); }
     static Trigger* main_hand_weapon_no_enchant(PlayerbotAI* ai) { return new MainHandWeaponNoEnchantTrigger(ai); }
     static Trigger* off_hand_weapon_no_enchant(PlayerbotAI* ai) { return new OffHandWeaponNoEnchantTrigger(ai); }
     static Trigger* tricks_of_the_trade_on_main_tank(PlayerbotAI* ai)
@@ -143,6 +151,8 @@ public:
         creators["use instant poison on off hand"] = &RogueAiObjectContextInternal::use_instant_poison_off_hand;
         creators["fan of knives"] = &RogueAiObjectContextInternal::fan_of_knives;
         creators["killing spree"] = &RogueAiObjectContextInternal::killing_spree;
+        creators["shadowstep"] = &RogueAiObjectContextInternal::shadowstep;
+        creators["shadow dance"] = &RogueAiObjectContextInternal::shadow_dance;
     }
 
 private:
@@ -184,6 +194,8 @@ private:
     static Action* use_instant_poison_off_hand(PlayerbotAI* ai) { return new UseInstantPoisonOffHandAction(ai); }
     static Action* fan_of_knives(PlayerbotAI* ai) { return new FanOfKnivesAction(ai); }
     static Action* killing_spree(PlayerbotAI* ai) { return new CastKillingSpreeAction(ai); }
+    static Action* shadowstep(PlayerbotAI* ai) { return new CastShadowstepAction(ai); }
+    static Action* shadow_dance(PlayerbotAI* ai) { return new CastShadowDanceAction(ai); }
 };
 
 SharedNamedObjectContextList<Strategy> RogueAiObjectContext::sharedStrategyContexts;

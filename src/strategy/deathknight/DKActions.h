@@ -29,6 +29,12 @@ public:
     CastUnholyPresenceAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "unholy presence") {}
 };
 
+class CastPathOfFrostAction : public CastBuffSpellAction
+{
+public:
+    CastPathOfFrostAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "path of frost") {}
+};
+
 class CastDeathchillAction : public CastBuffSpellAction
 {
 public:

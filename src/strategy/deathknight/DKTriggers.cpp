@@ -160,3 +160,23 @@ bool ChainsOfIcePvPTrigger::IsActive()
     
     return false;
 }
+
+bool PathOfFrostPvPTrigger::IsActive()
+{
+    if (!bot->HasSpell(3714))
+        return false;
+
+    if (!bot->InBattleground())
+        return false;
+
+    if (bot->GetBattlegroundTypeId() != BATTLEGROUND_AB)
+        return false;
+
+    if (bot->IsInCombat() || !bot->IsMounted())
+        return false;
+
+    if (botAI->HasAura("path of frost", bot))
+        return false;
+
+    return bot->IsInWater();
+}

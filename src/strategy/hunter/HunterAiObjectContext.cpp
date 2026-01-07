@@ -76,6 +76,8 @@ public:
         creators["hunter's mark"] = &HunterTriggerFactoryInternal::hunters_mark;
         creators["freezing trap"] = &HunterTriggerFactoryInternal::freezing_trap;
         creators["aspect of the pack"] = &HunterTriggerFactoryInternal::aspect_of_the_pack;
+        creators["aspect of the cheetah pvp"] = &HunterTriggerFactoryInternal::aspect_of_the_cheetah_pvp;
+        creators["concussive shot pvp"] = &HunterTriggerFactoryInternal::concussive_shot_pvp;
         creators["rapid fire"] = &HunterTriggerFactoryInternal::rapid_fire;
         creators["aspect of the hawk"] = &HunterTriggerFactoryInternal::aspect_of_the_hawk;
         creators["aspect of the monkey"] = &HunterTriggerFactoryInternal::aspect_of_the_monkey;
@@ -124,6 +126,8 @@ private:
     static Trigger* hunters_mark(PlayerbotAI* botAI) { return new HuntersMarkTrigger(botAI); }
     static Trigger* freezing_trap(PlayerbotAI* botAI) { return new FreezingTrapTrigger(botAI); }
     static Trigger* aspect_of_the_pack(PlayerbotAI* botAI) { return new HunterAspectOfThePackTrigger(botAI); }
+    static Trigger* aspect_of_the_cheetah_pvp(PlayerbotAI* botAI) { return new AspectOfCheetahPvPTrigger(botAI); }
+    static Trigger* concussive_shot_pvp(PlayerbotAI* botAI) { return new ConcussiveShotPvPTrigger(botAI); }
     static Trigger* rapid_fire(PlayerbotAI* botAI) { return new RapidFireTrigger(botAI); }
     static Trigger* aspect_of_the_hawk(PlayerbotAI* botAI) { return new HunterAspectOfTheHawkTrigger(botAI); }
     static Trigger* aspect_of_the_monkey(PlayerbotAI* botAI) { return new HunterAspectOfTheMonkeyTrigger(botAI); }

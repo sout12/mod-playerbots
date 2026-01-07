@@ -119,6 +119,7 @@ void GenericDruidNonCombatStrategy::InitTriggers(std::vector<TriggerNode*>& trig
     // triggers.push_back(new TriggerNode("low mana", NextAction::array(0, new NextAction("innervate", ACTION_EMERGENCY
     // + 5), nullptr))); triggers.push_back(new TriggerNode("swimming", NextAction::array(0, new NextAction("aquatic
     // form", 1.0f), nullptr)));
+    triggers.push_back(new TriggerNode("swimming", NextAction::array(0, new NextAction("aquatic form", 12.0f), nullptr)));
 
     triggers.push_back(new TriggerNode("often", NextAction::array(0, new NextAction("apply oil", 1.0f), nullptr)));
 

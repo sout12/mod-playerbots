@@ -115,6 +115,12 @@ public:
     CastAdrenalineRushAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "adrenaline rush") {}
 };
 
+class CastShadowDanceAction : public CastBuffSpellAction
+{
+public:
+    CastShadowDanceAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "shadow dance") {}
+};
+
 class CastKillingSpreeAction : public CastMeleeSpellAction
 {
 public:
@@ -171,6 +177,29 @@ class FanOfKnivesAction : public CastMeleeSpellAction
 public:
     FanOfKnivesAction(PlayerbotAI* ai) : CastMeleeSpellAction(ai, "fan of knives") {}
     ActionThreatType getThreatType() override { return ActionThreatType::Aoe; }
+};
+
+class CastShadowstepAction : public CastMeleeSpellAction
+{
+public:
+    CastShadowstepAction(PlayerbotAI* ai) : CastMeleeSpellAction(ai, "shadowstep") {}
+
+    bool isPossible() override
+    {
+        // Only subtlety rogues or bots with the spell should attempt it
+        return bot->HasSpell(36554) && CastMeleeSpellAction::isPossible();
+    }
+
+    bool isUseful() override
+    {
+        Unit* target = GetTarget();
+        if (!target || !target->IsAlive())
+            return false;
+
+        float dist = bot->GetDistance(target);
+        // Ideal when stealthed and target not yet in melee
+        return dist > 5.0f && dist < 25.0f && bot->HasAura(1784); // Stealth base spell
+    }
 };
 
 #endif

@@ -28,6 +28,8 @@ namespace
     static uint32 GetEffectiveMaxPlayersPerTeam(BattlegroundTypeId bgTypeId)
     {
         Battleground* bg = sBattlegroundMgr->GetBattlegroundTemplate(bgTypeId);
+        if (!bg && bgTypeId == BATTLEGROUND_RB)
+            bg = sBattlegroundMgr->GetBattlegroundTemplate(BATTLEGROUND_WS);
         if (!bg)
             return 0;
 
@@ -58,6 +60,35 @@ namespace
         }
 
         return cachedMaxNonArenaBgTeamSize;
+    }
+
+    static PvPDifficultyEntry const* GetQueueBracket(Player* player, BattlegroundTypeId bgTypeId)
+    {
+        if (!player)
+            return nullptr;
+
+        uint32 mapId = 0;
+        if (Battleground* bg = sBattlegroundMgr->GetBattlegroundTemplate(bgTypeId))
+            mapId = bg->GetMapId();
+
+        if (!mapId)
+        {
+            if (bgTypeId == BATTLEGROUND_RB)
+                mapId = 489; // WSG map for RB bracket lookup
+            else if (bgTypeId == BATTLEGROUND_AA)
+                mapId = 559; // Nagrand Arena map for arena bracket lookup
+        }
+
+        if (!mapId)
+            return nullptr;
+
+        PvPDifficultyEntry const* pvpDiff = GetBattlegroundBracketByLevel(mapId, player->GetLevel());
+        if (!pvpDiff && bgTypeId == BATTLEGROUND_RB)
+        {
+            pvpDiff = GetBattlegroundBracketByLevel(489, player->GetLevel());
+        }
+
+        return pvpDiff;
     }
 }
 
@@ -256,12 +287,27 @@ bool BGJoinAction::canJoinBg(BattlegroundQueueTypeId queueTypeId, BattlegroundBr
 
     // check too low/high level
     if (!bot->GetBGAccessByLevel(bgTypeId))
-        return false;
+    {
+        if (bgTypeId == BATTLEGROUND_RB)
+        {
+            if (!bot->GetBGAccessByLevel(BATTLEGROUND_WS))
+                return false;
+        }
+        else if (bgTypeId == BATTLEGROUND_AA)
+        {
+            // fall through to bracket check below
+        }
+        else
+        {
+            return false;
+        }
+    }
 
     // check if the bracket exists for the bot's level for the specific Battleground/Arena type
     Battleground* bg = sBattlegroundMgr->GetBattlegroundTemplate(bgTypeId);
-    uint32 mapId = bg->GetMapId();
-    PvPDifficultyEntry const* pvpDiff = GetBattlegroundBracketByLevel(mapId, bot->GetLevel());
+    if (!bg && bgTypeId != BATTLEGROUND_RB && bgTypeId != BATTLEGROUND_AA)
+        return false;
+    PvPDifficultyEntry const* pvpDiff = GetQueueBracket(bot, bgTypeId);
     if (!pvpDiff)
         return false;
 
@@ -277,7 +323,7 @@ bool BGJoinAction::shouldJoinBg(BattlegroundQueueTypeId queueTypeId, Battlegroun
 {
     BattlegroundTypeId bgTypeId = BattlegroundMgr::BGTemplateId(queueTypeId);
     Battleground* bg = sBattlegroundMgr->GetBattlegroundTemplate(bgTypeId);
-    if (!bg)
+    if (!bg && bgTypeId != BATTLEGROUND_RB && bgTypeId != BATTLEGROUND_AA)
         return false;
 
     TeamId teamId = bot->GetTeamId();
@@ -415,7 +461,7 @@ bool BGJoinAction::isUseful()
         for (int queueType = BATTLEGROUND_QUEUE_AV; queueType < MAX_BATTLEGROUND_QUEUE_TYPES; ++queueType)
         {
             BattlegroundQueueTypeId queueTypeId = BattlegroundQueueTypeId(queueType);
-            BattlegroundBracketId bracketId = BattlegroundBracketId(bracket);
+             BattlegroundBracketId bracketId = BattlegroundBracketId(bracket);
 
             if (!canJoinBg(queueTypeId, bracketId))
                 continue;
@@ -548,11 +594,9 @@ bool BGJoinAction::JoinQueue(uint32 type)
     BattlegroundBracketId bracketId;
 
     Battleground* bg = sBattlegroundMgr->GetBattlegroundTemplate(bgTypeId);
-    if (!bg)
+    if (!bg && bgTypeId != BATTLEGROUND_RB && bgTypeId != BATTLEGROUND_AA)
         return false;
-
-    uint32 mapId = bg->GetMapId();
-    PvPDifficultyEntry const* pvpDiff = GetBattlegroundBracketByLevel(mapId, bot->GetLevel());
+    PvPDifficultyEntry const* pvpDiff = GetQueueBracket(bot, bgTypeId);
     if (!pvpDiff)
         return false;
 
@@ -568,7 +612,22 @@ bool BGJoinAction::JoinQueue(uint32 type)
 
     // check bg req level
     if (!bot->GetBGAccessByLevel(bgTypeId))
-        return false;
+    {
+        if (bgTypeId == BATTLEGROUND_RB)
+        {
+            if (!bot->GetBGAccessByLevel(BATTLEGROUND_WS))
+                return false;
+        }
+        else if (bgTypeId == BATTLEGROUND_AA)
+        {
+            if (!pvpDiff)
+                return false;
+        }
+        else
+        {
+            return false;
+        }
+    }
 
     // get BG MapId
     uint32 bgTypeId_ = bgTypeId;

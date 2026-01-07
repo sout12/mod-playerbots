@@ -695,6 +695,13 @@ bool FollowAction::isUseful()
     else
         fTarget = AI_VALUE(Unit*, "group leader");
 
+    // Do not follow in cities/inns if the target is a bot and we don't have a real player master.
+    if (bot->HasPlayerFlag(PLAYER_FLAGS_RESTING) && !botAI->HasRealPlayerMaster())
+    {
+        if (fTarget && fTarget->IsPlayer() && GET_PLAYERBOT_AI((Player*)fTarget))
+            return false;
+    }
+
     if (fTarget)
     {
         if (fTarget->HasUnitState(UNIT_STATE_IN_FLIGHT))

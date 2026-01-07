@@ -67,8 +67,30 @@ bool NewRpgBaseAction::MoveFarTo(WorldPosition dest)
             bot->GetName(), bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ(), bot->GetMapId(),
             dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ(), dest.getMapId(), bot->GetZoneId(),
             zone_name);
+
+        // Validate map/coordinates before teleporting
+        uint32 mapId = dest.getMapId();
+        float tx = dest.GetPositionX();
+        float ty = dest.GetPositionY();
+        float tz = dest.GetPositionZ();
+
+        if (!std::isfinite(tx) || !std::isfinite(ty) || !std::isfinite(tz))
+        {
+            LOG_ERROR("playerbots", "[New RPG] Teleport aborted: non-finite destination for {}", bot->GetName());
+            return false;
+        }
+
+        // If height looks bogus, try to snap to ground
+        if (tz < -5000.0f || tz > 5000.0f)
+        {
+            // Can't resolve height safely, abort teleport
+            LOG_ERROR("playerbots", "[New RPG] Teleport aborted: invalid Z at ({},{},{}) on map {} for {}",
+                      tx, ty, tz, mapId, bot->GetName());
+            return false;
+        }
+
         bot->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TELEPORTED | AURA_INTERRUPT_FLAG_CHANGE_MAP);
-        return bot->TeleportTo(dest);
+        return bot->TeleportTo(mapId, tx, ty, tz, dest.GetOrientation());
     }
 
     float dis = bot->GetExactDist(dest);

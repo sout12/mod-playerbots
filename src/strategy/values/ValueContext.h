@@ -13,6 +13,7 @@
 #include "AttackerCountValues.h"
 #include "AttackerWithoutAuraTargetValue.h"
 #include "AttackersValue.h"
+#include "ArenaOpenerValue.h"
 #include "AvailableLootValue.h"
 #include "BudgetValues.h"
 #include "CcTargetValue.h"
@@ -213,6 +214,7 @@ public:
         creators["repair cost"] = &ValueContext::repair_cost;
         creators["train cost"] = &ValueContext::train_cost;
         creators["enemy healer target"] = &ValueContext::enemy_healer_target;
+        creators["arena opener info"] = &ValueContext::arena_opener_info;
         creators["snare target"] = &ValueContext::snare_target;
         creators["formation"] = &ValueContext::formation;
         creators["stance"] = &ValueContext::stance;
@@ -474,6 +476,7 @@ private:
     static UntypedValue* speed(PlayerbotAI* botAI) { return new SpeedValue(botAI); }
     static UntypedValue* last_said(PlayerbotAI* botAI) { return new LastSaidValue(botAI); }
     static UntypedValue* last_emote(PlayerbotAI* botAI) { return new LastEmoteValue(botAI); }
+    static UntypedValue* arena_opener_info(PlayerbotAI* botAI) { return new ArenaOpenerValue(botAI); }
     static UntypedValue* aoe_count(PlayerbotAI* botAI) { return new AoeCountValue(botAI); }
     static UntypedValue* aoe_position(PlayerbotAI* botAI) { return new AoePositionValue(botAI); }
     static UntypedValue* outfit_list_value(PlayerbotAI* botAI) { return new OutfitListValue(botAI); }

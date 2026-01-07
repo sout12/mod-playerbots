@@ -362,6 +362,26 @@ std::string const TwoTriggers::getName()
 
 bool BoostTrigger::IsActive()
 {
+    if (bot->InArena())
+    {
+        // Never pop offensive boosts before combat
+        if (!bot->IsInCombat())
+            return false;
+
+        Unit* target = AI_VALUE(Unit*, "current target");
+        if (!target || !target->IsPlayer())
+            return false;
+
+        // Skip if target is immune/untouchable
+        if (target->HasAura(642) || target->HasAura(45438) || target->HasAura(47585) || target->HasAura(19263))
+            return false;
+
+        // Require some vulnerability: low-ish HP or hard CC
+        if (target->GetHealthPct() > 75.0f &&
+            !(target->HasUnitState(UNIT_STATE_STUNNED) || target->HasUnitState(UNIT_STATE_CONTROLLED)))
+            return false;
+    }
+
     if (!BuffTrigger::IsActive())
         return false;
     Unit* target = AI_VALUE(Unit*, "current target");

@@ -181,6 +181,10 @@ void GenericDKStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
         new TriggerNode("mind freeze on enemy healer",
                         NextAction::array(0, new NextAction("mind freeze on enemy healer", ACTION_HIGH + 1), nullptr)));
     triggers.push_back(new TriggerNode(
+        "death grip pvp", NextAction::array(0, new NextAction("death grip", ACTION_HIGH + 6), nullptr)));
+    triggers.push_back(new TriggerNode(
+        "chains of ice pvp", NextAction::array(0, new NextAction("chains of ice", ACTION_HIGH + 5), nullptr)));
+    triggers.push_back(new TriggerNode(
         "horn of winter", NextAction::array(0, new NextAction("horn of winter", ACTION_NORMAL + 1), nullptr)));
     triggers.push_back(new TriggerNode("critical health",
                                        NextAction::array(0, new NextAction("death pact", ACTION_HIGH + 5), nullptr)));

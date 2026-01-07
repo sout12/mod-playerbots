@@ -1,0 +1,125 @@
+{
+  "arena": "general",
+  "version": "3.3.5a",
+  "description": "General arena strategies and mechanics for Wrath of the Lich King",
+  "technical_mechanics": {
+    "Shadow_Sight": {
+      "name": "Shadow Sight",
+      "spell_id": 34709,
+      "effect": "See Stealth/Invis, +5% Dmg Taken",
+      "spawn_timer": "90s (1:30) after gates open",
+      "locations": "Spawns in 2 specific spots on each map (usually near pillars/tombs)."
+    },
+    "Dampening": {
+      "note": "Not present in WotLK 3.3.5a. Matches can go indefinitely until draw (45m)."
+    }
+  },
+  "arena_map_specifics": {
+    "Dalaran_Sewers": {
+      "features": [
+        "Central Water Pipe",
+        "Side Stairs",
+        "Boxes"
+      ],
+      "mechanics": {
+        "Water_Flush": {
+          "spell_id": 57405,
+          "timer": "10s after start (Knockback from pipe)",
+          "effect": "Pushes players out of spawn pipe."
+        },
+        "Waterfall": {
+          "effect": "Blocks Line of Sight completely.",
+          "timer": "Starts at 0:30, lasts 10s. Recurs every 90s."
+        }
+      },
+      "strategy": "Control the stairs. Use Boxes for LoS. Use Waterfall to reset combat or drink."
+    },
+    "Ring_of_Valor": {
+      "features": [
+        "Elevators",
+        "Moving Pillars",
+        "Flame Pipes"
+      ],
+      "mechanics": {
+        "Elevators": {
+          "effect": "Rise to arena level at start.",
+          "timer": "0:00 - 0:05"
+        },
+        "Pillars": {
+          "effect": "Rise/Fall to provide dynamic LoS.",
+          "timer": "First rise at 0:45. Cycle: Up 25s / Down 20s."
+        },
+        "Flame_Wall": {
+          "spell_id": 57237,
+          "effect": "Deals Fire damage + LoS break.",
+          "timer": "Starts at 1:30 (90s)."
+        }
+      },
+      "strategy": "Hard switch when pillars drop. Use Flames to LoS casts if desperate."
+    },
+    "Blades_Edge_Arena": {
+      "features": [
+        "Bridge",
+        "Ramps",
+        "Pillars (Under Bridge)"
+      ],
+      "strategy": "Control the Bridge. Knockbacks (Typhoon/Thunderstorm) are king here. If melee, force fight under bridge."
+    },
+    "Nagrand_Arena": {
+      "features": [
+        "4 Pillars",
+        "Open Field"
+      ],
+      "strategy": "Pillar Humping is mandatory. Healers must never cross mid without support."
+    },
+    "Ruins_of_Lordaeron": {
+      "features": [
+        "Center Tomb",
+        "Starting Rooms"
+      ],
+      "strategy": "Kite around the Tomb. Starter room can be used to reset if team pushes too deep."
+    }
+  },
+  "behavior_policies": {
+    "LoS_Logic": {
+      "Healers": "Always stay near a pillar/box. Never stand in the open.",
+      "DPS": "Pull enemies OUT of LoS of their healer."
+    },
+    "Targeting": {
+      "Switching": "Hard switch on defensive cooldowns (Bubble, Ice Block).",
+      "Focus": "Always set Focus on the enemy healer/CC target."
+    }
+  },
+  "communication_signals": {
+    "focus_fire": [
+      "enemy_healer",
+      "low_hp_target",
+      "priority_target",
+      "team_burst"
+    ],
+    "danger": [
+      "ally_under_attack",
+      "immediate_threat",
+      "need_assistance",
+      "peel_needed"
+    ],
+    "engage": [
+      "advantageous_position",
+      "cooldown_alignment",
+      "safe_engagement",
+      "team_ready"
+    ],
+    "disengage": [
+      "immediate_danger",
+      "no_escape_options",
+      "regroup_needed",
+      "reset_combat"
+    ],
+    "aoe_warning": [
+      "aoe_damage_coming",
+      "spread_out",
+      "avoid_damage",
+      "position_safely"
+    ]
+  }
+}

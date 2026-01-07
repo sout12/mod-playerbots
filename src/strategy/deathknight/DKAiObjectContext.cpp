@@ -90,6 +90,9 @@ public:
         creators["blood tap"] = &DeathKnightTriggerFactoryInternal::blood_tap;
         creators["raise dead"] = &DeathKnightTriggerFactoryInternal::raise_dead;
         creators["chains of ice"] = &DeathKnightTriggerFactoryInternal::chains_of_ice;
+        creators["death grip pvp"] = &DeathKnightTriggerFactoryInternal::death_grip_pvp;
+        creators["chains of ice pvp"] = &DeathKnightTriggerFactoryInternal::chains_of_ice_pvp;
+        creators["path of frost pvp"] = &DeathKnightTriggerFactoryInternal::path_of_frost_pvp;
         creators["unbreakable armor"] = &DeathKnightTriggerFactoryInternal::unbreakable_armor;
         creators["high blood rune"] = &DeathKnightTriggerFactoryInternal::high_blood_rune;
         creators["high frost rune"] = &DeathKnightTriggerFactoryInternal::high_frost_rune;
@@ -139,6 +142,9 @@ private:
     static Trigger* blood_tap(PlayerbotAI* botAI) { return new BloodTapTrigger(botAI); }
     static Trigger* raise_dead(PlayerbotAI* botAI) { return new RaiseDeadTrigger(botAI); }
     static Trigger* chains_of_ice(PlayerbotAI* botAI) { return new ChainsOfIceSnareTrigger(botAI); }
+    static Trigger* death_grip_pvp(PlayerbotAI* botAI) { return new DeathGripPvPTrigger(botAI); }
+    static Trigger* chains_of_ice_pvp(PlayerbotAI* botAI) { return new ChainsOfIcePvPTrigger(botAI); }
+    static Trigger* path_of_frost_pvp(PlayerbotAI* botAI) { return new PathOfFrostPvPTrigger(botAI); }
     static Trigger* unbreakable_armor(PlayerbotAI* botAI) { return new UnbreakableArmorTrigger(botAI); }
     static Trigger* high_blood_rune(PlayerbotAI* botAI) { return new HighBloodRuneTrigger(botAI); }
     static Trigger* high_frost_rune(PlayerbotAI* botAI) { return new HighFrostRuneTrigger(botAI); }
@@ -170,6 +176,7 @@ public:
         creators["scourge strike"] = &DeathKnightAiObjectContextInternal::scourge_strike;
         creators["death and decay"] = &DeathKnightAiObjectContextInternal::death_and_decay;
         creators["unholy presence"] = &DeathKnightAiObjectContextInternal::unholy_presence;
+        creators["path of frost"] = &DeathKnightAiObjectContextInternal::path_of_frost;
         creators["raise dead"] = &DeathKnightAiObjectContextInternal::raise_dead;
         creators["army of the dead"] = &DeathKnightAiObjectContextInternal::army_of_the_dead;
         creators["summon gargoyle"] = &DeathKnightAiObjectContextInternal::summon_gargoyle;
@@ -226,6 +233,7 @@ private:
     static Action* scourge_strike(PlayerbotAI* botAI) { return new CastScourgeStrikeAction(botAI); }
     static Action* death_and_decay(PlayerbotAI* botAI) { return new CastDeathAndDecayAction(botAI); }
     static Action* unholy_presence(PlayerbotAI* botAI) { return new CastUnholyPresenceAction(botAI); }
+    static Action* path_of_frost(PlayerbotAI* botAI) { return new CastPathOfFrostAction(botAI); }
     static Action* raise_dead(PlayerbotAI* botAI) { return new CastRaiseDeadAction(botAI); }
     static Action* army_of_the_dead(PlayerbotAI* botAI) { return new CastArmyOfTheDeadAction(botAI); }
     static Action* summon_gargoyle(PlayerbotAI* botAI) { return new CastSummonGargoyleAction(botAI); }

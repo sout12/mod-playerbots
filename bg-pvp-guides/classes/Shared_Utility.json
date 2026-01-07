@@ -1,0 +1,93 @@
+{
+  "class": "Shared_Utility",
+  "version": "3.3.5a",
+  "description": "Universal rules for all classes in PvP (Trinkets, Potions, Engineering).",
+  "technical_data": {
+    "spell_ids": {
+      "PvP_Trinket_Horde": 42292,
+      "PvP_Trinket_Alliance": 59752,
+      "Every_Man_for_Himself": 59752,
+      "Will_of_the_Forsaken": 7744,
+      "Stoneform": 20594,
+      "Escape_Artist": 20589,
+      "Rocket_Boots_Xtreme": 54861,
+      "Hand_of_Freedom": 1044
+    }
+  },
+  "priority_list": {
+    "hierarchy": [
+      {
+        "priority": "TOP_PRIORITY",
+        "action": "Break CC (Trinket/Racial)",
+        "condition": "kill_window == true OR self_hp_critical"
+      },
+      {
+        "priority": "very_high",
+        "action": "Use Healthstone/Potion",
+        "condition": "self_hp < 40%"
+      },
+      {
+        "priority": "high",
+        "action": "Use Engineering Glove Enchant",
+        "condition": "bursting == true"
+      }
+    ]
+  },
+  "rules": {
+    "cc_break": [
+      {
+        "name": "PvP Trinket",
+        "when": "Remove Loss of Control",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "cc_duration > 3s",
+          "kill_moment == true OR survival_moment == true"
+        ],
+        "target": "self"
+      },
+      {
+        "name": "Every Man for Himself",
+        "when": "Human Racial (Trinket)",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "cc_duration > 3s",
+          "kill_moment == true OR survival_moment == true"
+        ],
+        "target": "self"
+      },
+      {
+        "name": "Will of the Forsaken",
+        "when": "Undead Racial (Fear/Sleep/Charm)",
+        "priority": "very_high",
+        "conditions": [
+          "cc_type == Fear",
+          "cc_duration > 3s"
+        ],
+        "target": "self"
+      }
+    ],
+    "consumables": [
+      {
+        "name": "Healthstone",
+        "spell_id": 27235,
+        "when": "Heal",
+        "priority": "very_high",
+        "conditions": [
+          "self_hp < 40%"
+        ],
+        "target": "self"
+      },
+      {
+        "name": "Free Action Potion",
+        "item_id": 5634,
+        "when": "Stun Immunity (BG Only)",
+        "priority": "high",
+        "conditions": [
+          "bg_mode == true",
+          "engaging_flag_carrier == true"
+        ],
+        "target": "self"
+      }
+    ]
+  }
+}

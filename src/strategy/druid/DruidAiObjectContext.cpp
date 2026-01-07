@@ -98,13 +98,17 @@ public:
         creators["party member cure poison"] = &DruidTriggerFactoryInternal::party_member_cure_poison;
         creators["entangling roots"] = &DruidTriggerFactoryInternal::entangling_roots;
         creators["entangling roots kite"] = &DruidTriggerFactoryInternal::entangling_roots_kite;
+        creators["entangling roots pvp"] = &DruidTriggerFactoryInternal::entangling_roots_pvp;
         creators["hibernate"] = &DruidTriggerFactoryInternal::hibernate;
         creators["bear form"] = &DruidTriggerFactoryInternal::bear_form;
         creators["cat form"] = &DruidTriggerFactoryInternal::cat_form;
         creators["tree form"] = &DruidTriggerFactoryInternal::tree_form;
+        creators["travel form pvp"] = &DruidTriggerFactoryInternal::travel_form_pvp;
+        creators["dash pvp"] = &DruidTriggerFactoryInternal::dash_pvp;
         creators["eclipse (solar)"] = &DruidTriggerFactoryInternal::eclipse_solar;
         creators["eclipse (lunar)"] = &DruidTriggerFactoryInternal::eclipse_lunar;
         creators["bash on enemy healer"] = &DruidTriggerFactoryInternal::bash_on_enemy_healer;
+        creators["cyclone on enemy healer"] = &DruidTriggerFactoryInternal::cyclone_on_enemy_healer;
         creators["nature's swiftness"] = &DruidTriggerFactoryInternal::natures_swiftness;
         creators["party member remove curse"] = &DruidTriggerFactoryInternal::party_member_remove_curse;
         creators["eclipse (solar) cooldown"] = &DruidTriggerFactoryInternal::eclipse_solar_cooldown;
@@ -137,11 +141,15 @@ private:
     static Trigger* party_member_cure_poison(PlayerbotAI* botAI) { return new PartyMemberCurePoisonTrigger(botAI); }
     static Trigger* entangling_roots(PlayerbotAI* botAI) { return new EntanglingRootsTrigger(botAI); }
     static Trigger* entangling_roots_kite(PlayerbotAI* botAI) { return new EntanglingRootsKiteTrigger(botAI); }
+    static Trigger* entangling_roots_pvp(PlayerbotAI* botAI) { return new EntanglingRootsPvPTrigger(botAI); }
     static Trigger* hibernate(PlayerbotAI* botAI) { return new HibernateTrigger(botAI); }
     static Trigger* bear_form(PlayerbotAI* botAI) { return new BearFormTrigger(botAI); }
     static Trigger* cat_form(PlayerbotAI* botAI) { return new CatFormTrigger(botAI); }
     static Trigger* tree_form(PlayerbotAI* botAI) { return new TreeFormTrigger(botAI); }
+    static Trigger* travel_form_pvp(PlayerbotAI* botAI) { return new TravelFormPvPTrigger(botAI); }
+    static Trigger* dash_pvp(PlayerbotAI* botAI) { return new DashPvPTrigger(botAI); }
     static Trigger* bash_on_enemy_healer(PlayerbotAI* botAI) { return new BashInterruptEnemyHealerSpellTrigger(botAI); }
+    static Trigger* cyclone_on_enemy_healer(PlayerbotAI* botAI) { return new CycloneOnEnemyHealerTrigger(botAI); }
     static Trigger* omen_of_clarity(PlayerbotAI* botAI) { return new OmenOfClarityTrigger(botAI); }
     static Trigger* party_member_remove_curse(PlayerbotAI* ai) { return new DruidPartyMemberRemoveCurseTrigger(ai); }
     static Trigger* eclipse_solar_cooldown(PlayerbotAI* ai) { return new EclipseSolarCooldownTrigger(ai); }
@@ -212,6 +220,7 @@ public:
         creators["regrowth"] = &DruidAiObjectContextInternal::regrowth;
         creators["rejuvenation"] = &DruidAiObjectContextInternal::rejuvenation;
         creators["healing touch"] = &DruidAiObjectContextInternal::healing_touch;
+        creators["cyclone"] = &DruidAiObjectContextInternal::cyclone;
         creators["regrowth on party"] = &DruidAiObjectContextInternal::regrowth_on_party;
         creators["rejuvenation on party"] = &DruidAiObjectContextInternal::rejuvenation_on_party;
         creators["rejuvenation on not full"] = &DruidAiObjectContextInternal::rejuvenation_on_not_full;
@@ -300,6 +309,7 @@ private:
     static Action* regrowth(PlayerbotAI* botAI) { return new CastRegrowthAction(botAI); }
     static Action* rejuvenation(PlayerbotAI* botAI) { return new CastRejuvenationAction(botAI); }
     static Action* healing_touch(PlayerbotAI* botAI) { return new CastHealingTouchAction(botAI); }
+    static Action* cyclone(PlayerbotAI* botAI) { return new CastCycloneAction(botAI); }
     static Action* regrowth_on_party(PlayerbotAI* botAI) { return new CastRegrowthOnPartyAction(botAI); }
     static Action* rejuvenation_on_party(PlayerbotAI* botAI) { return new CastRejuvenationOnPartyAction(botAI); }
     static Action* rejuvenation_on_not_full(PlayerbotAI* botAI) { return new CastRejuvenationOnNotFullAction(botAI); }

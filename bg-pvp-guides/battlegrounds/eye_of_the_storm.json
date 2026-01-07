@@ -1,0 +1,102 @@
+{
+  "battleground": "Eye of the Storm",
+  "version": "3.3.5a",
+  "game_type": "Victory Points Race (1600)",
+  "win_condition": {
+    "primary": "Reach 1600 Points",
+    "mechanics": {
+      "Bases": "Must hold at least 1, ideally 2.",
+      "Flag": "Must capture flag while holding bases.",
+      "combat_policy": "Objective Defensive. Do not chase off ledges."
+    },
+    "priority_legend": {
+      "Priority 1": "Critical / Win Condition",
+      "Priority 2": "High Strategic Value",
+      "Priority 3": "Defensive / Maintenance",
+      "Priority 99": "Forbidden / Waste"
+    }
+  },
+  "technical_data": {
+    "Flag": {
+      "name": "Netherstorm Flag",
+      "spawn_location": "Central Bridge (Mid)",
+      "interaction": "Instant pick-up / 8.0s Cap Time at Base",
+      "spell_id_pickup": 34976,
+      "spell_id_capture": 39686
+    },
+    "Points": {
+      "1_Base": "1 point/sec",
+      "2_Bases": "2 points/sec",
+      "3_Bases": "5 points/sec",
+      "4_Bases": "10 points/sec",
+      "Flag_Cap": "75 (1 base) / 85 (2 bases) / 100 (3 bases) / 500 (4 bases)"
+    }
+  },
+  "behavior_policies": {
+    "combat": {
+      "rule": "Fight only to secure the Flag or Defend a Base.",
+      "mid_field": "Do not fight in the middle lanes unless escorting the Flag Carrier.",
+      "chasing": "FORBIDDEN. Do not chase kills. Reset to objective."
+    },
+    "flag_play": {
+      "rule": "Flag Carrier is VIP.",
+      "policy": "If you have 0 bases, DO NOT CAP FLAG (Points wasted). Wait for base cap.",
+      "escort": "Healers must follow FC. DPS must peel for FC."
+    }
+  },
+  "objectives": {
+    "Bases": {
+      "Alliance_Prio": [
+        "Mage Tower",
+        "Draenei Ruins"
+      ],
+      "Horde_Prio": [
+        "Blood Elf Tower",
+        "Fel Reaver Ruins"
+      ],
+      "strategy": "Secure 2 home bases instantly. Defend them. Do not trade 2 bases for 1."
+    },
+    "Flag": {
+      "strategy": "Grab -> Run -> Cap. If owning 2+ bases, run continuously.",
+      "priority": "Priority 1 (High Burst Points)"
+    }
+  },
+  "faction_strategies": {
+    "Alliance": {
+      "strategy": {
+        "name": "2-Base Hold + Flag Run",
+        "execution": "2 Defenders at MT, 2 at DR. 11 Push Mid for Flag. Cap Flag repeatedly."
+      }
+    },
+    "Horde": {
+      "strategy": {
+        "name": "2-Base Hold + Flag Run",
+        "execution": "2 Defenders at BET, 2 at FR. 11 Push Mid for Flag. Cap Flag repeatedly."
+      }
+    }
+  },
+  "priority_list": {
+    "hierarchy": [
+      {
+        "priority": 1,
+        "action": "Secure 2 Bases",
+        "reason": "Point Ticking Foundation"
+      },
+      {
+        "priority": 2,
+        "action": "Secure/Cap Flag",
+        "reason": "Point Burst"
+      },
+      {
+        "priority": 3,
+        "action": "Defend base",
+        "reason": "Prevent point loss"
+      },
+      {
+        "priority": 99,
+        "action": "Road Fighting",
+        "reason": "Useless"
+      }
+    ]
+  }
+}

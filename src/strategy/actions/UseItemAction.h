@@ -23,6 +23,7 @@ public:
 
     bool Execute(Event event) override;
     bool isPossible() override;
+    bool UseItemOnGameObjectDirect(Item* item, ObjectGuid go);
 
 protected:
     bool UseItemAuto(Item* item);

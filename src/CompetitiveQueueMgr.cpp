@@ -28,18 +28,65 @@ bool CompetitiveQueueMgr::ShouldQueueForBG(Player* player, bool isArena)
         UpdateTopArenaPlayersCache();
     }
 
+    // Get the appropriate player list
+    uint32 topPlayerCount = isArena ? _topArenaPlayerGuids.size() : _topPlayerGuids.size();
+    
     // Check appropriate ranking based on content type
     bool isTopRanked = isArena ? IsTopRankedArenaPlayer(player) : IsTopRankedPlayer(player);
-    float queueChance = isTopRanked ? sPlayerbotAIConfig->competitiveQueueTopChance 
-                                    : sPlayerbotAIConfig->competitiveQueueNormalChance;
+    
+    // Graduated fallback system: increase queue chance when there are few top-ranked players
+    // This ensures queues stay active even with low competitive participation
+    float queueChance;
+    
+    if (topPlayerCount == 0)
+    {
+        // No top players at all - allow all bots to queue
+        LOG_DEBUG("playerbots", "CompetitiveQueue ({}): No ranking data, allowing bot {} to queue",
+                  isArena ? "Arena" : "BG", player->GetName());
+        return true;
+    }
+    else if (isTopRanked)
+    {
+        // Top-ranked players always get the configured high chance
+        queueChance = sPlayerbotAIConfig->competitiveQueueTopChance;
+    }
+    else
+    {
+        // Graduated fallback for non-top players based on how many top players exist
+        // Fewer top players = higher queue chance to keep queues active
+        if (topPlayerCount <= 10)
+        {
+            // Very few top players (≤10): 80% chance
+            queueChance = 0.80f;
+            LOG_DEBUG("playerbots", "CompetitiveQueue ({}): Only {} top players, using HIGH fallback chance",
+                     isArena ? "Arena" : "BG", topPlayerCount);
+        }
+        else if (topPlayerCount <= 50)
+        {
+            // Few top players (11-50): 50% chance
+            queueChance = 0.50f;
+            LOG_DEBUG("playerbots", "CompetitiveQueue ({}): {} top players, using MEDIUM fallback chance",
+                     isArena ? "Arena" : "BG", topPlayerCount);
+        }
+        else if (topPlayerCount <= 100)
+        {
+            // Some top players (51-100): 30% chance
+            queueChance = 0.30f;
+        }
+        else
+        {
+            // Many top players (101+): use configured normal chance (15% default)
+            queueChance = sPlayerbotAIConfig->competitiveQueueNormalChance;
+        }
+    }
 
     // Roll random chance
     float roll = frand(0.0f, 1.0f);
     bool canQueue = roll < queueChance;
     
     // Debug logging to track queue decisions
-    LOG_DEBUG("playerbots", "CompetitiveQueue: Bot {} ({}) - isTopRanked={}, chance={:.1f}%, roll={:.3f}, canQueue={}",
-             player->GetName(), isArena ? "Arena" : "BG", isTopRanked, queueChance * 100.0f, roll, canQueue);
+    LOG_DEBUG("playerbots", "CompetitiveQueue: Bot {} ({}) - topPlayers={}, isTopRanked={}, chance={:.1f}%, roll={:.3f}, canQueue={}",
+             player->GetName(), isArena ? "Arena" : "BG", topPlayerCount, isTopRanked, queueChance * 100.0f, roll, canQueue);
     
     return canQueue;
 }
@@ -62,6 +109,15 @@ bool CompetitiveQueueMgr::IsTopRankedArenaPlayer(Player* player)
     return _topArenaPlayerGuids.find(guidLow) != _topArenaPlayerGuids.end();
 }
 
+bool CompetitiveQueueMgr::IsMidRankedArenaPlayer(Player* player)
+{
+    if (!player)
+        return false;
+
+    uint32 guidLow = player->GetGUID().GetCounter();
+    return _midArenaPlayerGuids.find(guidLow) != _midArenaPlayerGuids.end();
+}
+
 void CompetitiveQueueMgr::RefreshRankings()
 {
     UpdateTopPlayersCache();
@@ -73,7 +129,7 @@ void CompetitiveQueueMgr::UpdateTopPlayersCache()
     _topPlayerGuids.clear();
 
     // Query top N players by total killing blows from pvpstats_players table
-    uint32 topRankLimit = sPlayerbotAIConfig->competitiveQueueTopRank;
+    uint32 topRankLimit = sPlayerbotAIConfig->competitiveQueueTopRankBG;
 
     LOG_DEBUG("playerbots", "CompetitiveQueue (BG): Querying top {} players from pvpstats_players table", topRankLimit);
 
@@ -144,9 +200,11 @@ void CompetitiveQueueMgr::UpdateTopPlayersCache()
 void CompetitiveQueueMgr::UpdateTopArenaPlayersCache()
 {
     _topArenaPlayerGuids.clear();
+    _midArenaPlayerGuids.clear();
 
-    // Query top N players by highest arena team rating
-    uint32 topRankLimit = sPlayerbotAIConfig->competitiveQueueTopRank;
+    // Query top N + M players by highest arena team rating
+    uint32 topRankLimit = sPlayerbotAIConfig->competitiveQueueTopRankArena;
+    uint32 totalLimit = topRankLimit * 5; // e.g. 200 top, 800 mid = 1000 total
 
     QueryResult result = CharacterDatabase.Query(
         "SELECT atm.guid, MAX(at.rating) AS maxRating "
@@ -157,7 +215,7 @@ void CompetitiveQueueMgr::UpdateTopArenaPlayersCache()
         "HAVING maxRating > 0 "
         "ORDER BY maxRating DESC "
         "LIMIT {}",
-        topRankLimit
+        totalLimit
     );
 
     // Fallback: use personal rating if no qualified teams
@@ -173,7 +231,7 @@ void CompetitiveQueueMgr::UpdateTopArenaPlayersCache()
             "HAVING maxPR > 0 "
             "ORDER BY maxPR DESC "
             "LIMIT {}",
-            topRankLimit
+            totalLimit
         );
     }
 
@@ -184,14 +242,21 @@ void CompetitiveQueueMgr::UpdateTopArenaPlayersCache()
         return;
     }
 
+    uint32 count = 0;
     do
     {
         Field* fields = result->Fetch();
         uint32 guid = fields[0].Get<uint32>();
-        _topArenaPlayerGuids.insert(guid);
+        
+        if (count < topRankLimit)
+            _topArenaPlayerGuids.insert(guid);
+        else
+            _midArenaPlayerGuids.insert(guid);
+            
+        count++;
     } while (result->NextRow());
 
     _lastArenaCacheUpdate = std::time(nullptr);
-    LOG_INFO("playerbots", "CompetitiveQueue (Arena): Loaded {} top-ranked arena players", _topArenaPlayerGuids.size());
+    LOG_INFO("playerbots", "CompetitiveQueue (Arena): Loaded {} top and {} mid arena players", 
+             _topArenaPlayerGuids.size(), _midArenaPlayerGuids.size());
 }
-

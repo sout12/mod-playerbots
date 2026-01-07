@@ -1,0 +1,128 @@
+{
+  "battleground": "Arathi Basin",
+  "version": "3.3.5a",
+  "game_type": "Resource Race (1600 Resources)",
+  "win_condition": {
+    "primary": "Reach 1600 resources first",
+    "mechanics": {
+      "focus": "OBJECTIVE_ONLY",
+      "kill_priority": "Low - Only kill if defending a node or clearing a node to cap."
+    },
+    "priority_legend": {
+      "Priority 1": "Critical / Win Condition",
+      "Priority 2": "High Strategic Value",
+      "Priority 3": "Defensive / Situational",
+      "Priority 4": "Low Value / Last Resort",
+      "Priority 5": "Ignore / Do Not Engage"
+    }
+  },
+  "technical_data": {
+    "Flags": {
+      "interaction": "8.0 Second Cast Time (Interruptible by ANY damage)",
+      "mechanic": "Must click flag game object (`Arathi Basin Banner`).",
+      "cap_timer": "1 Minute after assault to finalize cap."
+    },
+    "Buffs": {
+      "Berserking": "Spawns at Farm/Stables/Houses. Increases damage dealt/taken.",
+      "Restoration": "Spawns at Farm/Stables/Houses. Restores HP/Mana."
+    }
+  },
+  "objectives": {
+    "Stables": {
+      "faction": "Alliance",
+      "type": "Home Base",
+      "strategic_value": "Must Hold for 3-cap base count.",
+      "priority": {
+        "Alliance": "Defend (Priority 1)",
+        "Horde": "Ignore unless 5-capping (Priority 5)"
+      }
+    },
+    "Farm": {
+      "faction": "Horde",
+      "type": "Home Base",
+      "strategic_value": "Must Hold for 3-cap base count.",
+      "priority": {
+        "Alliance": "Ignore unless 5-capping (Priority 5)",
+        "Horde": "Defend (Priority 1)"
+      }
+    },
+    "Blacksmith": {
+      "faction": "Neutral",
+      "type": "Central Hub",
+      "strategic_value": "Critical. The central node allows rapid response. Top priority.",
+      "priority": "Priority 1 - Capture and Hold"
+    },
+    "Lumber_Mill": {
+      "faction": "Neutral",
+      "type": "High Ground",
+      "strategic_value": "High. Provides vision and slow-fall access to BS/Farm/Stables.",
+      "priority": "Priority 2 - Capture and Hold"
+    },
+    "Gold_Mine": {
+      "faction": "Neutral",
+      "type": "Low Ground",
+      "strategic_value": "Low. Defensive nightmare. Only take if LM is lost.",
+      "priority": "Priority 4 - Backup only"
+    }
+  },
+  "behavior_policies": {
+    "combat_engagement": {
+      "rule": "Fight ON the flag/node only.",
+      "road_fighting": "FORBIDDEN. Ignore enemies on roads unless they are flag cappers.",
+      "chasing": "FORBIDDEN. Do not chase enemies away from the node > 30 yards."
+    },
+    "role_logic": {
+      "Defenders": "Stay at the flag. Do not leave the circle. Interrupt cappers.",
+      "Attackers": "Ride straight to the node. Ignore dismount attempts if possible. Clear node, cap, then defend.",
+      "Roamers": "Only move to reinforce a node that is being called out."
+    }
+  },
+  "faction_strategies": {
+    "Alliance": {
+      "opening_move": {
+        "name": "BS/LM Objective Rush",
+        "description": "1 Cap Stables. 14 ride to BS/LM. Do not stop for 'first blood' in the field.",
+        "priorities": "Secure Blacksmith > Secure Lumber Mill > Hold Stables."
+      },
+      "mid_game": {
+        "Winning (3 bases)": "DEFEND ONLY. Do not push Farm. Do not push Mine. Win on points.",
+        "Losing (2 bases)": "Attack Blacksmith en masse. Ignore K/D ratio."
+      }
+    },
+    "Horde": {
+      "opening_move": {
+        "name": "BS/Farm Objective Rush",
+        "description": "1 Cap Farm. 14 ride to BS. Overwhelm Blacksmith numbers.",
+        "priorities": "Secure Blacksmith > Secure Farm > Harass LM."
+      },
+      "mid_game": {
+        "Winning (3 bases)": "DEFEND ONLY. Hold the Iron Triangle (Farm/BS/LM).",
+        "Losing (2 bases)": "Attack Blacksmith. Force the cap."
+      }
+    }
+  },
+  "priority_list": {
+    "objective_hierarchy": [
+      {
+        "priority": 1,
+        "action": "Spin Flag",
+        "condition": "preventing_enemy_cap"
+      },
+      {
+        "priority": 2,
+        "action": "Assault Node",
+        "condition": "current_bases < 3"
+      },
+      {
+        "priority": 3,
+        "action": "Defend Node",
+        "condition": "enemy_incoming"
+      },
+      {
+        "priority": 4,
+        "action": "Kill Players",
+        "condition": "only_if_blocking_cap"
+      }
+    ]
+  }
+}

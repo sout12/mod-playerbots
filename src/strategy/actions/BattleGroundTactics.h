@@ -8,6 +8,7 @@
 
 #include "BattlegroundAV.h"
 #include "MovementActions.h"
+#include "ObjectGuid.h"
 
 class ChatHandler;
 class Battleground;
@@ -220,6 +221,7 @@ private:
     bool ShouldWaitForSiegeGroup();  // Wait for allies before assault
     bool ShouldProtectSiegeEngine();  // Protect allied siege engines
     Unit* FindAlliedSiegeEngine(float radius);  // Find allied siege to protect
+    bool HasSeaforiumCharge();  // Check for seaforium charge in inventory
     bool TeamControlsWorkshop();  // Check workshop control
     bool TeamControlsHangar();    // Check hangar control
 
@@ -233,6 +235,7 @@ private:
     
     // Current Objective Tracking (Make accessible to helpers)
     WorldObject* BgObjective = nullptr;
+    ObjectGuid lastCaptureInterruptGuid;
 
     void OnNodeContested(uint32 nodeId, Position pos); // Handler when our node is attacked
     void OnNodeLost(uint32 nodeId, Position pos);      // Handler when we lose a node
@@ -266,6 +269,16 @@ public:
 
 private:
     bool moveToCenter(Battleground* bg);
+    bool moveToPillar(Battleground* bg, bool preferSafety, uint32 featureFlags);
+    bool moveToReset(Battleground* bg, uint32 featureFlags);
+    std::vector<Position> GetArenaPillarPositions(BattlegroundTypeId bgType) const;
+    std::vector<Position> GetArenaResetPositions(BattlegroundTypeId bgType) const;
+    Position SelectBestArenaPosition(BattlegroundTypeId bgType, std::vector<Position> const& positions, bool preferSafety,
+                                     uint32 featureFlags) const;
+    uint8 CountEnemiesNearPosition(Position const& pos, float radius) const;
+    uint8 CountAlliesNearPosition(Position const& pos, float radius) const;
+    bool IsUnderPressure() const;
+    float GetManaPct() const;
 };
 
 #endif

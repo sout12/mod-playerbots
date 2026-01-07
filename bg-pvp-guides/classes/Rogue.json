@@ -1,0 +1,179 @@
+{
+  "class": "Rogue",
+  "version": "3.3.5a",
+  "roles": [
+    "melee_dps",
+    "cc",
+    "flag_capper",
+    "ninja"
+  ],
+  "technical_data": {
+    "spec_detection": {
+      "Subtlety": "Talent: Shadow Dance (51713)",
+      "Assassination": "Talent: Mutilate (1329)",
+      "Combat": "Talent: Adrenaline Rush (13750)"
+    },
+    "spell_ids": {
+      "Kidney_Shot": 408,
+      "Cheap_Shot": 1833,
+      "Sap": 6770,
+      "Blind": 2094,
+      "Vanish": 1856,
+      "Cloak_of_Shadows": 31224,
+      "Shadow_Dance": 51713,
+      "Preparation": 14185,
+      "Dismantle": 51722,
+      "Kick": 1766,
+      "Sprint": 2983
+    }
+  },
+  "win_condition": {
+    "Subtlety": "Setup kills with Shadow Dance stunlocks. Control healer with Sap/Blind.",
+    "Assassination": "High sustained poison damage + Envenom burst.",
+    "priority_legend": {
+      "TOP_PRIORITY": "Perfect CC Chain / Survival",
+      "very_high": "Interrupt / Burst",
+      "high": "Combo Point Generation",
+      "medium": "Poison Application"
+    }
+  },
+  "arena_strategies": {
+    "2v2": {
+      "Rogue_Mage": "Reset heavy. Sap Healer -> Open DPS. Blind Healer after Sap. Poly after Blind. Kill in CC chain.",
+      "Rogue_Priest": "Disc/Rogue. Fear + Kidney Shot combos. Mana burn healer while Rogue stuns."
+    },
+    "3v3": {
+      "RMP": "Rogue/Mage/Priest. The God Comp. Coordination is key. Synced burst on Kidney Shot windows.",
+      "RLS": "Rogue/Lock/Shaman. Rot comp. Rogue peels for Lock and stuns kill target."
+    }
+  },
+  "spell_rules": {
+    "control": [
+      {
+        "name": "Sap",
+        "spell_id": 6770,
+        "when": "Pre-Combat / Vanish Sap",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "stealthed == true",
+          "target_out_of_combat == true",
+          "self_is_flag_carrier == false"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Blind",
+        "spell_id": 2094,
+        "when": "Extend CC",
+        "priority": "very_high",
+        "conditions": [
+          "target_is_healer == true",
+          "target_trinket_down == true"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Kidney Shot",
+        "spell_id": 408,
+        "when": "Kill Window Stun",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "combo_points == 5",
+          "kill_window == true"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Kick",
+        "spell_id": 1766,
+        "when": "Interrupt",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "target_casting == true"
+        ],
+        "target": "enemy"
+      }
+    ],
+    "damage": [
+      {
+        "name": "Shadow Dance",
+        "spell_id": 51713,
+        "when": "Big Burst",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "energy >= 90",
+          "target_stunned == true"
+        ],
+        "target": "self"
+      },
+      {
+        "name": "Mutilate",
+        "spell_id": 1329,
+        "when": "CP Builder",
+        "priority": "high",
+        "conditions": [
+          "spec == Assassination"
+        ],
+        "target": "enemy"
+      },
+      {
+        "name": "Backstab",
+        "spell_id": 53,
+        "when": "CP Builder",
+        "priority": "high",
+        "conditions": [
+          "spec == Subtlety",
+          "behind_target == true"
+        ],
+        "target": "enemy"
+      }
+    ],
+    "defensive": [
+      {
+        "name": "Cloak of Shadows",
+        "spell_id": 31224,
+        "when": "Remove Magic / Resist Spells",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "self_debuff_magic == true",
+          "incoming_spell_damage == true"
+        ],
+        "target": "self"
+      },
+      {
+        "name": "Vanish",
+        "spell_id": 1856,
+        "when": "Escape / Reset / Defensive Sap",
+        "priority": "TOP_PRIORITY",
+        "conditions": [
+          "self_hp < 20%",
+          "blind_active == true (to Sap)",
+          "self_is_flag_carrier == false"
+        ],
+        "target": "self"
+      },
+      {
+        "name": "Sprint",
+        "spell_id": 2983,
+        "when": "Flag Run / Chase",
+        "priority": "very_high",
+        "conditions": [
+          "self_is_flag_carrier == true",
+          "moving == true"
+        ],
+        "target": "self"
+      },
+      {
+        "name": "Dismantle",
+        "spell_id": 51722,
+        "when": "Stop Physical Damage",
+        "priority": "very_high",
+        "conditions": [
+          "target_class == Warrior/Rogue/Hunter",
+          "target_bursting == true"
+        ],
+        "target": "enemy"
+      }
+    ]
+  }
+}
