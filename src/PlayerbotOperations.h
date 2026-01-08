@@ -360,8 +360,8 @@ public:
                 memberBotAI->Reset();
 
             member->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TELEPORTED | AURA_INTERRUPT_FLAG_CHANGE_MAP);
-            member->TeleportTo(leader->GetMapId(), leader->GetPositionX(), leader->GetPositionY(),
-                              leader->GetPositionZ(), 0);
+            SafeTeleport(member, leader->GetMapId(), leader->GetPositionX(), leader->GetPositionY(),
+                         leader->GetPositionZ(), 0, "group follow");
 
             LOG_DEBUG("playerbots", "ArenaGroupFormationOperation: Teleported {} to leader", member->GetName());
         }

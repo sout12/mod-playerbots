@@ -20,6 +20,9 @@ public:
         creators["abolish poison"] = &abolish_poison;
         creators["abolish poison on party"] = &abolish_poison_on_party;
         creators["prowl"] = &prowl;
+        creators["rejuvenation self"] = &rejuvenation_self;
+        creators["regrowth self"] = &regrowth_self;
+        creators["healing touch self"] = &healing_touch_self;
     }
 
 private:
@@ -86,6 +89,30 @@ private:
                               /*A*/ {},
                               /*C*/ {});
     }
+
+    static ActionNode* rejuvenation_self([[maybe_unused]] PlayerbotAI* botAI)
+    {
+        return new ActionNode("rejuvenation",
+                              /*P*/ { NextAction("caster form") },
+                              /*A*/ {},
+                              /*C*/ {});
+    }
+
+    static ActionNode* regrowth_self([[maybe_unused]] PlayerbotAI* botAI)
+    {
+        return new ActionNode("regrowth",
+                              /*P*/ { NextAction("caster form") },
+                              /*A*/ {},
+                              /*C*/ {});
+    }
+
+    static ActionNode* healing_touch_self([[maybe_unused]] PlayerbotAI* botAI)
+    {
+        return new ActionNode("healing touch",
+                              /*P*/ { NextAction("caster form") },
+                              /*A*/ {},
+                              /*C*/ {});
+    }
 };
 
 FeralDruidStrategy::FeralDruidStrategy(PlayerbotAI* botAI) : GenericDruidStrategy(botAI)
@@ -110,4 +137,10 @@ void FeralDruidStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
                                        { NextAction("dash", ACTION_EMERGENCY + 2) }));
     triggers.push_back(
         new TriggerNode("berserk", { NextAction("berserk", ACTION_HIGH + 6) }));
+
+    // Self-heal window for feral: only leave cat form if we will actually cast a heal
+    triggers.push_back(new TriggerNode("low health",
+                                       { NextAction("regrowth self", ACTION_EMERGENCY + 2),
+                                         NextAction("rejuvenation self", ACTION_EMERGENCY + 1),
+                                         NextAction("healing touch self", ACTION_EMERGENCY) }));
 }

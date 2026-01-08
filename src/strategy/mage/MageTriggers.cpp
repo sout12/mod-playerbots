@@ -232,3 +232,25 @@ bool FrostNovaPvPTrigger::IsActive()
     return false;
 }
 
+bool PolymorphOutnumberedTrigger::IsActive()
+{
+    if (!bot->InArena() && !bot->InBattleground())
+        return false;
+
+    uint8 enemies = AI_VALUE(uint8, "near enemy count");
+    uint8 allies = AI_VALUE(uint8, "near friend count");
+    if (enemies < 2 || enemies <= allies)
+        return false;
+
+    Unit* target = AI_VALUE(Unit*, "current target");
+    if (!target || !target->IsAlive())
+        return false;
+    if (!bot->IsWithinLOSInMap(target))
+        return false;
+    if (target->HasAuraType(SPELL_AURA_MOD_CONFUSE))
+        return false;
+    if (botAI->HasAura("ice block", target) || botAI->HasAura("divine shield", target) || botAI->HasAura("deterrence", target))
+        return false;
+
+    return bot->GetDistance(target) < 35.0f;
+}

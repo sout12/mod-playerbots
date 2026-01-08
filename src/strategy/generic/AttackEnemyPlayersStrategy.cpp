@@ -10,7 +10,7 @@
 void AttackEnemyPlayersStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
 {
     triggers.push_back(
-        new TriggerNode("pvp cc break", NextAction::array(0, new NextAction("use trinket", ACTION_EMERGENCY + 5), nullptr)));
+        new TriggerNode("pvp cc break", { NextAction("use trinket", ACTION_EMERGENCY + 5) }));
     triggers.push_back(new TriggerNode("enemy player near",
                                        { NextAction("attack enemy player", 55.0f) }));
 }

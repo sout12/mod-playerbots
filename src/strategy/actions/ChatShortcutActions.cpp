@@ -107,8 +107,10 @@ bool FollowChatShortcutAction::Execute(Event event)
             botAI->TellMaster("You are too far away from me! I will there soon.");
 
         bot->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TELEPORTED | AURA_INTERRUPT_FLAG_CHANGE_MAP);
-        bot->TeleportTo(master->GetMapId(), master->GetPositionX(), master->GetPositionY(), master->GetPositionZ(),
-    master->GetOrientation()); return true;
+        if (SafeTeleport(bot, master->GetMapId(), master->GetPositionX(), master->GetPositionY(), master->GetPositionZ(),
+                         master->GetOrientation(), "chat shortcut"))
+            return true;
+        return false;
     }
     */
 

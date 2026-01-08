@@ -237,6 +237,7 @@ void MageBoostStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
 void MageCcStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
 {
     triggers.push_back(new TriggerNode("polymorph", { NextAction("polymorph", 30.0f) }));
+    triggers.push_back(new TriggerNode("polymorph outnumbered", { NextAction("polymorph", ACTION_HIGH + 4) }));
 }
 
 void MageAoeStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)

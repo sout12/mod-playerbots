@@ -13,9 +13,11 @@ class ArenaOpenerStrategy : public Strategy
 public:
     ArenaOpenerStrategy(PlayerbotAI* botAI) : Strategy(botAI) {}
 
-    NextAction** getDefaultActions() override
+    std::vector<NextAction> getDefaultActions() override
     {
-        return NextAction::array(0, new NextAction("arena opener move", ACTION_EMERGENCY), nullptr);
+        return {
+            NextAction("arena opener move", ACTION_EMERGENCY)
+        };
     }
     std::string const getName() override { return "arena opener"; }
 };

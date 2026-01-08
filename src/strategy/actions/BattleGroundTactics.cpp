@@ -6845,40 +6845,68 @@ bool ArenaTactics::Execute(Event event)
 
     time_t nowGlobal = time(nullptr);
     Unit* target = bot->GetVictim();
-    if (target)
-    {
-        // If target is far, push closer to avoid idle ranged tunneling
-        float distToTarget = bot->GetDistance(target);
-        if (distToTarget > 25.0f)
+        if (target)
         {
-            MoveNear(target, 6.0f, MovementPriority::MOVEMENT_NORMAL);
-        }
-
-        // If target becomes immune or hard-CC'd, retarget
-        if (IsImmuneOrInvulnerable(target) || IsHardCC(target))
-        {
-            sLastDefensive[target->GetGUID().GetCounter()] = nowGlobal;
-            Unit* swap = AI_VALUE(Unit*, "enemy healer target");
-            if (!swap || swap == target)
-                swap = AI_VALUE(Unit*, "enemy player target");
-            if (swap && swap != target)
+            // If target is far, push closer to avoid idle ranged tunneling
+            float distToTarget = bot->GetDistance(target);
+            if (distToTarget > 25.0f)
             {
-                bot->SetTarget(swap->GetGUID());
-                target = swap;
-                ManagePetDiscipline(bot, target);
+                MoveNear(target, 6.0f, MovementPriority::MOVEMENT_NORMAL);
             }
-        }
 
-        bool losBlocked = !bot->IsWithinLOSInMap(target) || fabs(bot->GetPositionZ() - target->GetPositionZ()) > 5.0f;
+            // If target becomes immune or hard-CC'd, retarget
+            if (IsImmuneOrInvulnerable(target) || IsHardCC(target))
+            {
+                // Opportunity: if we're a druid (including balance) and the enemy is immune (ice block/bubble/etc.),
+                // use the downtime to top ourselves with faster heals instead of just waiting.
+                if (bot->getClass() == CLASS_DRUID && bot->IsInCombat())
+                {
+                    uint8 selfHp = AI_VALUE2(uint8, "health", "self target");
+                    bool healed = false;
+                    if (selfHp < 90)
+                        healed |= botAI->DoSpecificAction("rejuvenation", Event("arena self-heal"), true);
+                    if (selfHp < 85)
+                        healed |= botAI->DoSpecificAction("regrowth", Event("arena self-heal"), true);
+                    if (selfHp < 65)
+                        healed |= botAI->DoSpecificAction("healing touch", Event("arena self-heal"), true);
+                    if (healed)
+                        return true;
+                }
 
-        if (losBlocked)
-        {
-            // Hard chase toward target to break pillar/wall stalls (e.g., Ruins tomb)
-            if (bot->GetDistance(target) < 40.0f)
-                return MoveNear(target, 5.0f, MovementPriority::MOVEMENT_NORMAL);
+                sLastDefensive[target->GetGUID().GetCounter()] = nowGlobal;
+                Unit* swap = AI_VALUE(Unit*, "enemy healer target");
+                if (!swap || swap == target)
+                    swap = AI_VALUE(Unit*, "enemy player target");
+                if (swap && swap != target)
+                {
+                    bot->SetTarget(swap->GetGUID());
+                    target = swap;
+                    ManagePetDiscipline(bot, target);
+                }
+            }
 
-            PathGenerator path(bot);
-            path.CalculatePath(target->GetPositionX(), target->GetPositionY(), target->GetPositionZ(), false);
+            bool losBlocked = !bot->IsWithinLOSInMap(target) || fabs(bot->GetPositionZ() - target->GetPositionZ()) > 5.0f;
+
+            if (losBlocked)
+            {
+                // Hard chase toward target to break pillar/wall stalls (e.g., Ruins tomb)
+                if (bot->GetDistance(target) < 40.0f)
+                {
+                    if (MoveNear(target, 5.0f, MovementPriority::MOVEMENT_NORMAL))
+                        return true;
+
+                    // Fallback: try LOS-based move; if it still fails, push a direct move to the target spot.
+                    if (MoveToLOS(target, bot->getClass() == CLASS_HUNTER || bot->getClass() == CLASS_MAGE ||
+                                           bot->getClass() == CLASS_WARLOCK || bot->getClass() == CLASS_PRIEST ||
+                                           bot->getClass() == CLASS_SHAMAN || bot->getClass() == CLASS_DRUID))
+                        return true;
+
+                    return MoveTo(target->GetMapId(), target->GetPositionX(), target->GetPositionY(),
+                                  target->GetPositionZ(), false, true, false, true, MovementPriority::MOVEMENT_COMBAT);
+                }
+
+                PathGenerator path(bot);
+                path.CalculatePath(target->GetPositionX(), target->GetPositionY(), target->GetPositionZ(), false);
 
             if (path.GetPathType() != PATHFIND_NOPATH)
             {
@@ -7173,16 +7201,17 @@ bool ArenaTactics::moveToCenter(Battleground* bg)
         case BATTLEGROUND_DS:
             if (!MoveTo(bg->GetMapId(), 1291.58f + frand(-5, +5), 790.87f + frand(-5, +5), 7.8f, false, true))
             {
+                // If navmesh fails in sewers, fall back to direct move.
+                MoveTo(bg->GetMapId(), 1291.58f, 790.87f, 7.8f, false, true, false, true);
+
                 // they like to hang around at the tip of the pipes doing nothing, so we just teleport them down
                 if (bot->GetDistance(1333.07f, 817.18f, 13.35f) < 4)
                 {
-                    bot->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TELEPORTED | AURA_INTERRUPT_FLAG_CHANGE_MAP);
-                    bot->TeleportTo(bg->GetMapId(), 1330.96f, 816.75f, 3.2f, bot->GetOrientation());
+                    SafeTeleport(bot, bg->GetMapId(), 1330.96f, 816.75f, 3.2f, bot->GetOrientation(), "DS pipe rescue");
                 }
                 if (bot->GetDistance(1250.13f, 764.79f, 13.34f) < 4)
                 {
-                    bot->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TELEPORTED | AURA_INTERRUPT_FLAG_CHANGE_MAP);
-                    bot->TeleportTo(bg->GetMapId(), 1252.19f, 765.41f, 3.2f, bot->GetOrientation());
+                    SafeTeleport(bot, bg->GetMapId(), 1252.19f, 765.41f, 3.2f, bot->GetOrientation(), "DS pipe rescue");
                 }
             }
             break;

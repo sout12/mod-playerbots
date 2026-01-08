@@ -25,6 +25,10 @@
 #include "SpellAuras.h"
 #include "Util.h"
 #include "WorldPacket.h"
+#include "SharedDefines.h"
+#include "ServerFacade.h"
+#include "TravelMgr.h"
+#include "Value.h"
 
 class AiObjectContext;
 class Creature;
@@ -40,6 +44,31 @@ class SpellInfo;
 class Unit;
 class WorldObject;
 class WorldPosition;
+
+// SafeTeleport helper to avoid invalid map/Z teleports that can stall or crash bots
+inline bool SafeTeleport(Player* bot, uint32 mapId, float x, float y, float z, float o = 0.0f, const char* reason = "")
+{
+    if (!bot)
+        return false;
+
+    if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z))
+    {
+        LOG_ERROR("playerbots", "[SafeTeleport] Aborted for {}: non-finite coords ({},{},{}) map {}", bot->GetName(),
+                  x, y, z, mapId);
+        return false;
+    }
+
+    // Reject obviously bogus heights (e.g., -200000) that come from bad path data
+    if (z < -5000.0f || z > 5000.0f)
+    {
+        LOG_ERROR("playerbots", "[SafeTeleport] Aborted for {}: invalid Z {} at ({}, {}) map {} reason {}", bot->GetName(),
+                  z, x, y, mapId, reason ? reason : "");
+        return false;
+    }
+
+    bot->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TELEPORTED | AURA_INTERRUPT_FLAG_CHANGE_MAP);
+    return bot->TeleportTo(mapId, x, y, z, o);
+}
 
 struct CreatureData;
 struct GameObjectData;

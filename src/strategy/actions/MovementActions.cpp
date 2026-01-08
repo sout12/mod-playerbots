@@ -120,6 +120,19 @@ bool MovementAction::MoveNear(WorldObject* target, float distance, MovementPrior
             return true;
     }
 
+    // Arena fallback: if LOS-based slots fail, try to move toward a LOS position or directly to the target.
+    if (bot->InArena() && target->GetMap() && target->GetMap()->IsBattleArena())
+    {
+        bool isRanged = bot->getClass() == CLASS_MAGE || bot->getClass() == CLASS_WARLOCK ||
+                        bot->getClass() == CLASS_HUNTER || bot->getClass() == CLASS_PRIEST ||
+                        bot->getClass() == CLASS_SHAMAN || bot->getClass() == CLASS_DRUID;
+        if (MoveToLOS(target, isRanged))
+            return true;
+
+        return MoveTo(target->GetMapId(), target->GetPositionX(), target->GetPositionY(), target->GetPositionZ(),
+                      false, false, false, true, priority);
+    }
+
     // botAI->TellError("All paths not in LOS");
     return false;
 }

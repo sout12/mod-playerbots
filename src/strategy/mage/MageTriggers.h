@@ -192,6 +192,14 @@ public:
     }
 };
 
+class PolymorphOutnumberedTrigger : public Trigger
+{
+public:
+    PolymorphOutnumberedTrigger(PlayerbotAI* botAI) : Trigger(botAI, "polymorph outnumbered", 3) {}
+
+    bool IsActive() override;
+};
+
 class RemoveCurseTrigger : public NeedCureTrigger
 {
 public:

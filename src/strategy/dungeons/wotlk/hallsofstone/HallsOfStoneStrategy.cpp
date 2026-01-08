@@ -14,7 +14,7 @@ void WotlkDungeonHoSStrategy::InitTriggers(std::vector<TriggerNode*> &triggers)
     // Tribunal of Ages (Brann Escort Event)
     // Fire beams from statues during escort - bots need to move out quickly
     triggers.push_back(new TriggerNode("tribunal fire beam",
-        NextAction::array(0, new NextAction("avoid tribunal fire beam", ACTION_EMERGENCY), nullptr)));
+        { NextAction("avoid tribunal fire beam", ACTION_EMERGENCY) }));
 
     // Sjonnir The Ironshaper
     // Possibly tank in place in the middle of the room, assign a dps to adds?

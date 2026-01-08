@@ -254,7 +254,7 @@ bool BGJoinAction::gatherArenaTeam(ArenaType type)
 
         memberBotAI->Reset();
         member->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TELEPORTED | AURA_INTERRUPT_FLAG_CHANGE_MAP);
-        member->TeleportTo(bot->GetMapId(), bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ(), 0);
+        SafeTeleport(member, bot->GetMapId(), bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ(), 0, "join bg");
 
         LOG_INFO("playerbots", "Bot {} <{}>: Member of <{}>", member->GetGUID().ToString().c_str(),
                  member->GetName().c_str(), arenateam->GetName().c_str());
