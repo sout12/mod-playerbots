@@ -19,7 +19,7 @@
 
 #include "Common.h"
 
-void split(std::vector<std::string>& dest, std::string const str, char const* delim)
+inline void split(std::vector<std::string>& dest, std::string const str, char const* delim)
 {
     char* pTempStr = strdup(str.c_str());
     char* pWord = strtok(pTempStr, delim);
@@ -33,7 +33,7 @@ void split(std::vector<std::string>& dest, std::string const str, char const* de
     free(pTempStr);
 }
 
-std::vector<std::string>& split(std::string const s, char delim, std::vector<std::string>& elems)
+inline std::vector<std::string>& split(std::string const s, char delim, std::vector<std::string>& elems)
 {
     std::stringstream ss(s);
     std::string item;
@@ -46,10 +46,19 @@ std::vector<std::string>& split(std::string const s, char delim, std::vector<std
     return elems;
 }
 
-std::vector<std::string> split(std::string const s, char delim)
+inline std::vector<std::string> split(std::string const s, char delim)
 {
     std::vector<std::string> elems;
     return split(s, delim, elems);
 }
+
+// Forward declarations
+class Player;
+class Unit;
+
+// Helper functions for bot operations
+void SafeTeleport(Player* player, uint32 mapId, float x, float y, float z, float orientation, std::string const& reason = "");
+bool IsValidUnit(Unit* unit);
+bool IsValidPlayer(Player* player);
 
 #endif

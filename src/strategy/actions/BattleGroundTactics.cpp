@@ -35,6 +35,7 @@
 #include "PvpTriggers.h"
 #include "ServerFacade.h"
 #include "UseItemAction.h"
+#include "Helpers.h"
 #include "../values/ArenaOpenerValue.h"
 #include "Vehicle.h"
 #include "World.h"
@@ -8800,3 +8801,4 @@ uint8 BGTactics::GetAlliesAtNode(uint32 nodeId, Position nodePos)
 {
     return CountAlliesNearPosition(nodePos, 40.0f);
 }
+

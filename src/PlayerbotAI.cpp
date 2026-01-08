@@ -15,6 +15,7 @@
 #include "ChannelMgr.h"
 #include "CharacterPackets.h"
 #include "ChatHelper.h"
+#include "Helpers.h"
 #include "Common.h"
 #include "CreatureAIImpl.h"
 #include "CreatureData.h"

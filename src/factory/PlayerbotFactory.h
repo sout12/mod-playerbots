@@ -92,8 +92,6 @@ private:
     // void InitEquipmentNew(bool incremental);
     bool CanEquipItem(ItemTemplate const* proto);
     bool CanEquipUnseenItem(uint8 slot, uint16& dest, uint32 item);
-    void EnsurePvpResilienceOutfit();
-    void EnsureStarterOutfitIfEmpty();
     void InitTradeSkills();
     void UpdateTradeSkills();
     void SetRandomSkill(uint16 id);

@@ -19,6 +19,7 @@
 #include "RandomPlayerbotMgr.h"
 #include "WorldSession.h"
 #include "WorldSessionMgr.h"
+#include "Helpers.h"
 
 // Group invite operation
 class GroupInviteOperation : public PlayerbotOperation

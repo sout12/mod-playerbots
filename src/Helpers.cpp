@@ -47,4 +47,27 @@ std::string& rtrim(std::string& s)
     return s;
 }
 
+
 std::string& trim(std::string& s) { return ltrim(rtrim(s)); }
+
+#include "Player.h"
+#include "Unit.h"
+
+void SafeTeleport(Player* player, uint32 mapId, float x, float y, float z, float orientation, std::string const& reason)
+{
+    if (!player)
+        return;
+
+    player->TeleportTo(mapId, x, y, z, orientation);
+}
+
+bool IsValidUnit(Unit* unit)
+{
+    return unit && unit->IsInWorld() && unit->IsAlive();
+}
+
+bool IsValidPlayer(Player* player)
+{
+    return player && player->IsInWorld() && player->IsAlive();
+}
+

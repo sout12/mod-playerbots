@@ -14,6 +14,7 @@
 #include "ServerFacade.h"
 #include "Corpse.h"
 #include "Log.h"
+#include "Helpers.h"
 
 // ReleaseSpiritAction implementation
 bool ReleaseSpiritAction::Execute(Event event)
